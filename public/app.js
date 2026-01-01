@@ -1274,8 +1274,12 @@ async function openFabbisognoModal(date) {
     const response = await authenticatedFetch(`${API_URL}/orders/date/${dateToUse}`);
     const allOrders = await response.json();
     
-    // TUTTI gli ordini del giorno (non filtrare per stato!)
-    renderFabbisogno(allOrders);
+    // Filtra solo ordini da preparare e pronti (escludi ritirati)
+    const activeOrders = allOrders.filter(order => 
+      order.status === 'da_preparare' || order.status === 'pronto'
+    );
+    
+    renderFabbisogno(activeOrders, allOrders.length);
     document.getElementById('modal-fabbisogno').classList.add('active');
   } catch (error) {
     console.error('Errore caricamento fabbisogno:', error);
@@ -1284,20 +1288,39 @@ async function openFabbisognoModal(date) {
 }
 
 // Renderizza fabbisogno
-function renderFabbisogno(orders) {
+function renderFabbisogno(orders, totalOrders = 0) {
   const fabbisognoList = document.getElementById('fabbisogno-list');
   const fabbisognoEmpty = document.getElementById('fabbisogno-empty');
   
   fabbisognoList.innerHTML = '';
   
+  // Se non ci sono ordini attivi (da preparare o pronti)
   if (orders.length === 0) {
     fabbisognoEmpty.style.display = 'block';
     fabbisognoList.style.display = 'none';
+    
+    // Aggiorna messaggio in base al contesto
+    const emptyP = fabbisognoEmpty.querySelector('p:first-child');
+    const emptySubtitle = fabbisognoEmpty.querySelector('.empty-subtitle');
+    
+    if (totalOrders === 0) {
+      emptyP.textContent = '📭 Nessun ordine per questo giorno';
+      emptySubtitle.textContent = '';
+    } else {
+      emptyP.textContent = '✅ Tutti gli ordini completati';
+      emptySubtitle.textContent = 'Tutti gli ordini sono stati ritirati';
+    }
     return;
   }
   
   fabbisognoEmpty.style.display = 'none';
   fabbisognoList.style.display = 'flex';
+  
+  // Aggiorna titolo con conteggio
+  const daPreparare = orders.filter(o => o.status === 'da_preparare').length;
+  const pronti = orders.filter(o => o.status === 'pronto').length;
+  const title = document.getElementById('fabbisogno-title');
+  title.innerHTML = `Fabbisogno del giorno <span style="color: var(--color-primary); font-weight: 700;">(${daPreparare} da prep. • ${pronti} pronti)</span>`;
   
   // Ordina per: 
   // 1. Stato (da_preparare prima, poi pronto, poi ritirato)
