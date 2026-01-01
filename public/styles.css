@@ -718,15 +718,15 @@ body {
 }
 
 .form-group {
-  margin-bottom: 0.6rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--color-primary);
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -735,12 +735,12 @@ body {
 .form-group textarea,
 .form-group select {
   width: 100%;
-  padding: 0.4rem 0.6rem;
+  padding: 0.75rem 1rem;
   border: 2px solid rgba(139, 193, 135, 0.3);
-  border-radius: 8px;
-  font-size: 0.85rem;
+  border-radius: 12px;
+  font-size: 1rem;
   background: white;
-  transition: all 0.2s;
+  transition: all 0.3s;
   font-family: inherit;
 }
 
@@ -749,19 +749,45 @@ body {
 .form-group select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(139, 193, 135, 0.15);
-  background: rgba(139, 193, 135, 0.02);
+  box-shadow: 0 0 0 4px rgba(139, 193, 135, 0.2);
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 50px;
-  line-height: 1.4;
+  min-height: 150px;
+  line-height: 1.6;
+  font-size: 1.05rem;
+}
+
+/* Campo descrizione ancora più grande per copia-incolla comodo */
+#order-description {
+  min-height: 200px;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
 .form-group select {
   background: white;
   cursor: pointer;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+/* Campi input più leggibili */
+#order-customer,
+#order-delivery-address {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+/* Bottoni form più grandi e comodi */
+.modal-order button[type="submit"],
+.modal-order button[type="button"] {
+  padding: 0.9rem 1.5rem;
+  font-size: 1.05rem;
+  min-height: 50px;
 }
 
 /* Form row per layout compatto */
