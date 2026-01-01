@@ -2,16 +2,15 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// SVG dell'icona (fiore emoji su sfondo verde)
-const svgIcon = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#4CAF50" rx="80"/>
-  <text x="256" y="340" font-family="Arial, sans-serif" font-size="280" text-anchor="middle">🌸</text>
-</svg>
-`;
-
 async function generateIcons() {
-  console.log('🎨 Generazione icone PWA...\n');
+  console.log('🎨 Generazione icone PWA dal logo LombardaFlor...\n');
+  
+  const logoPath = path.join(__dirname, 'public', 'logo.png');
+  
+  if (!fs.existsSync(logoPath)) {
+    console.error('❌ Logo non trovato:', logoPath);
+    return;
+  }
   
   const sizes = [192, 512];
   
@@ -19,8 +18,12 @@ async function generateIcons() {
     try {
       const outputPath = path.join(__dirname, 'public', `icon-${size}.png`);
       
-      await sharp(Buffer.from(svgIcon))
-        .resize(size, size)
+      // Leggi il logo e crea icona con sfondo bianco
+      await sharp(logoPath)
+        .resize(size, size, {
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        })
         .png()
         .toFile(outputPath);
       
@@ -30,7 +33,7 @@ async function generateIcons() {
     }
   }
   
-  console.log('\n✅ Icone generate con successo!');
+  console.log('\n✅ Icone PWA LombardaFlor generate con successo!');
 }
 
 generateIcons();
