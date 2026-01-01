@@ -202,7 +202,7 @@ app.get('/api/orders/:id', authenticate, (req, res) => {
 });
 
 // POST /api/orders - Crea nuovo ordine
-app.post('/api/orders', authenticate, (req, res) => {
+app.post('/api/orders', authenticate, async (req, res) => {
   try {
     const {
       date,
@@ -233,6 +233,17 @@ app.post('/api/orders', authenticate, (req, res) => {
     };
     
     const order = db.createOrder(orderData, req.user.username);
+    
+    // Invia notifica a tutti
+    const deliveryInfo = delivery_type === 'consegna' && delivery_time 
+      ? ` - Consegna ore ${delivery_time}`
+      : '';
+    await sendNotificationToAll(
+      '📦 Nuovo Ordine',
+      `${customer} - ${date}${deliveryInfo}`,
+      'new-order'
+    );
+    
     res.status(201).json(order);
   } catch (error) {
     console.error('Errore creazione ordine:', error);
@@ -274,7 +285,7 @@ app.delete('/api/photos/:filename', authenticate, (req, res) => {
 });
 
 // PUT /api/orders/:id - Aggiorna ordine completo
-app.put('/api/orders/:id', authenticate, (req, res) => {
+app.put('/api/orders/:id', authenticate, async (req, res) => {
   try {
     const {
       customer,
@@ -311,6 +322,13 @@ app.put('/api/orders/:id', authenticate, (req, res) => {
     
     const order = db.updateOrder(req.params.id, orderData, req.user.username);
     if (order) {
+      // Invia notifica modifica
+      await sendNotificationToAll(
+        '✏️ Ordine Modificato',
+        `${customer} - aggiornato`,
+        'order-update'
+      );
+      
       res.json(order);
     } else {
       res.status(404).json({ error: 'Ordine non trovato' });
@@ -322,7 +340,7 @@ app.put('/api/orders/:id', authenticate, (req, res) => {
 });
 
 // PATCH /api/orders/:id/status - Aggiorna solo lo stato
-app.patch('/api/orders/:id/status', authenticate, (req, res) => {
+app.patch('/api/orders/:id/status', authenticate, async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -337,6 +355,21 @@ app.patch('/api/orders/:id/status', authenticate, (req, res) => {
     
     const order = db.updateOrderStatus(req.params.id, status, req.user.username);
     if (order) {
+      // Invia notifica in base allo stato
+      if (status === 'pronto') {
+        await sendNotificationToAll(
+          '✅ Ordine Pronto',
+          `${order.customer} - pronto per il ritiro`,
+          'order-ready'
+        );
+      } else if (status === 'ritirato') {
+        await sendNotificationToAll(
+          '🎉 Ordine Ritirato',
+          `${order.customer} - ritirato`,
+          'order-completed'
+        );
+      }
+      
       res.json(order);
     } else {
       res.status(404).json({ error: 'Ordine non trovato' });
@@ -490,6 +523,38 @@ async function sendTestNotification(username) {
   }
 }
 
+// Funzione generica per inviare notifiche a tutti
+async function sendNotificationToAll(title, body, tag = 'order-update') {
+  try {
+    const payload = JSON.stringify({
+      title,
+      body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag,
+      requireInteraction: false
+    });
+    
+    const allSubs = db.getAllSubscriptions();
+    let sent = 0;
+    
+    for (const sub of allSubs) {
+      try {
+        await webpush.sendNotification(sub.subscription, payload);
+        sent++;
+      } catch (error) {
+        if (error.statusCode === 410 || error.statusCode === 404) {
+          db.deleteSubscription(sub.subscription.endpoint);
+        }
+      }
+    }
+    
+    console.log(`📬 Notifica "${title}" inviata a ${sent} utenti`);
+  } catch (error) {
+    console.error('Errore invio notifica:', error);
+  }
+}
+
 // Funzione per inviare notifiche giornaliere
 async function sendDailyNotifications() {
   try {
@@ -535,7 +600,7 @@ async function sendDailyNotifications() {
       }
     }
     
-    console.log(`📬 Notifiche inviate a ${sent} utenti`);
+    console.log(`📬 Notifiche giornaliere inviate a ${sent} utenti`);
   } catch (error) {
     console.error('Errore notifiche:', error);
   }

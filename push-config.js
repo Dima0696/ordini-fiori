@@ -6,8 +6,8 @@ module.exports = {
   },
   // Orario notifica giornaliera (formato 24h)
   notificationTime: {
-    hour: 7,
-    minute: 0
+    hour: 6,
+    minute: 30
   }
 };
 
