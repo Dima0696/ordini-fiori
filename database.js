@@ -74,6 +74,16 @@ const initDb = () => {
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
   
+  // Crea indici per performance
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(date)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_date_status ON orders(date, status)');
+    console.log('✓ Indici database creati per performance');
+  } catch (error) {
+    console.log('⚠️ Indici già esistenti');
+  }
+  
   // Migrazione schema: aggiungi colonne mancanti alla tabella orders esistente
   const columnsToAdd = [
     { name: 'order_type', type: 'TEXT DEFAULT "cliente"' },

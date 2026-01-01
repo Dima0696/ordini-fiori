@@ -68,14 +68,14 @@ async function initializeApp() {
   startAutoRefresh();
 }
 
-// Auto-refresh ogni 1 minuto
+// Auto-refresh ogni 3 minuti
 function startAutoRefresh() {
   // Pulisci intervallo esistente
   if (autoRefreshInterval) {
     clearInterval(autoRefreshInterval);
   }
   
-  // Auto-refresh ogni 1 minuto (60000 ms)
+  // Auto-refresh ogni 3 minuti (180000 ms) - ottimizzato per performance
   autoRefreshInterval = setInterval(() => {
     const currentPage = document.querySelector('.page.active');
     if (currentPage.id === 'page-calendar') {
@@ -83,9 +83,9 @@ function startAutoRefresh() {
     } else if (currentPage.id === 'page-orders') {
       autoRefreshOrders();
     }
-  }, 60000); // 1 minuto
+  }, 180000); // 3 minuti
   
-  console.log('⏰ Auto-refresh attivo: ogni 1 minuto');
+  console.log('⏰ Auto-refresh attivo: ogni 3 minuti');
 }
 
 // Refresh manuale
