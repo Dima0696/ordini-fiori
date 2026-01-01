@@ -27,6 +27,14 @@ const initDb = () => {
       customer TEXT NOT NULL,
       description TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'da_preparare',
+      order_type TEXT DEFAULT 'cliente',
+      delivery_type TEXT DEFAULT 'ritiro',
+      delivery_time TEXT,
+      delivery_address TEXT,
+      goods_type TEXT DEFAULT 'in_cella',
+      photos TEXT,
+      created_by TEXT,
+      updated_by TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
