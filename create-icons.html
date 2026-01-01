@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Genera Icone PWA</title>
+</head>
+<body>
+  <h1>Generazione Icone PWA</h1>
+  <canvas id="canvas192" width="192" height="192"></canvas>
+  <canvas id="canvas512" width="512" height="512"></canvas>
+  <br><br>
+  <button onclick="downloadIcons()">Scarica Icone</button>
+  
+  <script>
+    function createIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      
+      // Sfondo verde
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Emoji fiore
+      ctx.font = `${size * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🌸', size / 2, size / 2);
+    }
+    
+    createIcon(document.getElementById('canvas192'), 192);
+    createIcon(document.getElementById('canvas512'), 512);
+    
+    function downloadIcons() {
+      ['192', '512'].forEach(size => {
+        const canvas = document.getElementById('canvas' + size);
+        const link = document.createElement('a');
+        link.download = `icon-${size}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+      alert('Icone scaricate! Spostale nella cartella public/');
+    }
+  </script>
+</body>
+</html>

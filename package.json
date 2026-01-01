@@ -1,0 +1,29 @@
+{
+  "name": "ordini-fiori",
+  "version": "1.0.0",
+  "description": "Web app mobile-first per gestione ordini fiori all'ingrosso",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "generate-icons": "node generate-icons.js",
+    "test-data": "node test-data.js"
+  },
+  "keywords": [
+    "ordini",
+    "fiori",
+    "mobile",
+    "pwa"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "web-push": "^3.6.7"
+  }
+}
+

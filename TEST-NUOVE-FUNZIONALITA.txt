@@ -1,0 +1,116 @@
+════════════════════════════════════════════════════════════════
+  🧪 TEST NUOVE FUNZIONALITÀ - Ordini Fiori v2.0
+════════════════════════════════════════════════════════════════
+
+📋 CHECKLIST TEST
+
+[ ] 1. DESIGN GLASSMORPHISM
+    → Apri http://192.168.178.67:3000
+    → Verifica sfondo gradiente
+    → Verifica effetto glass sulle card
+    → Verifica transizioni smooth
+
+[ ] 2. TIPO ORDINE
+    → Nuovo ordine
+    → Seleziona "WhatsApp"
+    → Verifica badge verde nella card
+
+[ ] 3. TIPO MERCE
+    → Nuovo ordine
+    → Seleziona "Da ordinare"
+    → Verifica badge arancione
+
+[ ] 4. RITIRO/CONSEGNA
+    → Nuovo ordine
+    → Tocca "Consegna"
+    → Verifica campo indirizzo appare
+    → Inserisci indirizzo
+    → Salva
+
+[ ] 5. UPLOAD FOTO
+    → Nuovo ordine
+    → Tocca "📷 Aggiungi foto"
+    → Seleziona 2-3 foto
+    → Verifica anteprima appare
+    → Rimuovi una foto (tocca ×)
+    → Salva ordine
+    → Verifica thumbnail in card
+
+[ ] 6. FABBISOGNO
+    → Apri giorno con ordini "da preparare"
+    → Tocca "📋 Fabbisogno giorno"
+    → Verifica:
+        - Legenda colori in alto
+        - Ordini "da ordinare" arancioni
+        - Ordini "in cella" verdi
+        - Ordinamento corretto
+
+[ ] 7. FORM COMPLETO
+    → Modifica ordine esistente
+    → Verifica tutti i nuovi campi caricano
+    → Cambia valori
+    → Salva
+    → Verifica modifiche applicate
+
+════════════════════════════════════════════════════════════════
+
+🎯 SCENARIO COMPLETO TEST
+
+1. CREA ORDINE WHATSAPP CON FOTO E CONSEGNA
+   ├─ Nuovo ordine
+   ├─ Cliente: "Fioreria Test"
+   ├─ Descrizione: "10 rose rosse, 5 gigli bianchi"
+   ├─ Tipo: WhatsApp
+   ├─ Merce: Da ordinare
+   ├─ Modalità: Consegna
+   ├─ Orario: 15:30
+   ├─ Indirizzo: "Via Roma 123, Milano"
+   ├─ Aggiungi 2 foto
+   └─ Salva
+
+2. VERIFICA CARD ORDINE
+   ✓ Badge verde "💬 WhatsApp"
+   ✓ Badge arancione "📝 Da ordinare"
+   ✓ Badge blu "🚚 Consegna"
+   ✓ Badge orario "🕐 15:30"
+   ✓ Badge indirizzo "📍 Via Roma 123..."
+   ✓ 2 foto thumbnail
+
+3. APRI FABBISOGNO
+   ✓ Ordine appare IN ALTO (arancione = priorità)
+   ✓ Badge "Da ordinare"
+   ✓ Info complete visibili
+
+4. CAMBIA STATO
+   ├─ Tocca "✓ Pronto"
+   └─ Verifica ordine NON appare più in fabbisogno
+
+5. ELIMINA ORDINE
+   ├─ Modifica ordine
+   ├─ Tocca "🗑️ Elimina ordine"
+   ├─ Conferma
+   └─ Verifica foto eliminate da server
+
+════════════════════════════════════════════════════════════════
+
+💡 TIPS TEST
+
+• Testa da telefono per vedere layout mobile-first
+• Prova upload foto grandi (vicino a 10MB)
+• Crea ordini con/senza foto
+• Testa mix ordini "in cella" e "da ordinare"
+• Verifica responsività su diversi dispositivi
+
+════════════════════════════════════════════════════════════════
+
+✅ RISULTATO ATTESO
+
+Tutte le funzionalità devono:
+✓ Funzionare senza errori
+✓ Avere design glassmorphism
+✓ Mostrare badge colorati corretti
+✓ Upload foto senza problemi
+✓ Fabbisogno ordinato correttamente
+✓ Essere veloce e fluido
+
+════════════════════════════════════════════════════════════════

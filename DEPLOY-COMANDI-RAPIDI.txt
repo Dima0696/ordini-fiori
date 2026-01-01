@@ -1,0 +1,50 @@
+🚀 COMANDI RAPIDI PER DEPLOY SU RAILWAY
+========================================
+
+📝 PRIMA VOLTA - Carica su GitHub:
+-----------------------------------
+git init
+git add .
+git commit -m "Deploy ready: ordini fiori app"
+git remote add origin https://github.com/TUO-USERNAME/ordini-fiori.git
+git push -u origin main
+
+⚠️ Sostituisci TUO-USERNAME con il tuo username GitHub!
+
+
+🔄 AGGIORNAMENTI FUTURI:
+------------------------
+git add .
+git commit -m "Descrizione modifiche"
+git push
+
+→ Railway fa il redeploy automatico!
+
+
+⚙️ CONFIGURAZIONE RAILWAY (da fare una sola volta):
+---------------------------------------------------
+
+1. Crea progetto da GitHub repo "ordini-fiori"
+
+2. Aggiungi variabile d'ambiente:
+   DATABASE_PATH=/data
+
+3. Crea Volume:
+   - Nome: ordini-data
+   - Mount su: /data
+
+4. Genera dominio pubblico in Settings > Networking
+
+
+📱 URL FINALE:
+--------------
+https://ordini-fiori-production-XXXX.up.railway.app
+
+
+📖 GUIDA COMPLETA:
+------------------
+Leggi: DEPLOY-RAILWAY.md
+
+
+🎉 Fatto!
+

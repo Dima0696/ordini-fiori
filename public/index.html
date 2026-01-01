@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LombardaFlor Orders">
+  <title>LombardaFlor Orders</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="pull-to-refresh-styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  
+  <!-- PAGINA LOGIN -->
+  <div id="page-login" class="page active">
+    <div class="login-container">
+      <div class="login-card">
+        <img src="logo.png" alt="LombardaFlor" class="login-logo">
+        <h1>LombardaFlor Orders</h1>
+        <p class="login-subtitle">Accedi per continuare</p>
+        
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">Utente</label>
+            <select id="login-username" required>
+              <option value="">Seleziona utente</option>
+              <option value="Massimo">Massimo</option>
+              <option value="Gianluca">Gianluca</option>
+              <option value="Gigi">Gigi</option>
+              <option value="Carlo">Carlo</option>
+              <option value="Dimitri">Dimitri</option>
+              <option value="Federica">Federica</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Inserisci password" required>
+          </div>
+          
+          <div id="login-error" class="login-error" style="display: none;"></div>
+          
+          <button type="submit" class="btn-primary btn-large">🔐 Accedi</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- PAGINA CALENDARIO -->
+  <div id="page-calendar" class="page">
+    <header class="app-header">
+      <div class="app-header-content">
+        <img src="logo.png" alt="LombardaFlor" class="app-logo">
+        <div class="app-title-wrapper">
+          <h1>LombardaFlor Orders</h1>
+        </div>
+        <button id="btn-notifications" class="btn-notification" title="Attiva notifiche">🔔</button>
+        <button id="btn-logout" class="btn-logout">
+          <span id="username-display"></span> ↪
+        </button>
+      </div>
+    </header>
+    
+    <!-- Pull to refresh indicator -->
+    <div id="pull-refresh-indicator-calendar" class="pull-refresh-indicator">
+      <div class="pull-refresh-spinner"></div>
+      <span class="pull-refresh-text">Aggiornamento...</span>
+    </div>
+    
+    <div class="calendar-container">
+      <div class="quick-actions">
+        <button id="btn-today-orders" class="btn-today">
+          📅 Ordini di OGGI
+        </button>
+      </div>
+      
+      <div class="month-selector">
+        <button id="prev-month" class="btn-month">←</button>
+        <h2 id="current-month">Gennaio 2025</h2>
+        <button id="next-month" class="btn-month">→</button>
+      </div>
+      
+      <div id="days-list" class="days-list">
+        <!-- Giorni generati dinamicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGINA ORDINI DEL GIORNO -->
+  <div id="page-orders" class="page">
+    <header class="app-header">
+      <div class="app-header-content">
+        <button id="btn-back" class="btn-back">← Calendario</button>
+        <h1 id="orders-date-title" class="orders-title">Ordini del giorno</h1>
+        <button id="btn-notifications-orders" class="btn-notification" title="Attiva notifiche">🔔</button>
+        <button id="btn-logout-orders" class="btn-logout">
+          <span id="username-display-orders"></span> ↪
+        </button>
+      </div>
+    </header>
+    
+    <!-- Pull to refresh indicator -->
+    <div id="pull-refresh-indicator-orders" class="pull-refresh-indicator">
+      <div class="pull-refresh-spinner"></div>
+      <span class="pull-refresh-text">Aggiornamento...</span>
+    </div>
+    
+    <div class="orders-container">
+      <div class="order-actions-top">
+        <button id="btn-new-order" class="btn-primary btn-large">➕ Nuovo ordine</button>
+        <button id="btn-fabbisogno" class="btn-secondary btn-large">📋 Fabbisogno giorno</button>
+      </div>
+      
+      <div id="orders-list" class="orders-list">
+        <!-- Ordini generati dinamicamente -->
+      </div>
+      
+      <div id="empty-message" class="empty-message" style="display: none;">
+        <p>📦 Nessun ordine per questo giorno</p>
+        <p class="empty-subtitle">Tocca "Nuovo ordine" per iniziare</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NUOVO ORDINE / MODIFICA ORDINE -->
+  <div id="modal-order" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Nuovo ordine</h2>
+        <button id="btn-close-modal" class="btn-close">✕</button>
+      </div>
+      
+      <form id="order-form">
+        <input type="hidden" id="order-id">
+        
+        <!-- ROW 1: Data e Cliente -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="order-date">📅 Data</label>
+            <input type="date" id="order-date" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="order-customer">👤 Cliente</label>
+            <input type="text" id="order-customer" placeholder="Fioreria Rossi" required>
+          </div>
+        </div>
+        
+        <!-- ROW 2: Descrizione (full width) -->
+        <div class="form-group">
+          <label for="order-description">📝 Merce</label>
+          <textarea id="order-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
+        </div>
+        
+        <!-- ROW 3: Tipo Ordine e Tipo Merce -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="order-type">📞 Ricevuto via</label>
+            <select id="order-type">
+              <option value="cliente">👤 Cliente</option>
+              <option value="whatsapp">💬 WhatsApp</option>
+              <option value="mail">📧 Email</option>
+              <option value="telefono">📞 Telefono</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="goods-type">
+              📦 Disponibilità
+              <span id="goods-type-info" style="display: none; font-size: 0.7rem; color: #999; font-weight: normal; text-transform: none;">
+                (solo magazzino)
+              </span>
+            </label>
+            <select id="goods-type">
+              <option value="in_cella">✅ In giacenza</option>
+              <option value="da_ordinare">🔴 Da ordinare</option>
+              <option value="ordinata">🟠 Ordinata</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- ROW 4: Modalità Consegna -->
+        <div class="form-group">
+          <label for="delivery-type">🚚 Modalità</label>
+          <div class="delivery-buttons">
+            <button type="button" class="btn-delivery active" data-delivery="ritiro">📦 Ritiro</button>
+            <button type="button" class="btn-delivery" data-delivery="consegna">🚚 Consegna</button>
+          </div>
+          <input type="hidden" id="delivery-type" value="ritiro">
+        </div>
+        
+        <!-- ROW 5: Orario e Indirizzo (condizionale) -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="delivery-time">🕐 Orario</label>
+            <input type="time" id="delivery-time">
+          </div>
+          
+          <div class="form-group" id="address-group" style="display: none;">
+            <label for="delivery-address">📍 Indirizzo</label>
+            <input type="text" id="delivery-address" placeholder="Via, città">
+          </div>
+        </div>
+        
+        <!-- ROW 6: Foto -->
+        <div class="form-group">
+          <label>📷 Foto</label>
+          <input type="file" id="photo-input" accept="image/*" multiple style="display: none;">
+          <button type="button" id="btn-add-photo" class="btn-secondary btn-compact">📷 Aggiungi foto</button>
+          <div id="photo-preview" class="photo-preview"></div>
+        </div>
+        
+        <!-- ROW 7: Stato (solo in modifica) -->
+        <div class="form-group" id="status-group" style="display: none;">
+          <label>🎯 Stato Ordine</label>
+          <div class="status-buttons">
+            <button type="button" class="btn-status" data-status="da_preparare">📋 Da preparare</button>
+            <button type="button" class="btn-status" data-status="pronto">✅ Pronto</button>
+            <button type="button" class="btn-status" data-status="ritirato">🎉 Ritirato</button>
+          </div>
+          <input type="hidden" id="order-status" value="da_preparare">
+        </div>
+        
+        <!-- AZIONI -->
+        <div class="form-actions">
+          <button type="submit" class="btn-primary btn-large">💾 Salva Ordine</button>
+          <button type="button" id="btn-delete-order" class="btn-danger btn-compact" style="display: none;">
+            🗑️ Elimina
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CONFERMA ELIMINAZIONE -->
+  <div id="modal-confirm" class="modal">
+    <div class="modal-content modal-small">
+      <h3>Conferma eliminazione</h3>
+      <p>Sei sicuro di voler eliminare questo ordine?</p>
+      <div class="modal-actions">
+        <button id="btn-confirm-delete" class="btn-danger">Elimina</button>
+        <button id="btn-cancel-delete" class="btn-secondary">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FABBISOGNO -->
+  <div id="modal-fabbisogno" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="fabbisogno-title">Fabbisogno del giorno</h2>
+        <button id="btn-close-fabbisogno" class="btn-close">✕</button>
+      </div>
+      
+      <div class="fabbisogno-container">
+        <div class="fabbisogno-legend">
+          <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text);">Tipo Merce:</div>
+          <span class="legend-item"><span class="legend-dot in-cella"></span> In giacenza</span>
+          <span class="legend-item"><span class="legend-dot da-ordinare"></span> Da ordinare</span>
+          <span class="legend-item"><span class="legend-dot ordinata"></span> Ordinata</span>
+        </div>
+        
+        <div id="fabbisogno-list" class="fabbisogno-list">
+          <!-- Fabbisogno generato dinamicamente -->
+        </div>
+        
+        <div id="fabbisogno-empty" class="empty-message" style="display: none;">
+          <p>✅ Nessun ordine da preparare</p>
+          <p class="empty-subtitle">Tutti gli ordini sono pronti o ritirati</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETTAGLIO ORDINE -->
+  <div id="modal-detail" class="modal">
+    <div class="modal-content modal-detail">
+      <div class="modal-header">
+        <img src="logo.png" alt="LombardaFlor" class="print-logo">
+        <h2 id="detail-header-title">📋 Dettaglio Ordine</h2>
+        <button id="btn-close-detail" class="btn-close">✕</button>
+      </div>
+      
+      <div id="detail-content" class="detail-content">
+        <!-- Contenuto generato dinamicamente -->
+      </div>
+      
+      <div class="detail-actions no-print">
+        <button id="btn-print-order" class="btn-primary btn-large">🖨️ Stampa ordine</button>
+        <button id="btn-whatsapp-order" class="btn-success btn-large">💬 WhatsApp</button>
+        <button id="btn-edit-from-detail" class="btn-secondary btn-large">✏️ Modifica</button>
+      </div>
+      
+      <div class="detail-status-actions no-print">
+        <h3>Cambia Stato:</h3>
+        <div class="status-change-buttons">
+          <button class="btn-status-change btn-status-preparare" data-status="da_preparare">
+            <span class="status-icon">⏳</span>
+            <span class="status-text">Da Preparare</span>
+          </button>
+          <button class="btn-status-change btn-status-pronto" data-status="pronto">
+            <span class="status-icon">✅</span>
+            <span class="status-text">Pronto</span>
+          </button>
+          <button class="btn-status-change btn-status-ritirato" data-status="ritirato">
+            <span class="status-icon">🎉</span>
+            <span class="status-text">Ritirato</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VISUALIZZA FOTO -->
+  <div id="modal-photo" class="modal modal-photo">
+    <div class="photo-viewer">
+      <button id="btn-close-photo" class="btn-close-photo">✕ Chiudi</button>
+      <img id="photo-viewer-img" src="" alt="Foto ordine">
+    </div>
+  </div>
+
+  <script src="pull-to-refresh.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

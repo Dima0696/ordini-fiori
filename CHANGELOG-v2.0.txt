@@ -1,0 +1,301 @@
+
+ ╔══════════════════════════════════════════════════════════════╗
+ ║                                                              ║
+ ║           🌸 ORDINI FIORI - CHANGELOG v2.0 🌸               ║
+ ║                                                              ║
+ ║                  AGGIORNAMENTO MAGGIORE                      ║
+ ║                                                              ║
+ ╚══════════════════════════════════════════════════════════════╝
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🎨 NUOVO DESIGN GLASSMORPHISM                               │
+ └──────────────────────────────────────────────────────────────┘
+
+ ✨ Interfaccia completamente ridisegnata in stile Apple moderno
+ ✨ Effetti glass (vetro smerigliato) su tutti i componenti
+ ✨ Sfondo gradiente animato multicolore
+ ✨ Ombre morbide e transizioni fluide
+ ✨ Badge con gradienti colorati
+ ✨ Hover effects con glow e elevazione
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📋 TIPO DI ORDINE (Nuova Funzionalità)                      │
+ └──────────────────────────────────────────────────────────────┘
+
+ Traccia l'origine di ogni ordine:
+
+ 👤 Cliente      → Badge grigio
+ 💬 WhatsApp     → Badge verde
+ 📧 Email        → Badge blu
+ 📞 Telefono     → Badge arancione
+
+ ➜ Selezionabile nel form nuovo/modifica ordine
+ ➜ Visibile come badge colorato nella card
+ ➜ Mostrato nel fabbisogno
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🚚 RITIRO O CONSEGNA (Nuova Funzionalità)                   │
+ └──────────────────────────────────────────────────────────────┘
+
+ Due modalità di gestione:
+
+ 📦 RITIRO (default)
+    • Cliente ritira la merce
+    • Orario facoltativo
+
+ 🚚 CONSEGNA
+    • Consegna a domicilio
+    • Indirizzo OBBLIGATORIO
+    • Orario consigliato
+    • Badge blu per evidenziare
+
+ ➜ Campi nel form:
+    - Modalità (toggle Ritiro/Consegna)
+    - Orario (time picker HH:MM)
+    - Indirizzo (mostra solo se Consegna)
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  ❄️ TIPO MERCE (Nuova Funzionalità)                          │
+ └──────────────────────────────────────────────────────────────┘
+
+ Gestione inventario intelligente:
+
+ ❄️  IN CELLA (default)
+    • Merce già disponibile in magazzino
+    • Badge verde
+    • Priorità normale nel fabbisogno
+
+ 📝 DA ORDINARE
+    • Merce da ordinare dal fornitore
+    • Badge arancione
+    • Priorità ALTA nel fabbisogno (appare prima)
+
+ ➜ Utilità: Distingui cosa è disponibile da cosa ordinare
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📷 UPLOAD FOTO (Nuova Funzionalità)                         │
+ └──────────────────────────────────────────────────────────────┘
+
+ Sistema completo gestione foto:
+
+ ✓ Upload multiplo (fino a 10 foto)
+ ✓ Formati: JPEG, JPG, PNG, GIF, WebP
+ ✓ Dimensione max: 10MB per foto
+ ✓ Anteprima live durante modifica
+ ✓ Rimozione singola prima del salvataggio
+ ✓ Thumbnail nella card ordine
+ ✓ Eliminazione automatica con ordine
+
+ ➜ Pulsante "📷 Aggiungi foto" nel form ordine
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📊 FABBISOGNO DEL GIORNO (Nuova Funzionalità)               │
+ └──────────────────────────────────────────────────────────────┘
+
+ Vista strategica per preparazione ordini!
+
+ 🎯 Cosa mostra:
+    • TUTTI gli ordini "Da preparare" del giorno
+    • Solo merce NON pronta
+    • Ordinamento intelligente
+
+ 🔸 Priorità:
+    1. ARANCIONE = Merce da ordinare (URGENTE)
+    2. VERDE = Merce in cella (disponibile)
+
+ 📋 Informazioni:
+    • Cliente
+    • Descrizione merce completa
+    • Tipo ordine (icon)
+    • Modalità ritiro/consegna
+    • Orario
+
+ ➜ Pulsante "📋 Fabbisogno giorno" nella pagina ordini
+ ➜ Legenda colori in alto per comprensione immediata
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🗄️ DATABASE AGGIORNATO                                      │
+ └──────────────────────────────────────────────────────────────┘
+
+ Nuove colonne tabella orders:
+
+ order_type        → Origine ordine (cliente/whatsapp/mail/telefono)
+ delivery_type     → Modalità (ritiro/consegna)
+ delivery_time     → Orario (HH:MM)
+ delivery_address  → Indirizzo consegna
+ goods_type        → Tipo merce (in_cella/da_ordinare)
+ photos            → JSON array foto
+
+ ✓ Migrazione automatica con backup
+ ✓ Valori default per ordini esistenti
+ ✓ Retrocompatibilità garantita
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🔌 NUOVE API                                                │
+ └──────────────────────────────────────────────────────────────┘
+
+ POST   /api/upload           → Upload foto (multipart/form-data)
+ DELETE /api/photos/:filename → Elimina foto
+
+ API esistenti aggiornate per nuovi campi:
+ POST   /api/orders           → Accetta tutti i nuovi campi
+ PUT    /api/orders/:id       → Accetta tutti i nuovi campi
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📱 ESPERIENZA UTENTE MIGLIORATA                             │
+ └──────────────────────────────────────────────────────────────┘
+
+ FORM ORDINE (più completo):
+ 1. Data ✓
+ 2. Cliente ✓
+ 3. Descrizione ✓
+ 4. Tipo Ordine (select) ← NUOVO
+ 5. Tipo Merce (select) ← NUOVO
+ 6. Modalità (toggle) ← NUOVO
+ 7. Orario (time) ← NUOVO
+ 8. Indirizzo (text) ← NUOVO
+ 9. Foto (upload multiplo) ← NUOVO
+ 10. Stato (in modifica)
+
+ CARD ORDINE (più informativa):
+ • Header con cliente e badge stato gradient
+ • Badge colorati: tipo ordine, merce, consegna, orario
+ • Descrizione completa merce
+ • Thumbnail foto scrollabili ← NUOVO
+ • Pulsanti azione (Modifica, Pronto, Ritirato)
+
+ FABBISOGNO (completamente nuovo):
+ • Legenda colori
+ • Lista ordinata per priorità
+ • Card colorate per tipo merce
+ • Metadati sintetici
+ • Empty state elegante
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🎨 PALETTE COLORI                                           │
+ └──────────────────────────────────────────────────────────────┘
+
+ Background:
+   Gradient viola → fucsia (#667eea → #764ba2 → #f093fb)
+
+ Glass Effect:
+   Background: rgba(255, 255, 255, 0.7)
+   Blur: 20px
+   Shadow: soft & layered
+
+ Stati:
+   Da preparare: Grigio gradient
+   Pronto:       Blu gradient
+   Ritirato:     Verde gradient
+
+ Merce:
+   In cella:     Verde (#4CAF50 → #2E7D32)
+   Da ordinare:  Arancione (#FF9800 → #F57C00)
+
+ Tipo Ordine:
+   WhatsApp:     Verde #25D366
+   Email:        Blu #4285F4
+   Telefono:     Arancione #FF9800
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  ✅ COSA È STATO AGGIUNTO                                    │
+ └──────────────────────────────────────────────────────────────┘
+
+ [✓] Design glassmorphism completo
+ [✓] Campo "Tipo Ordine" (4 opzioni)
+ [✓] Campo "Tipo Merce" (2 opzioni)
+ [✓] Campo "Modalità" (Ritiro/Consegna)
+ [✓] Campo "Orario"
+ [✓] Campo "Indirizzo" (condizionale)
+ [✓] Upload multiplo foto
+ [✓] Vista "Fabbisogno del giorno"
+ [✓] Badge colorati informativi
+ [✓] Migrazione database
+ [✓] Nuove API
+ [✓] Documentazione completa
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🚀 COME TESTARE                                             │
+ └──────────────────────────────────────────────────────────────┘
+
+ 1. CREA ORDINE CON FOTO:
+    → Nuovo ordine
+    → Seleziona WhatsApp, Da ordinare, Consegna
+    → Aggiungi orario e indirizzo
+    → Upload 2-3 foto
+    → Salva
+
+ 2. VEDI FABBISOGNO:
+    → Apri un giorno con ordini "da preparare"
+    → Tocca "📋 Fabbisogno giorno"
+    → Osserva ordinamento per priorità
+
+ 3. MODIFICA ORDINE:
+    → Apri ordine esistente
+    → Modifica tipo merce, aggiungi foto
+    → Cambia stato
+    → Salva
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📂 NUOVI FILE                                               │
+ └──────────────────────────────────────────────────────────────┘
+
+ migrate-database.js       → Script migrazione DB
+ NUOVE-FUNZIONALITA.md     → Documentazione completa
+ CHANGELOG-v2.0.txt        → Questo file
+ public/uploads/           → Cartella foto ordini
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  🔄 MIGRAZIONE DA v1.0                                       │
+ └──────────────────────────────────────────────────────────────┘
+
+ ✓ Ordini esistenti continuano a funzionare
+ ✓ Database migrato automaticamente
+ ✓ Backup creato prima della migrazione
+ ✓ Valori default applicati ai vecchi ordini
+ ✓ Nessuna perdita di dati
+
+
+ ┌──────────────────────────────────────────────────────────────┐
+ │  📊 STATISTICHE                                              │
+ └──────────────────────────────────────────────────────────────┘
+
+ Linee codice aggiunte:     ~800
+ Nuovi campi database:      6
+ Nuove API endpoint:        2
+ Nuove funzioni JS:         5
+ Dipendenze aggiunte:       multer
+ File documentazione:       2
+ Stili CSS aggiornati:      100%
+
+
+ ═══════════════════════════════════════════════════════════════
+
+           🎉 VERSIONE 2.0 - PRODUCTION READY 🎉
+
+                 Dicembre 2025
+
+ ═══════════════════════════════════════════════════════════════
+
+
+ Per maggiori dettagli tecnici, leggi:
+ → NUOVE-FUNZIONALITA.md
+
+ Buon lavoro con le nuove funzionalità! 🌸
+
+
+
