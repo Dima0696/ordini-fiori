@@ -18,6 +18,16 @@ console.log(`📊 Database path: ${DB_PATH}`);
 // Inizializza il database
 const db = new Database(DB_PATH);
 
+// Funzione per verificare se una colonna esiste
+function columnExists(tableName, columnName) {
+  try {
+    const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
+    return result.some(col => col.name === columnName);
+  } catch (error) {
+    return false;
+  }
+}
+
 // Crea le tabelle se non esistono
 const initDb = () => {
   const createOrdersTableQuery = `
@@ -63,6 +73,29 @@ const initDb = () => {
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
+  
+  // Migrazione schema: aggiungi colonne mancanti alla tabella orders esistente
+  const columnsToAdd = [
+    { name: 'order_type', type: 'TEXT DEFAULT "cliente"' },
+    { name: 'delivery_type', type: 'TEXT DEFAULT "ritiro"' },
+    { name: 'delivery_time', type: 'TEXT' },
+    { name: 'delivery_address', type: 'TEXT' },
+    { name: 'goods_type', type: 'TEXT DEFAULT "in_cella"' },
+    { name: 'photos', type: 'TEXT' },
+    { name: 'created_by', type: 'TEXT' },
+    { name: 'updated_by', type: 'TEXT' }
+  ];
+  
+  columnsToAdd.forEach(col => {
+    if (!columnExists('orders', col.name)) {
+      try {
+        db.exec(`ALTER TABLE orders ADD COLUMN ${col.name} ${col.type}`);
+        console.log(`✅ Aggiunta colonna: ${col.name}`);
+      } catch (error) {
+        console.error(`⚠️  Errore aggiungendo ${col.name}:`, error.message);
+      }
+    }
+  });
   
   // Aggiungi utenti predefiniti se la tabella è vuota
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
