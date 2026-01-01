@@ -126,39 +126,52 @@ body {
   min-height: 100vh;
 }
 
-/* Header */
+/* Header Professionale */
 .app-header {
   background: white;
   color: var(--color-text);
-  padding: 1rem 1.5rem;
+  padding: 0.9rem 1.2rem;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--shadow-sm);
-  border-bottom: 1px solid #f0f0f0;
-  min-height: 65px;
-}
-
-.app-header-content {
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+  border-bottom: 1px solid #f5f5f5;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
+  justify-content: space-between;
+  min-height: 60px;
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .app-logo {
-  height: 40px;
+  height: 36px;
   width: auto;
   object-fit: contain;
 }
 
-.app-header h1 {
-  font-size: 1.3rem;
-  text-align: center;
-  font-weight: 700;
-  color: var(--color-primary);
+.app-header h1,
+.orders-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-subtitle {
@@ -481,9 +494,81 @@ body {
 
 .btn-large {
   width: 100%;
-  padding: 0.8rem;
+  padding: 1rem;
   font-size: 1rem;
-  border-radius: 12px;
+  border-radius: 10px;
+}
+
+/* Bottoni Header Moderni */
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--color-text-light);
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: #f5f5f5;
+  color: var(--color-primary);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.btn-back:hover {
+  background: #f5f5f5;
+  color: var(--color-primary);
+}
+
+.btn-back:active {
+  transform: scale(0.95);
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  color: var(--color-text);
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.btn-logout:hover {
+  background: #f5f5f5;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-logout:active {
+  transform: scale(0.98);
 }
 
 .orders-list {
@@ -542,18 +627,20 @@ body {
 }
 
 .order-customer {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
+  line-height: 1.4;
 }
 
 .order-status-badge {
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
   font-weight: 600;
   color: white;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  line-height: 1;
 }
 
 .order-status-badge.da_preparare {
@@ -724,14 +811,14 @@ body {
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -882,12 +969,13 @@ body {
 
 .modal-actions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: 1.2rem;
+  margin-top: 2rem;
 }
 
 .modal-actions button {
   flex: 1;
+  min-width: 0;
 }
 
 .modal-small h3 {
@@ -1871,30 +1959,7 @@ button {
 }
 
 /* Notification button */
-.btn-notification {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 0.5rem 0.75rem;
-  border-radius: 12px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-right: 0.5rem;
-}
-
-.btn-notification:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.1);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.btn-notification.active {
-  background: rgba(46, 204, 113, 0.3);
-  border-color: var(--color-success);
-  animation: pulse-bell 2s ease-in-out infinite;
-}
+/* Rimosso - usa .btn-icon */
 
 @keyframes pulse-bell {
   0%, 100% { transform: scale(1); }
