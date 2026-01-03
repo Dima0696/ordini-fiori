@@ -43,7 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
 });
 
+let isAppInitialized = false;
+
 async function initializeApp() {
+  // Previeni inizializzazione multipla (causa listener duplicati)
+  if (isAppInitialized) {
+    console.log('⚠️ App già inizializzata, skip');
+    return;
+  }
+  
+  isAppInitialized = true;
+  
   // Registra service worker per PWA
   if ('serviceWorker' in navigator) {
     try {
