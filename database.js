@@ -309,28 +309,44 @@ const getOrdersCountByDate = () => {
 
 // Ricerca ordini per cliente o descrizione (con limite temporale, esclusi ritirati)
 const searchOrders = (searchTerm, startDate, endDate) => {
-  const stmt = db.prepare(`
-    SELECT 
-      id, date, customer, description, status,
-      order_type, delivery_type, delivery_time, delivery_address,
-      goods_type, photos, created_by, updated_by, updated_at
-    FROM orders
-    WHERE (
-      customer LIKE ? OR description LIKE ?
-    )
-    AND status != 'ritirato'
-    AND date >= ? AND date <= ?
-    ORDER BY date ASC, customer ASC
-  `);
-  
-  const searchPattern = `%${searchTerm}%`;
-  const results = stmt.all(searchPattern, searchPattern, startDate, endDate);
-  
-  // Deserializza photos
-  return results.map(row => ({
-    ...row,
-    photos: row.photos ? JSON.parse(row.photos) : []
-  }));
+  try {
+    console.log('[DB] searchOrders chiamato:', { searchTerm, startDate, endDate });
+    
+    if (!db) {
+      throw new Error('Database non inizializzato');
+    }
+    
+    const stmt = db.prepare(`
+      SELECT 
+        id, date, customer, description, status,
+        order_type, delivery_type, delivery_time, delivery_address,
+        goods_type, photos, created_by, updated_by, updated_at
+      FROM orders
+      WHERE (
+        customer LIKE ? OR description LIKE ?
+      )
+      AND status != 'ritirato'
+      AND date >= ? AND date <= ?
+      ORDER BY date ASC, customer ASC
+    `);
+    
+    const searchPattern = `%${searchTerm}%`;
+    console.log('[DB] searchPattern:', searchPattern);
+    
+    const results = stmt.all(searchPattern, searchPattern, startDate, endDate);
+    console.log('[DB] Risultati trovati:', results.length);
+    
+    // Deserializza photos
+    const mappedResults = results.map(row => ({
+      ...row,
+      photos: row.photos ? JSON.parse(row.photos) : []
+    }));
+    
+    return mappedResults;
+  } catch (error) {
+    console.error('[DB] Errore in searchOrders:', error);
+    throw error;
+  }
 };
 
 // Funzioni per autenticazione

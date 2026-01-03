@@ -708,15 +708,30 @@ let isSearchActive = false;
 
 async function performSearch(query) {
   try {
+    console.log('[SEARCH] Inizio ricerca per:', query);
     isSearchActive = true;
     
-    const response = await authenticatedFetch(`${API_URL}/orders/search?q=${encodeURIComponent(query)}`);
+    const url = `${API_URL}/orders/search?q=${encodeURIComponent(query)}`;
+    console.log('[SEARCH] URL:', url);
+    
+    const response = await authenticatedFetch(url);
+    console.log('[SEARCH] Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[SEARCH] Errore dal server:', errorData);
+      throw new Error(errorData.details || errorData.error || 'Errore sconosciuto');
+    }
+    
     const orders = await response.json();
+    console.log('[SEARCH] Ordini ricevuti:', orders.length);
     
     renderSearchResults(query, orders);
   } catch (error) {
-    console.error('Errore ricerca:', error);
-    alert('Errore durante la ricerca');
+    console.error('[SEARCH] Errore ricerca:', error);
+    console.error('[SEARCH] Error stack:', error.stack);
+    alert(`Errore durante la ricerca: ${error.message}`);
+    clearSearchResults();
   }
 }
 

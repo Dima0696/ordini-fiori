@@ -471,14 +471,20 @@ app.get('/api/stats/dates', (req, res) => {
 
 // GET /api/orders/search - Ricerca ordini per cliente o descrizione
 app.get('/api/orders/search', authenticate, (req, res) => {
+  console.log('[API] /api/orders/search chiamato');
+  console.log('[API] Query params:', req.query);
+  console.log('[API] User:', req.user?.username);
+  
   try {
     const { q } = req.query;
     
     if (!q || q.trim().length === 0) {
+      console.log('[API] Query vuota, ritorno array vuoto');
       return res.json([]);
     }
     
     const searchTerm = q.trim();
+    console.log('[API] searchTerm:', searchTerm);
     
     // Calcola date limite: -7 giorni, +21 giorni da oggi
     const today = new Date();
@@ -491,16 +497,23 @@ app.get('/api/orders/search', authenticate, (req, res) => {
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
     
-    console.log(`Ricerca: "${searchTerm}" dal ${startDateStr} al ${endDateStr}`);
+    console.log(`[API] Ricerca: "${searchTerm}" dal ${startDateStr} al ${endDateStr}`);
     
+    console.log('[API] Chiamata db.searchOrders...');
     const orders = db.searchOrders(searchTerm, startDateStr, endDateStr);
     
-    console.log(`Trovati ${orders.length} ordini`);
+    console.log(`[API] Trovati ${orders.length} ordini`);
+    console.log('[API] Invio risposta...');
     
     res.json(orders);
   } catch (error) {
-    console.error('Errore ricerca ordini:', error);
-    res.status(500).json({ error: 'Errore nella ricerca degli ordini', details: error.message });
+    console.error('[API] ERRORE ricerca ordini:', error);
+    console.error('[API] Stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Errore nella ricerca degli ordini', 
+      details: error.message,
+      stack: error.stack 
+    });
   }
 });
 
