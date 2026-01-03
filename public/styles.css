@@ -1729,14 +1729,6 @@ button {
   border: 1px solid rgba(139, 193, 135, 0.2);
 }
 
-.detail-hero-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
 .detail-customer-name {
   font-size: 1.5rem;
   font-weight: 700;
@@ -1744,23 +1736,75 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1.3;
-  margin: 0;
-  flex: 1;
+  margin: 0 0 0.5rem 0;
 }
 
+.detail-date {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+}
+
+/* SEGMENTED CONTROL iOS STYLE */
+.status-segmented-control {
+  display: flex;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 2px;
+  gap: 2px;
+  backdrop-filter: blur(10px);
+}
+
+.status-segment {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.status-segment:active {
+  transform: scale(0.97);
+}
+
+.status-segment.active {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: var(--color-text);
+}
+
+/* Colori per ogni stato */
+.status-segment[data-status="da_preparare"].active {
+  background: var(--color-da-preparare);
+  color: white;
+}
+
+.status-segment[data-status="pronto"].active {
+  background: var(--color-pronto);
+  color: white;
+}
+
+.status-segment[data-status="ritirato"].active {
+  background: var(--color-ritirato);
+  color: white;
+}
+
+/* Legacy badge support */
 .detail-status-badge {
   flex-shrink: 0;
   padding: 0.5rem 1rem;
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.9rem;
-}
-
-.detail-date {
-  font-size: 0.95rem;
-  color: var(--color-text-light);
-  margin: 0;
-  font-weight: 500;
 }
 
 /* SEZIONI */
@@ -1956,101 +2000,6 @@ button {
   .detail-actions button:last-child {
     margin-right: 0;
   }
-}
-
-.detail-status-actions {
-  margin-top: 1.5rem;
-  padding: 1.5rem;
-  background: rgba(168, 213, 164, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 2px solid var(--color-accent);
-}
-
-.detail-status-actions h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.status-change-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.btn-status-change {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 3px solid transparent;
-  border-radius: 16px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.btn-status-change .status-icon {
-  font-size: 1.75rem;
-}
-
-.btn-status-change .status-text {
-  flex: 1;
-  text-align: left;
-}
-
-.btn-status-change:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.btn-status-change:active {
-  transform: translateY(0);
-}
-
-.btn-status-preparare {
-  border-color: var(--color-grey);
-  color: var(--color-grey);
-}
-
-.btn-status-preparare:hover {
-  background: var(--color-grey);
-  color: white;
-}
-
-.btn-status-pronto {
-  border-color: var(--color-secondary);
-  color: var(--color-secondary);
-}
-
-.btn-status-pronto:hover {
-  background: var(--color-secondary);
-  color: white;
-}
-
-.btn-status-ritirato {
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.btn-status-ritirato:hover {
-  background: var(--color-success);
-  color: white;
-}
-
-.btn-status-change.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(11, 93, 82, 0.2);
 }
 
 /* Miglioramento card ordine - click visibile */

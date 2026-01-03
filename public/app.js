@@ -1937,11 +1937,21 @@ function renderOrderDetail(order) {
     
     <!-- HEADER PRINCIPALE A SCHERMO -->
     <div class="detail-hero no-print">
-      <div class="detail-hero-top">
-        <h2 class="detail-customer-name">${escapeHtml(order.customer)}</h2>
-        <span class="detail-status-badge order-status-badge ${order.status}">${statusLabels[order.status]}</span>
-      </div>
+      <h2 class="detail-customer-name">${escapeHtml(order.customer)}</h2>
       <p class="detail-date">${dateFormatted}</p>
+      
+      <!-- SEGMENTED CONTROL iOS per cambio stato -->
+      <div class="status-segmented-control">
+        <button class="status-segment ${order.status === 'da_preparare' ? 'active' : ''}" data-status="da_preparare">
+          Da preparare
+        </button>
+        <button class="status-segment ${order.status === 'pronto' ? 'active' : ''}" data-status="pronto">
+          Pronto
+        </button>
+        <button class="status-segment ${order.status === 'ritirato' ? 'active' : ''}" data-status="ritirato">
+          Ritirato
+        </button>
+      </div>
     </div>
     
     <!-- MERCE (versione schermo) -->
@@ -2090,27 +2100,26 @@ function renderOrderDetail(order) {
   
   document.getElementById('detail-content').innerHTML = html;
   
-  // Configura pulsanti cambio stato
-  const statusButtons = document.querySelectorAll('.btn-status-change');
-  statusButtons.forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.status === order.status) {
-      btn.classList.add('active');
-    }
-    
-    // Rimuovi vecchi listeners e aggiungi nuovi
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    
-    newBtn.addEventListener('click', async () => {
-      const newStatus = newBtn.dataset.status;
+  // Configura segmented control per cambio stato
+  const statusSegments = document.querySelectorAll('.status-segment');
+  statusSegments.forEach(segment => {
+    segment.addEventListener('click', async () => {
+      const newStatus = segment.dataset.status;
       if (newStatus !== order.status) {
-        await updateOrderStatus(order.id, newStatus);
-        // Ricarica l'ordine aggiornato
-        const response = await authenticatedFetch(`${API_URL}/orders/${order.id}`);
-        const updatedOrder = await response.json();
-        currentDetailOrder = updatedOrder;
-        renderOrderDetail(updatedOrder);
+        // Disabilita tutti i segmenti durante l'update
+        statusSegments.forEach(s => s.disabled = true);
+        
+        try {
+          await updateOrderStatus(order.id, newStatus);
+          // Ricarica l'ordine aggiornato
+          const response = await authenticatedFetch(`${API_URL}/orders/${order.id}`);
+          const updatedOrder = await response.json();
+          currentDetailOrder = updatedOrder;
+          renderOrderDetail(updatedOrder);
+        } catch (error) {
+          console.error('Errore cambio stato:', error);
+          statusSegments.forEach(s => s.disabled = false);
+        }
       }
     });
   });
