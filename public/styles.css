@@ -1714,7 +1714,8 @@ button {
 
 /* Nascondi elementi di stampa nella vista normale */
 .print-header-stack,
-.print-checklist {
+.print-checklist,
+.print-stack-logo {
   display: none;
 }
 
@@ -1764,14 +1765,13 @@ button {
     z-index: 9999 !important;
   }
   
-  .print-header-stack::after {
-    content: '';
-    display: block;
-    width: 50px;
-    height: 50px;
-    background: url('logo.png') no-repeat center center;
-    background-size: contain;
-    flex-shrink: 0;
+  .print-stack-logo {
+    display: block !important;
+    width: auto !important;
+    height: 18mm !important;
+    max-width: 60mm !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
   }
   
   .print-stack-delivery {

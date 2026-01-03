@@ -1628,6 +1628,7 @@ function renderOrderDetail(order) {
           ${escapeHtml(order.customer)}
         </div>
       </div>
+      <img src="logo.png" alt="LombardaFlor" class="print-stack-logo">
     </div>
     
     <div class="detail-section no-print">
