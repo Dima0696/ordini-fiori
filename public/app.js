@@ -466,13 +466,31 @@ function setupEventListeners() {
   });
   
   // Modal dettaglio ordine
+  const modalDetail = document.getElementById('modal-detail');
   document.getElementById('btn-close-detail').addEventListener('click', () => {
-    document.getElementById('modal-detail').classList.remove('active');
+    modalDetail.classList.remove('active');
+  });
+  
+  // Click fuori dal modal dettaglio → chiude (solo se non si sta stampando)
+  modalDetail.addEventListener('click', (e) => {
+    if (isPrinting) return; // Non chiudere durante la stampa
+    if (e.target === modalDetail) {
+      modalDetail.classList.remove('active');
+    }
   });
   
   // Modal condivisione/azioni
+  const modalShare = document.getElementById('modal-share');
   document.getElementById('btn-close-share').addEventListener('click', () => {
-    document.getElementById('modal-share').classList.remove('active');
+    modalShare.classList.remove('active');
+  });
+  
+  // Click fuori dal modal condivisione → chiude (solo se non si sta stampando)
+  modalShare.addEventListener('click', (e) => {
+    if (isPrinting) return; // Non chiudere durante la stampa
+    if (e.target === modalShare) {
+      modalShare.classList.remove('active');
+    }
   });
   
   // Stampa con protezione contro loop
@@ -484,6 +502,9 @@ function setupEventListeners() {
     const onAfterPrint = () => {
       isPrinting = false;
       window.removeEventListener('afterprint', onAfterPrint);
+      // Chiudi modal dopo stampa
+      document.getElementById('modal-detail').classList.remove('active');
+      document.getElementById('modal-share').classList.remove('active');
     };
     
     window.addEventListener('afterprint', onAfterPrint);
@@ -492,12 +513,21 @@ function setupEventListeners() {
       isPrinting = false;
     }, 2000);
     
-    // Prepara la stampa (carica i dati dell'ordine nella pagina)
+    // Prepara la stampa: renderizza ordine e apri modal-detail
     if (currentDetailOrder) {
+      // Chiudi modal condivisione
+      document.getElementById('modal-share').classList.remove('active');
+      
+      // Renderizza ordine nel modal-detail
       renderOrderDetail(currentDetailOrder);
+      
+      // Apri modal-detail (necessario per vedere il contenuto)
+      document.getElementById('modal-detail').classList.add('active');
+      
+      // Aspetta che il DOM si aggiorni, poi stampa
       setTimeout(() => {
         window.print();
-      }, 100);
+      }, 200);
     }
   });
   

@@ -2235,8 +2235,20 @@ button {
   .app-header,
   .modal-header,
   .detail-actions,
-  .detail-status-actions {
+  .detail-status-actions,
+  .detail-edit-action,
+  .status-segmented-control {
     display: none !important;
+  }
+  
+  /* Nascondi hero header in stampa */
+  .detail-hero {
+    display: none !important;
+  }
+  
+  /* Mostra solo contenuto stampabile */
+  .print-show {
+    display: block !important;
   }
   
   /* INTESTAZIONE AL BORDO DEL FOGLIO per impilamento sfalsato */
@@ -2305,16 +2317,61 @@ button {
   .modal {
     position: static !important;
     background: white !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 1 !important;
+  }
+  
+  .modal.active {
+    display: block !important;
   }
   
   .modal-content {
     box-shadow: none !important;
     max-width: 100% !important;
-    border: 3px solid #000 !important;
+    border: none !important;
     border-radius: 0 !important;
     padding: 15mm !important;
     padding-top: 30mm !important; /* Spazio per intestazione fissa compatta */
     margin: 0 !important;
+    background: white !important;
+    display: block !important;
+  }
+  
+  /* Assicura che il contenuto sia visibile */
+  #modal-detail {
+    display: block !important;
+    position: static !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  
+  #detail-content {
+    display: block !important;
+    background: white !important;
+    color: #000 !important;
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  /* Forza tutti i testi neri */
+  * {
+    color: #000 !important;
+  }
+  
+  /* Assicura che le sezioni siano visibili */
+  .detail-section {
+    display: block !important;
+    background: white !important;
+    color: #000 !important;
+  }
+  
+  /* Print header stack sempre visibile */
+  .print-header-stack {
+    display: flex !important;
+    visibility: visible !important;
   }
   
   
