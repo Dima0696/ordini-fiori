@@ -350,15 +350,6 @@ function setupEventListeners() {
     document.getElementById('modal-fabbisogno').classList.remove('active');
   });
   
-  // Pulsante "Ordini di OGGI"
-  document.getElementById('btn-today-orders').addEventListener('click', () => {
-    const today = new Date();
-    const todayStr = formatDate(today);
-    openDayOrders(todayStr);
-  });
-  
-  // Aggiorna conteggio ordini OGGI nel pulsante
-  updateTodayButton();
   
   // Modal ordine
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
@@ -531,29 +522,12 @@ async function loadCalendar() {
     
     // Genera giorni del mese
     renderCalendar();
-    
-    // Aggiorna pulsante OGGI
-    updateTodayButton();
   } catch (error) {
     console.error('Errore caricamento calendario:', error);
     alert('Errore nel caricamento del calendario');
   }
 }
 
-// Aggiorna pulsante ordini di oggi con conteggio
-function updateTodayButton() {
-  const today = new Date();
-  const todayStr = formatDate(today);
-  const stat = orderStats[todayStr];
-  const btnToday = document.getElementById('btn-today-orders');
-  
-  if (stat && stat.total > 0) {
-    const text = stat.total === 1 ? 'ordine' : 'ordini';
-    btnToday.innerHTML = `📅 ${stat.total} ${text} di OGGI`;
-  } else {
-    btnToday.innerHTML = `📅 Ordini di OGGI`;
-  }
-}
 
 // Renderizza calendario
 function renderCalendar() {
@@ -661,6 +635,15 @@ function renderCalendar() {
       }
       
       content += `</div>`;
+      
+      // Mostra nomi clienti
+      if (stat.customers && stat.customers.length > 0) {
+        content += `<div class="day-customers">`;
+        stat.customers.forEach(customer => {
+          content += `<span class="customer-name">${escapeHtml(customer)}</span>`;
+        });
+        content += `</div>`;
+      }
     } else {
       content += `<span style="color: #bbb;">Nessun ordine</span>`;
     }

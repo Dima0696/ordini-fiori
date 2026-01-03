@@ -283,7 +283,7 @@ const deleteOrder = (id) => {
   return info.changes > 0;
 };
 
-// Ottieni statistiche per giorno (conteggio ordini per stato)
+// Ottieni statistiche per giorno (conteggio ordini per stato + nomi clienti)
 const getOrdersCountByDate = () => {
   const stmt = db.prepare(`
     SELECT 
@@ -291,12 +291,20 @@ const getOrdersCountByDate = () => {
       COUNT(*) as total,
       SUM(CASE WHEN status = 'da_preparare' THEN 1 ELSE 0 END) as da_preparare,
       SUM(CASE WHEN status = 'pronto' THEN 1 ELSE 0 END) as pronto,
-      SUM(CASE WHEN status = 'ritirato' THEN 1 ELSE 0 END) as ritirato
+      SUM(CASE WHEN status = 'ritirato' THEN 1 ELSE 0 END) as ritirato,
+      GROUP_CONCAT(customer, '|') as customers
     FROM orders
     GROUP BY date
     ORDER BY date DESC
   `);
-  return stmt.all();
+  
+  const results = stmt.all();
+  
+  // Converti stringa customers in array
+  return results.map(row => ({
+    ...row,
+    customers: row.customers ? row.customers.split('|') : []
+  }));
 };
 
 // Funzioni per autenticazione
