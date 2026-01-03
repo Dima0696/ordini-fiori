@@ -890,13 +890,15 @@ body {
 }
 
 .btn-share {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, #64B5F6 0%, #42A5F5 100%);
   color: white;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(66, 165, 245, 0.25);
 }
 
 .btn-share:hover {
-  background: var(--color-primary-dark);
+  background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
+  box-shadow: 0 4px 12px rgba(66, 165, 245, 0.35);
 }
 
 .btn-edit {
@@ -905,7 +907,12 @@ body {
 }
 
 .btn-ready {
-  background: var(--color-secondary);
+  background: var(--color-pronto);
+  color: white;
+}
+
+.btn-undo-collected {
+  background: #FFA726;
   color: white;
 }
 
@@ -1198,13 +1205,55 @@ body {
 
 .modal-actions {
   display: flex;
-  gap: 1.2rem;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-top: 2rem;
 }
 
 .modal-actions button {
-  flex: 1;
+  width: 100%;
   min-width: 0;
+  padding: 1.2rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 14px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.modal-actions .btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow: 0 3px 12px rgba(139, 193, 135, 0.3);
+}
+
+.modal-actions .btn-primary:hover {
+  box-shadow: 0 5px 18px rgba(139, 193, 135, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-actions .btn-danger {
+  background: linear-gradient(135deg, var(--color-danger) 0%, #E53935 100%);
+  box-shadow: 0 3px 12px rgba(239, 83, 80, 0.3);
+}
+
+.modal-actions .btn-danger:hover {
+  box-shadow: 0 5px 18px rgba(239, 83, 80, 0.4);
+}
+
+/* Desktop: affiancati */
+@media (min-width: 600px) {
+  .modal-actions {
+    flex-direction: row;
+  }
+  
+  .modal-actions button {
+    flex: 1;
+  }
 }
 
 .modal-small h3 {
@@ -1725,8 +1774,57 @@ button {
 
 .detail-content {
   padding: 0.5rem 0 1rem 0;
+  padding-bottom: 90px; /* Spazio per pulsante modifica fisso */
   max-height: calc(100vh - 180px);
   overflow-y: auto;
+}
+
+/* PULSANTE MODIFICA FISSO IN BASSO (visualizzazione) */
+.detail-edit-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+}
+
+.btn-edit-detail {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.2rem 1.5rem;
+  background: linear-gradient(135deg, #F5F5F5 0%, #EEEEEE 100%);
+  border: 2px solid #E0E0E0;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 56px;
+}
+
+.btn-edit-detail svg {
+  flex-shrink: 0;
+}
+
+.btn-edit-detail:hover {
+  background: linear-gradient(135deg, #EEEEEE 0%, #E0E0E0 100%);
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-edit-detail:active {
+  transform: scale(0.98);
 }
 
 /* HERO HEADER - Cliente + Stato */
@@ -1755,56 +1853,76 @@ button {
   font-weight: 500;
 }
 
-/* SEGMENTED CONTROL iOS STYLE */
+/* SEGMENTED CONTROL iOS STYLE - PIÙ GRANDE E COLORATO */
 .status-segmented-control {
   display: flex;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  padding: 2px;
-  gap: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 4px;
   backdrop-filter: blur(10px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .status-segment {
   flex: 1;
-  padding: 0.65rem 0.75rem;
+  padding: 1rem 1.2rem;
   border: none;
   background: transparent;
-  color: var(--color-text);
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 8px;
+  color: var(--color-text-light);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  position: relative;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .status-segment:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
+/* Stato NON attivo - leggera colorazione */
+.status-segment[data-status="da_preparare"]:not(.active) {
+  color: var(--color-da-preparare);
+}
+
+.status-segment[data-status="pronto"]:not(.active) {
+  color: var(--color-pronto);
+}
+
+.status-segment[data-status="ritirato"]:not(.active) {
+  color: var(--color-ritirato);
+}
+
+/* Stato ATTIVO - pieno colore con gradiente */
 .status-segment.active {
   background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  color: var(--color-text);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: white;
+  transform: scale(1.02);
 }
 
-/* Colori per ogni stato */
 .status-segment[data-status="da_preparare"].active {
-  background: var(--color-da-preparare);
-  color: white;
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  box-shadow: 0 3px 12px rgba(255, 152, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .status-segment[data-status="pronto"].active {
-  background: var(--color-pronto);
-  color: white;
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+  box-shadow: 0 3px 12px rgba(76, 175, 80, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .status-segment[data-status="ritirato"].active {
-  background: var(--color-ritirato);
-  color: white;
+  background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%);
+  box-shadow: 0 3px 12px rgba(158, 158, 158, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Legacy badge support */
@@ -2006,7 +2124,7 @@ button {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   min-height: 60px;
 }
 
@@ -2024,34 +2142,26 @@ button {
 }
 
 .btn-share-print {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
+  box-shadow: 0 3px 12px rgba(139, 193, 135, 0.3);
 }
 
 .btn-share-print:hover {
-  background: var(--color-primary-dark);
-  box-shadow: 0 4px 16px rgba(139, 193, 135, 0.3);
+  box-shadow: 0 5px 18px rgba(139, 193, 135, 0.4);
+  transform: translateY(-2px);
 }
 
 .btn-share-whatsapp {
   background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
   color: white;
+  box-shadow: 0 3px 12px rgba(37, 211, 102, 0.3);
 }
 
 .btn-share-whatsapp:hover {
   background: linear-gradient(135deg, #128C7E 0%, #075E54 100%);
-  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
-}
-
-.btn-share-edit {
-  background: #F5F5F5;
-  color: var(--color-text);
-  border: 2px solid #E0E0E0;
-}
-
-.btn-share-edit:hover {
-  background: #EEEEEE;
-  border-color: var(--color-primary);
+  box-shadow: 0 5px 18px rgba(37, 211, 102, 0.4);
+  transform: translateY(-2px);
 }
 
 /* Miglioramento card ordine - click visibile */

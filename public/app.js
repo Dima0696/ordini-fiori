@@ -505,8 +505,9 @@ function setupEventListeners() {
     shareOrderWhatsApp(currentDetailOrder);
   });
   
-  document.getElementById('btn-edit-from-share').addEventListener('click', () => {
-    document.getElementById('modal-share').classList.remove('active');
+  // Modifica da visualizzazione
+  document.getElementById('btn-edit-from-detail').addEventListener('click', () => {
+    document.getElementById('modal-detail').classList.remove('active');
     const order = currentDetailOrder;
     if (order) {
       openEditOrderModal(order);
@@ -1130,10 +1131,12 @@ function renderOrders(orders) {
       </div>
       <div class="order-actions">
         <button class="btn-small btn-share" data-id="${order.id}">Condividi</button>
-        ${order.status !== 'pronto' && order.status !== 'ritirato' ? 
+        ${order.status === 'da_preparare' ? 
           `<button class="btn-small btn-ready" data-id="${order.id}">✓ Pronto</button>` : ''}
         ${order.status === 'pronto' ? 
           `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
+        ${order.status === 'ritirato' ? 
+          `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
       </div>
     `;
     
@@ -1162,6 +1165,14 @@ function renderOrders(orders) {
       btnCollected.addEventListener('click', (e) => {
         e.stopPropagation();
         updateOrderStatus(order.id, 'ritirato');
+      });
+    }
+    
+    const btnUndoCollected = orderCard.querySelector('.btn-undo-collected');
+    if (btnUndoCollected) {
+      btnUndoCollected.addEventListener('click', (e) => {
+        e.stopPropagation();
+        updateOrderStatus(order.id, 'pronto');
       });
     }
     
@@ -2120,7 +2131,14 @@ function renderOrderDetail(order) {
   const statusSegments = document.querySelectorAll('.status-segment');
   statusSegments.forEach(segment => {
     segment.addEventListener('click', async () => {
-      const newStatus = segment.dataset.status;
+      const clickedStatus = segment.dataset.status;
+      let newStatus = clickedStatus;
+      
+      // TOGGLE "Ritirato": se già ritirato e clicco di nuovo, torna a "pronto"
+      if (clickedStatus === 'ritirato' && order.status === 'ritirato') {
+        newStatus = 'pronto';
+      }
+      
       if (newStatus !== order.status) {
         // Disabilita tutti i segmenti durante l'update
         statusSegments.forEach(s => s.disabled = true);
