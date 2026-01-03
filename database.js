@@ -307,7 +307,7 @@ const getOrdersCountByDate = () => {
   }));
 };
 
-// Ricerca ordini per cliente o descrizione (con limite temporale)
+// Ricerca ordini per cliente o descrizione (con limite temporale, esclusi ritirati)
 const searchOrders = (searchTerm, startDate, endDate) => {
   const stmt = db.prepare(`
     SELECT 
@@ -318,6 +318,7 @@ const searchOrders = (searchTerm, startDate, endDate) => {
     WHERE (
       customer LIKE ? OR description LIKE ?
     )
+    AND status != 'ritirato'
     AND date >= ? AND date <= ?
     ORDER BY date ASC, customer ASC
   `);

@@ -487,14 +487,20 @@ app.get('/api/orders/search', authenticate, (req, res) => {
     const endDate = new Date(today);
     endDate.setDate(today.getDate() + 21);
     
-    const startDateStr = formatDateForDB(startDate);
-    const endDateStr = formatDateForDB(endDate);
+    // Formatta date manualmente per evitare problemi
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
+    console.log(`Ricerca: "${searchTerm}" dal ${startDateStr} al ${endDateStr}`);
     
     const orders = db.searchOrders(searchTerm, startDateStr, endDateStr);
+    
+    console.log(`Trovati ${orders.length} ordini`);
+    
     res.json(orders);
   } catch (error) {
     console.error('Errore ricerca ordini:', error);
-    res.status(500).json({ error: 'Errore nella ricerca degli ordini' });
+    res.status(500).json({ error: 'Errore nella ricerca degli ordini', details: error.message });
   }
 });
 
