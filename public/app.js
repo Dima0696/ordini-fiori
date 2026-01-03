@@ -400,6 +400,11 @@ function setupEventListeners() {
     openNewOrderModal();
   });
   
+  // Floating Action Button - Nuovo ordine (sempre visibile)
+  document.getElementById('btn-fab-new-order').addEventListener('click', () => {
+    openNewOrderModal();
+  });
+  
   // Pulsante fabbisogno (solo Carlo e Dimitri)
   const btnFabbisogno = document.getElementById('btn-fabbisogno');
   
@@ -698,11 +703,11 @@ function renderCalendar() {
       
       content += `</div>`;
       
-      // Mostra nomi clienti
+      // Mostra nomi clienti (cliccabili!)
       if (stat.customers && stat.customers.length > 0) {
         content += `<div class="day-customers">`;
         stat.customers.forEach(customer => {
-          content += `<span class="customer-name">${escapeHtml(customer)}</span>`;
+          content += `<span class="customer-name clickable" data-customer="${escapeHtml(customer)}" data-date="${dateStr}">${escapeHtml(customer)}</span>`;
         });
         content += `</div>`;
       }
@@ -713,8 +718,23 @@ function renderCalendar() {
     content += `</div>`;
     dayCard.innerHTML = content;
     
-    dayCard.addEventListener('click', () => {
+    // Click sul giorno intero → apre lista ordini
+    dayCard.addEventListener('click', (e) => {
+      // Se ho cliccato su un nome cliente, non aprire la lista
+      if (e.target.classList.contains('customer-name')) {
+        return;
+      }
       openDayOrders(dateStr);
+    });
+    
+    // Click sui nomi clienti → apre direttamente dettaglio ordine
+    dayCard.querySelectorAll('.customer-name.clickable').forEach(nameEl => {
+      nameEl.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Impedisce apertura lista ordini
+        const customer = nameEl.dataset.customer;
+        const date = nameEl.dataset.date;
+        await openOrderByCustomerAndDate(customer, date);
+      });
     });
     
     daysList.appendChild(dayCard);
@@ -900,6 +920,31 @@ function clearSearchResults() {
   // Rimuovi risultati
   if (searchResultsContainer) {
     searchResultsContainer.remove();
+  }
+}
+
+// Apri ordine di un cliente specifico in una data (dal calendario)
+async function openOrderByCustomerAndDate(customer, date) {
+  try {
+    console.log(`[QUICK-OPEN] Apertura ordine: ${customer} - ${date}`);
+    
+    // Carica ordini del giorno
+    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`);
+    const orders = await response.json();
+    
+    // Trova ordine del cliente (case-insensitive)
+    const order = orders.find(o => o.customer.toLowerCase() === customer.toLowerCase());
+    
+    if (order) {
+      console.log(`[QUICK-OPEN] Ordine trovato:`, order.id);
+      openOrderDetail(order);
+    } else {
+      console.warn(`[QUICK-OPEN] Ordine non trovato per ${customer}`);
+      alert(`Ordine di ${customer} non trovato per questa data`);
+    }
+  } catch (error) {
+    console.error('[QUICK-OPEN] Errore:', error);
+    alert('Errore nell\'apertura dell\'ordine');
   }
 }
 
