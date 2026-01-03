@@ -469,6 +469,35 @@ app.get('/api/stats/dates', (req, res) => {
   }
 });
 
+// GET /api/orders/search - Ricerca ordini per cliente o descrizione
+app.get('/api/orders/search', authenticate, (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
+      return res.json([]);
+    }
+    
+    const searchTerm = q.trim();
+    
+    // Calcola date limite: -7 giorni, +21 giorni da oggi
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7);
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 21);
+    
+    const startDateStr = formatDateForDB(startDate);
+    const endDateStr = formatDateForDB(endDate);
+    
+    const orders = db.searchOrders(searchTerm, startDateStr, endDateStr);
+    res.json(orders);
+  } catch (error) {
+    console.error('Errore ricerca ordini:', error);
+    res.status(500).json({ error: 'Errore nella ricerca degli ordini' });
+  }
+});
+
 // ==========================================
 // NOTIFICHE PUSH
 // ==========================================

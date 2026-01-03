@@ -80,6 +80,23 @@
     </div>
     
     <div class="calendar-container">
+      <!-- Barra di ricerca -->
+      <div class="search-container">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Cerca cliente o prodotto..."
+            autocomplete="off"
+          >
+          <button id="btn-clear-search" class="btn-clear-search" style="display: none;">✕</button>
+        </div>
+        <div class="search-info">
+          Ricerca negli ordini da 1 settimana fa a 3 settimane avanti
+        </div>
+      </div>
+      
       <div class="month-selector">
         <button id="prev-month" class="btn-month">←</button>
         <h2 id="current-month">Gennaio 2025</h2>

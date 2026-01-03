@@ -307,6 +307,31 @@ const getOrdersCountByDate = () => {
   }));
 };
 
+// Ricerca ordini per cliente o descrizione (con limite temporale)
+const searchOrders = (searchTerm, startDate, endDate) => {
+  const stmt = db.prepare(`
+    SELECT 
+      id, date, customer, description, status,
+      order_type, delivery_type, delivery_time, delivery_address,
+      goods_type, photos, created_by, updated_by, updated_at
+    FROM orders
+    WHERE (
+      customer LIKE ? OR description LIKE ?
+    )
+    AND date >= ? AND date <= ?
+    ORDER BY date ASC, customer ASC
+  `);
+  
+  const searchPattern = `%${searchTerm}%`;
+  const results = stmt.all(searchPattern, searchPattern, startDate, endDate);
+  
+  // Deserializza photos
+  return results.map(row => ({
+    ...row,
+    photos: row.photos ? JSON.parse(row.photos) : []
+  }));
+};
+
 // Funzioni per autenticazione
 const getUserByUsername = (username) => {
   const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
@@ -365,6 +390,7 @@ module.exports = {
   updateOrderStatus,
   deleteOrder,
   getOrdersCountByDate,
+  searchOrders,
   getUserByUsername,
   verifyUser,
   saveSubscription,

@@ -312,6 +312,41 @@ function setupEventListeners() {
   document.getElementById('btn-logout').addEventListener('click', logout);
   document.getElementById('btn-logout-orders').addEventListener('click', logout);
   
+  // Barra di ricerca
+  let searchDebounceTimer;
+  const searchInput = document.getElementById('search-input');
+  const btnClearSearch = document.getElementById('btn-clear-search');
+  
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    
+    // Mostra/nascondi pulsante clear
+    if (query.length > 0) {
+      btnClearSearch.style.display = 'flex';
+    } else {
+      btnClearSearch.style.display = 'none';
+    }
+    
+    // Debounce: attendi 300ms dopo l'ultimo input
+    clearTimeout(searchDebounceTimer);
+    
+    if (query.length === 0) {
+      // Torna al calendario
+      clearSearchResults();
+      return;
+    }
+    
+    searchDebounceTimer = setTimeout(() => {
+      performSearch(query);
+    }, 300);
+  });
+  
+  btnClearSearch.addEventListener('click', () => {
+    searchInput.value = '';
+    btnClearSearch.style.display = 'none';
+    clearSearchResults();
+  });
+  
   // Navigazione calendario
   document.getElementById('prev-month').addEventListener('click', () => {
     // Crea una nuova data per evitare problemi con setMonth
@@ -373,10 +408,8 @@ function setupEventListeners() {
       
       if (deliveryType === 'consegna') {
         addressGroup.style.display = 'block';
-        addressInput.required = true;
       } else {
         addressGroup.style.display = 'none';
-        addressInput.required = false;
         addressInput.value = ''; // Pulisci indirizzo se passa a ritiro
       }
     });
@@ -470,10 +503,8 @@ function setupEventListeners() {
       const addressGroup = document.getElementById('address-group');
       if (deliveryType === 'consegna') {
         addressGroup.style.display = 'block';
-        document.getElementById('delivery-address').required = true;
       } else {
         addressGroup.style.display = 'none';
-        document.getElementById('delivery-address').required = false;
       }
     });
   });
@@ -666,6 +697,163 @@ function renderCalendar() {
         block: 'center'
       });
     }, 300);
+  }
+}
+
+// ==========================================
+// RICERCA ORDINI
+// ==========================================
+
+let isSearchActive = false;
+
+async function performSearch(query) {
+  try {
+    isSearchActive = true;
+    
+    const response = await authenticatedFetch(`${API_URL}/orders/search?q=${encodeURIComponent(query)}`);
+    const orders = await response.json();
+    
+    renderSearchResults(query, orders);
+  } catch (error) {
+    console.error('Errore ricerca:', error);
+    alert('Errore durante la ricerca');
+  }
+}
+
+function renderSearchResults(query, orders) {
+  const monthSelector = document.querySelector('.month-selector');
+  const daysList = document.getElementById('days-list');
+  
+  // Nascondi selettore mese
+  monthSelector.style.display = 'none';
+  
+  // Crea/aggiorna container risultati
+  let searchResultsContainer = document.getElementById('search-results-container');
+  
+  if (!searchResultsContainer) {
+    searchResultsContainer = document.createElement('div');
+    searchResultsContainer.id = 'search-results-container';
+    searchResultsContainer.className = 'search-results';
+    daysList.parentElement.insertBefore(searchResultsContainer, daysList);
+  }
+  
+  // Nascondi lista giorni calendario
+  daysList.style.display = 'none';
+  
+  // Renderizza risultati
+  if (orders.length === 0) {
+    searchResultsContainer.innerHTML = `
+      <div class="search-no-results">
+        <div class="search-no-results-icon">🔍</div>
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">
+          Nessun risultato
+        </div>
+        <div style="font-size: 0.875rem;">
+          Nessun ordine trovato per "<strong>${escapeHtml(query)}</strong>"<br>
+          (ricerca negli ordini da 1 settimana fa a 3 settimane avanti)
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Header risultati
+  let html = `
+    <div class="search-results-header">
+      <div class="search-results-title">🔍 Risultati ricerca</div>
+      <div class="search-results-count">${orders.length} ordin${orders.length === 1 ? 'e' : 'i'} trovat${orders.length === 1 ? 'o' : 'i'}</div>
+    </div>
+    <div class="search-results-list">
+  `;
+  
+  // Renderizza ogni ordine (stesso stile delle order cards)
+  orders.forEach(order => {
+    const statusLabels = {
+      'da_preparare': 'Da preparare',
+      'pronto': 'Pronto',
+      'ritirato': 'Ritirato'
+    };
+    
+    const deliveryTypeLabels = {
+      'ritiro': '📦 Ritiro',
+      'consegna': '🚚 Consegna'
+    };
+    
+    const goodsTypeLabels = {
+      'in_cella': '❄️ In giacenza',
+      'da_ordinare': '📝 Da ordinare',
+      'ordinata': '📦 Ordinata'
+    };
+    
+    // Formatta data
+    const dateObj = new Date(order.date + 'T00:00:00');
+    const dateFormatted = dateObj.toLocaleDateString('it-IT', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    });
+    
+    let infoBadges = '';
+    if (order.goods_type) {
+      const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : '';
+      infoBadges += `<span class="info-badge ${goodsClass}">${goodsTypeLabels[order.goods_type]}</span>`;
+    }
+    if (order.delivery_type) {
+      const deliveryClass = order.delivery_type === 'consegna' ? 'consegna' : '';
+      infoBadges += `<span class="info-badge ${deliveryClass}">${deliveryTypeLabels[order.delivery_type]}</span>`;
+    }
+    if (order.delivery_time) {
+      infoBadges += `<span class="info-badge">🕐 ${order.delivery_time}</span>`;
+    }
+    
+    html += `
+      <div class="order-card" data-order-id="${order.id}">
+        <div class="order-content">
+          <div class="order-header">
+            <div class="order-customer">${escapeHtml(order.customer)}</div>
+            <span class="order-status-badge ${order.status}">${statusLabels[order.status]}</span>
+          </div>
+          
+          <div class="order-description">${escapeHtml(order.description)}</div>
+          
+          <div class="order-footer">
+            <div class="order-date">📅 ${dateFormatted}</div>
+            ${infoBadges ? `<div class="order-info-badges">${infoBadges}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  searchResultsContainer.innerHTML = html;
+  
+  // Aggiungi click handlers
+  searchResultsContainer.querySelectorAll('.order-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const orderId = parseInt(card.dataset.orderId);
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        openOrderDetail(order);
+      }
+    });
+  });
+}
+
+function clearSearchResults() {
+  isSearchActive = false;
+  
+  const monthSelector = document.querySelector('.month-selector');
+  const daysList = document.getElementById('days-list');
+  const searchResultsContainer = document.getElementById('search-results-container');
+  
+  // Mostra calendario
+  monthSelector.style.display = 'flex';
+  daysList.style.display = 'flex';
+  
+  // Rimuovi risultati
+  if (searchResultsContainer) {
+    searchResultsContainer.remove();
   }
 }
 
@@ -952,10 +1140,8 @@ function openEditOrderModal(order) {
   const addressGroup = document.getElementById('address-group');
   if (deliveryType === 'consegna') {
     addressGroup.style.display = 'block';
-    document.getElementById('delivery-address').required = true;
   } else {
     addressGroup.style.display = 'none';
-    document.getElementById('delivery-address').required = false;
   }
   
   // Mostra gruppo stato
@@ -995,13 +1181,9 @@ async function handleOrderSubmit(e) {
   const deliveryTime = document.getElementById('delivery-time').value;
   const deliveryAddress = document.getElementById('delivery-address').value.trim();
   
+  // Solo cliente, merce e giorno sono obbligatori
   if (!customer || !description) {
-    alert('Compila tutti i campi obbligatori');
-    return;
-  }
-  
-  if (deliveryType === 'consegna' && !deliveryAddress) {
-    alert('Inserisci l\'indirizzo di consegna');
+    alert('Compila i campi obbligatori: Cliente e Merce');
     return;
   }
   
