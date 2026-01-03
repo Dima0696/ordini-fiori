@@ -1617,14 +1617,16 @@ function renderOrderDetail(order) {
   // Layout ottimizzato per stampa su una pagina
   let html = `
     <div class="print-header-stack">
-      <div class="print-stack-delivery ${order.delivery_type}">
-        ${deliveryIcon} ${deliveryText}${deliveryTime}
-      </div>
-      <div class="print-stack-date">
-        ${dateFormatted}
-      </div>
-      <div class="print-stack-customer">
-        ${escapeHtml(order.customer)}
+      <div class="print-stack-content">
+        <div class="print-stack-delivery ${order.delivery_type}">
+          ${deliveryIcon} ${deliveryText}${deliveryTime}
+        </div>
+        <div class="print-stack-date">
+          ${dateFormatted}
+        </div>
+        <div class="print-stack-customer">
+          ${escapeHtml(order.customer)}
+        </div>
       </div>
     </div>
     
@@ -1633,9 +1635,27 @@ function renderOrderDetail(order) {
       <span class="detail-status order-status-badge ${order.status}">${statusLabels[order.status]}</span>
     </div>
     
+    <!-- Versione schermo: testo normale -->
+    <div class="detail-section no-print">
+      <h3>Merce da Preparare</h3>
+      <p style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(order.description)}</p>
+    </div>
+    
+    <!-- Versione stampa: con checkbox per ogni riga -->
     <div class="detail-section print-show">
       <h3>Merce da Preparare</h3>
-      <p>${escapeHtml(order.description)}</p>
+      <div class="print-checklist">
+        ${order.description.split('\n').map(line => {
+          const trimmed = line.trim();
+          if (trimmed === '') return '<div class="print-checklist-spacer"></div>';
+          return `
+            <div class="print-checklist-item">
+              <span class="print-checkbox-square"></span>
+              <span class="print-checklist-text">${escapeHtml(trimmed)}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
     </div>
     
     <div class="print-checkbox-area">

@@ -1712,8 +1712,9 @@ button {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Nascondi intestazione stampa nella vista normale */
-.print-header-stack {
+/* Nascondi elementi di stampa nella vista normale */
+.print-header-stack,
+.print-checklist {
   display: none;
 }
 
@@ -1747,27 +1748,38 @@ button {
   
   /* INTESTAZIONE AL BORDO DEL FOGLIO per impilamento sfalsato */
   .print-header-stack {
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     background: white !important;
-    padding: 3mm 5mm !important;
+    padding: 2mm 4mm !important;
     margin: 0 !important;
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     border-bottom: 3px solid #000 !important;
-    text-align: left !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
     z-index: 9999 !important;
   }
   
+  .print-header-stack::after {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 50px;
+    background: url('logo.png') no-repeat center center;
+    background-size: contain;
+    flex-shrink: 0;
+  }
+  
   .print-stack-delivery {
-    font-size: 18pt !important;
+    font-size: 17pt !important;
     font-weight: 900 !important;
     text-transform: uppercase !important;
     letter-spacing: 1.5px !important;
-    margin-bottom: 1mm !important;
+    margin-bottom: 0.5mm !important;
     color: #000 !important;
     line-height: 1.1 !important;
   }
@@ -1781,16 +1793,16 @@ button {
   }
   
   .print-stack-date {
-    font-size: 13pt !important;
+    font-size: 12pt !important;
     font-weight: 700 !important;
     color: #333 !important;
-    margin-bottom: 1mm !important;
+    margin-bottom: 0.5mm !important;
     text-transform: capitalize !important;
     line-height: 1.1 !important;
   }
   
   .print-stack-customer {
-    font-size: 16pt !important;
+    font-size: 15pt !important;
     font-weight: 800 !important;
     color: #000 !important;
     text-transform: uppercase !important;
@@ -1810,7 +1822,7 @@ button {
     border: 3px solid #000 !important;
     border-radius: 0 !important;
     padding: 15mm !important;
-    padding-top: 35mm !important; /* Spazio per intestazione fissa */
+    padding-top: 30mm !important; /* Spazio per intestazione fissa compatta */
     margin: 0 !important;
   }
   
@@ -1848,7 +1860,43 @@ button {
     padding: 3mm 0 !important;
   }
   
-  /* Checkbox per preparazione */
+  /* Checklist merce con checkbox per ogni articolo */
+  .print-checklist {
+    display: block !important;
+    padding: 3mm 0 !important;
+  }
+  
+  .print-checklist-item {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 4mm !important;
+    margin: 2.5mm 0 !important;
+    page-break-inside: avoid !important;
+  }
+  
+  .print-checkbox-square {
+    width: 5mm !important;
+    height: 5mm !important;
+    min-width: 5mm !important;
+    border: 2px solid #000 !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+    margin-top: 1mm !important;
+  }
+  
+  .print-checklist-text {
+    font-size: 11pt !important;
+    font-weight: 500 !important;
+    color: #000 !important;
+    line-height: 1.4 !important;
+    flex: 1 !important;
+  }
+  
+  .print-checklist-spacer {
+    height: 3mm !important;
+  }
+  
+  /* Checkbox per preparazione (quelli generali alla fine) */
   .print-checkbox-area {
     display: block !important;
     margin-top: 8mm !important;
