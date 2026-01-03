@@ -41,17 +41,24 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clona la risposta
-        const responseToCache = response.clone();
-        
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Cacha solo richieste GET (non PUT/POST/DELETE)
+        if (event.request.method === 'GET') {
+          const responseToCache = response.clone();
+          
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            })
+            .catch((error) => {
+              // Ignora errori di caching silenziosamente
+              console.debug('Cache put error (ignorato):', error.message);
+            });
+        }
         
         return response;
       })
       .catch(() => {
+        // Fallback: prova a recuperare dalla cache
         return caches.match(event.request);
       })
   );

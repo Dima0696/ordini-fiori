@@ -161,7 +161,7 @@ function setupLoginListeners() {
 // Helper per richieste autenticate
 async function authenticatedFetch(url, options = {}) {
   if (!authToken) {
-    logout();
+    logout(false);
     throw new Error('Non autenticato');
   }
   
@@ -178,8 +178,9 @@ async function authenticatedFetch(url, options = {}) {
   const response = await fetch(url, { ...options, headers });
   
   if (response.status === 401) {
-    // Sessione scaduta
-    logout();
+    // Sessione scaduta - passa flag per evitare chiamata API logout
+    console.warn('[AUTH] Sessione scaduta, reindirizzamento a login');
+    logout(true); // true = sessione scaduta, non chiamare API
     throw new Error('Sessione scaduta');
   }
   
@@ -214,15 +215,25 @@ async function login(username, password) {
 }
 
 // Logout
-async function logout() {
-  if (authToken) {
+async function logout(isSessionExpired = false) {
+  console.log('[LOGOUT] Logout chiamato, sessionExpired:', isSessionExpired);
+  
+  // Ferma auto-refresh per evitare chiamate dopo logout
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+    console.log('[LOGOUT] Auto-refresh fermato');
+  }
+  
+  // Chiama API logout solo se NON è una sessione scaduta (evita 401)
+  if (authToken && !isSessionExpired) {
     try {
       await fetch(`${API_URL}/logout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
     } catch (error) {
-      console.error('Errore logout:', error);
+      console.error('[LOGOUT] Errore logout API (ignorato):', error);
     }
   }
   
@@ -230,7 +241,13 @@ async function logout() {
   currentUser = null;
   localStorage.removeItem('authToken');
   localStorage.removeItem('currentUser');
-  showLogin();
+  
+  // Mostra messaggio se sessione scaduta
+  if (isSessionExpired) {
+    showLogin('⚠️ Sessione scaduta. Effettua nuovamente il login.');
+  } else {
+    showLogin();
+  }
 }
 
 // Verifica sessione
@@ -266,10 +283,24 @@ async function checkAuth() {
 }
 
 // Mostra login
-function showLogin() {
+function showLogin(message = null) {
   document.getElementById('page-login').classList.add('active');
   document.getElementById('page-calendar').classList.remove('active');
   document.getElementById('page-orders').classList.remove('active');
+  
+  // Mostra messaggio di errore se fornito
+  const errorEl = document.getElementById('login-error');
+  if (message && errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    
+    // Nascondi dopo 5 secondi
+    setTimeout(() => {
+      errorEl.style.display = 'none';
+    }, 5000);
+  } else if (errorEl) {
+    errorEl.style.display = 'none';
+  }
 }
 
 // Mostra app
