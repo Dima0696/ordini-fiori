@@ -1878,21 +1878,21 @@ function renderOrderDetail(order) {
   };
   
   const orderTypeLabels = {
-    'cliente': '👤 Cliente',
-    'whatsapp': '💬 WhatsApp',
-    'mail': '📧 Email',
-    'telefono': '📞 Telefono'
+    'cliente': 'Cliente',
+    'whatsapp': 'WhatsApp',
+    'mail': 'Email',
+    'telefono': 'Telefono'
   };
   
   const deliveryTypeLabels = {
-    'ritiro': '📦 Ritiro',
-    'consegna': '🚚 Consegna'
+    'ritiro': 'Ritiro',
+    'consegna': 'Consegna'
   };
   
   const goodsTypeLabels = {
-    'in_cella': '❄️ In giacenza',
-    'da_ordinare': '📝 Da ordinare',
-    'ordinata': '📦 Ordinata'
+    'in_cella': 'In giacenza',
+    'da_ordinare': 'Da ordinare',
+    'ordinata': 'Ordinata'
   };
   
   // Formatta data in italiano (versione lunga)
@@ -1915,7 +1915,6 @@ function renderOrderDetail(order) {
   document.getElementById('detail-header-title').textContent = `${order.customer} - ${dateShort}`;
   
   // Intestazione stampa per impilamento ordini
-  const deliveryIcon = order.delivery_type === 'consegna' ? '🚚' : '📦';
   const deliveryText = order.delivery_type === 'consegna' ? 'CONSEGNA' : 'RITIRO';
   const deliveryTime = order.delivery_time ? ` - Ore ${order.delivery_time}` : '';
   
@@ -1930,21 +1929,25 @@ function renderOrderDetail(order) {
           ${dateFormatted}
         </div>
         <div class="print-stack-delivery ${order.delivery_type}">
-          ${deliveryIcon} ${deliveryText}${deliveryTime}
+          ${deliveryText}${deliveryTime}
         </div>
       </div>
       <img src="logo.png" alt="LombardaFlor" class="print-stack-logo">
     </div>
     
-    <div class="detail-section no-print">
-      <h3>Stato Attuale</h3>
-      <span class="detail-status order-status-badge ${order.status}">${statusLabels[order.status]}</span>
+    <!-- HEADER PRINCIPALE A SCHERMO -->
+    <div class="detail-hero no-print">
+      <div class="detail-hero-top">
+        <h2 class="detail-customer-name">${escapeHtml(order.customer)}</h2>
+        <span class="detail-status-badge order-status-badge ${order.status}">${statusLabels[order.status]}</span>
+      </div>
+      <p class="detail-date">${dateFormatted}</p>
     </div>
     
-    <!-- Versione schermo: testo normale -->
-    <div class="detail-section no-print">
-      <h3>Merce da Preparare</h3>
-      <p style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(order.description)}</p>
+    <!-- MERCE (versione schermo) -->
+    <div class="detail-section detail-goods no-print">
+      <h3 class="detail-section-title">Merce da Preparare</h3>
+      <div class="detail-goods-content">${escapeHtml(order.description)}</div>
     </div>
     
     <!-- Versione stampa: con checkbox per ogni riga -->
@@ -1980,38 +1983,69 @@ function renderOrderDetail(order) {
     </div>
   `;
   
-  // Info aggiuntive (solo a schermo, non in stampa)
-  if (order.order_type || order.goods_type || order.delivery_type) {
-    html += `<div class="detail-section no-print"><h3>Dettagli</h3>`;
+  // INFO DELIVERY COMPATTE (solo a schermo)
+  if (order.delivery_type || order.delivery_time || order.delivery_address || order.goods_type) {
+    html += `<div class="detail-section detail-info no-print">`;
+    html += `<div class="detail-info-grid">`;
     
-    if (order.order_type) {
-      html += `<p><strong>Tipo ordine:</strong> ${orderTypeLabels[order.order_type] || order.order_type}</p>`;
-    }
-    
-    if (order.goods_type) {
-      html += `<p><strong>Tipo merce:</strong> ${goodsTypeLabels[order.goods_type] || order.goods_type}</p>`;
-    }
-    
+    // Modalità
     if (order.delivery_type) {
-      html += `<p><strong>Modalità:</strong> ${deliveryTypeLabels[order.delivery_type] || order.delivery_type}</p>`;
+      html += `
+        <div class="detail-info-item">
+          <span class="detail-info-label">Modalità</span>
+          <span class="detail-info-value">${deliveryTypeLabels[order.delivery_type] || order.delivery_type}</span>
+        </div>
+      `;
     }
     
+    // Orario
     if (order.delivery_time) {
-      html += `<p><strong>Orario:</strong> ${order.delivery_time}</p>`;
+      html += `
+        <div class="detail-info-item">
+          <span class="detail-info-label">Orario</span>
+          <span class="detail-info-value">${order.delivery_time}</span>
+        </div>
+      `;
     }
     
+    // Indirizzo (full width se presente)
     if (order.delivery_type === 'consegna' && order.delivery_address) {
-      html += `<p><strong>Indirizzo:</strong> ${escapeHtml(order.delivery_address)}</p>`;
+      html += `
+        <div class="detail-info-item detail-info-full">
+          <span class="detail-info-label">Indirizzo</span>
+          <span class="detail-info-value">${escapeHtml(order.delivery_address)}</span>
+        </div>
+      `;
     }
     
-    html += `</div>`;
+    // Stato merce
+    if (order.goods_type) {
+      html += `
+        <div class="detail-info-item">
+          <span class="detail-info-label">Disponibilità</span>
+          <span class="detail-info-value">${goodsTypeLabels[order.goods_type] || order.goods_type}</span>
+        </div>
+      `;
+    }
+    
+    // Tipo ordine
+    if (order.order_type) {
+      html += `
+        <div class="detail-info-item">
+          <span class="detail-info-label">Ricevuto via</span>
+          <span class="detail-info-value">${orderTypeLabels[order.order_type] || order.order_type}</span>
+        </div>
+      `;
+    }
+    
+    html += `</div></div>`;
   }
   
   // Foto (solo a schermo)
   if (order.photos && order.photos.length > 0) {
     html += `
-      <div class="detail-section no-print">
-        <h3>Foto (${order.photos.length})</h3>
+      <div class="detail-section detail-photos-section no-print">
+        <h3 class="detail-section-title">Foto (${order.photos.length})</h3>
         <div class="detail-photos">
     `;
     
@@ -2025,21 +2059,30 @@ function renderOrderDetail(order) {
     `;
   }
   
-  // Timestamp e info utente (solo a schermo)
-  if (order.created_at || order.created_by) {
-    html += `
-      <div class="detail-section no-print">
-        <h3>Info Ordine</h3>
-    `;
+  // Metadata discreto (solo a schermo)
+  if (order.created_by || order.updated_by) {
+    html += `<div class="detail-metadata no-print">`;
     
     if (order.created_by) {
-      const createdDate = order.created_at ? new Date(order.created_at).toLocaleString('it-IT') : '';
-      html += `<p><strong>✏️ Creato da:</strong> ${escapeHtml(order.created_by)}${createdDate ? ` il ${createdDate}` : ''}</p>`;
+      const createdDate = order.created_at ? new Date(order.created_at).toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : '';
+      html += `<span class="detail-metadata-item">Creato da ${escapeHtml(order.created_by)}${createdDate ? ` · ${createdDate}` : ''}</span>`;
     }
     
     if (order.updated_by && order.updated_at && order.updated_at !== order.created_at) {
-      const updatedDate = new Date(order.updated_at);
-      html += `<p><strong>🔄 Ultima modifica da:</strong> ${escapeHtml(order.updated_by)} il ${updatedDate.toLocaleString('it-IT')}</p>`;
+      const updatedDate = new Date(order.updated_at).toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      html += `<span class="detail-metadata-item">Modificato da ${escapeHtml(order.updated_by)} · ${updatedDate}</span>`;
     }
     
     html += `</div>`;
