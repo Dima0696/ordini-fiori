@@ -470,14 +470,17 @@ function setupEventListeners() {
     document.getElementById('modal-detail').classList.remove('active');
   });
   
+  // Modal condivisione/azioni
+  document.getElementById('btn-close-share').addEventListener('click', () => {
+    document.getElementById('modal-share').classList.remove('active');
+  });
+  
   // Stampa con protezione contro loop
   let isPrinting = false;
   document.getElementById('btn-print-order').addEventListener('click', () => {
-    if (isPrinting) return; // Previeni chiamate multiple
-    
+    if (isPrinting) return;
     isPrinting = true;
     
-    // Resetta flag quando stampa finisce o viene cancellata
     const onAfterPrint = () => {
       isPrinting = false;
       window.removeEventListener('afterprint', onAfterPrint);
@@ -485,21 +488,25 @@ function setupEventListeners() {
     
     window.addEventListener('afterprint', onAfterPrint);
     
-    // Fallback timeout se evento afterprint non viene triggerato
     setTimeout(() => {
       isPrinting = false;
     }, 2000);
     
-    window.print();
+    // Prepara la stampa (carica i dati dell'ordine nella pagina)
+    if (currentDetailOrder) {
+      renderOrderDetail(currentDetailOrder);
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    }
   });
   
   document.getElementById('btn-whatsapp-order').addEventListener('click', () => {
     shareOrderWhatsApp(currentDetailOrder);
   });
   
-  document.getElementById('btn-edit-from-detail').addEventListener('click', () => {
-    document.getElementById('modal-detail').classList.remove('active');
-    // currentOrderId è già impostato, apri modal modifica
+  document.getElementById('btn-edit-from-share').addEventListener('click', () => {
+    document.getElementById('modal-share').classList.remove('active');
     const order = currentDetailOrder;
     if (order) {
       openEditOrderModal(order);
@@ -1122,8 +1129,7 @@ function renderOrders(orders) {
         ${userInfoHtml}
       </div>
       <div class="order-actions">
-        <button class="btn-small btn-detail" data-id="${order.id}">👁️ Dettaglio</button>
-        <button class="btn-small btn-edit" data-id="${order.id}">✏️ Modifica</button>
+        <button class="btn-small btn-share" data-id="${order.id}">Condividi</button>
         ${order.status !== 'pronto' && order.status !== 'ritirato' ? 
           `<button class="btn-small btn-ready" data-id="${order.id}">✓ Pronto</button>` : ''}
         ${order.status === 'pronto' ? 
@@ -1131,21 +1137,16 @@ function renderOrders(orders) {
       </div>
     `;
     
-    // Click sulla card (esclusi i pulsanti) apre dettaglio
+    // Click sulla card (esclusi i pulsanti) apre VISUALIZZAZIONE (solo lettura + cambio stato)
     const orderContent = orderCard.querySelector('.order-content');
     orderContent.addEventListener('click', () => {
       openOrderDetail(order);
     });
     
     // Event listeners pulsanti
-    orderCard.querySelector('.btn-detail').addEventListener('click', (e) => {
+    orderCard.querySelector('.btn-share').addEventListener('click', (e) => {
       e.stopPropagation();
-      openOrderDetail(order);
-    });
-    
-    orderCard.querySelector('.btn-edit').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditOrderModal(order);
+      openShareModal(order);
     });
     
     const btnReady = orderCard.querySelector('.btn-ready');
@@ -1254,16 +1255,8 @@ function openEditOrderModal(order) {
     addressGroup.style.display = 'none';
   }
   
-  // Mostra gruppo stato
-  document.getElementById('status-group').style.display = 'block';
-  
-  // Seleziona stato attuale
-  document.querySelectorAll('.btn-status').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.status === order.status) {
-      btn.classList.add('active');
-    }
-  });
+  // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
+  document.getElementById('status-group').style.display = 'none';
   
   document.getElementById('btn-delete-order').style.display = 'block';
   
@@ -1867,6 +1860,29 @@ function openOrderDetail(order) {
   const modal = document.getElementById('modal-detail');
   renderOrderDetail(order);
   modal.classList.add('active');
+}
+
+// Apri modal condivisione/azioni
+function openShareModal(order) {
+  currentDetailOrder = order;
+  currentOrderId = order.id;
+  
+  // Formatta data
+  const dateObj = new Date(order.date + 'T00:00:00');
+  const dateFormatted = dateObj.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  // Popola modal
+  document.getElementById('share-customer-name').textContent = order.customer;
+  document.getElementById('share-order-date').textContent = dateFormatted;
+  document.getElementById('share-header-title').textContent = 'Azioni Ordine';
+  
+  // Mostra modal
+  document.getElementById('modal-share').classList.add('active');
 }
 
 // Renderizza dettaglio ordine

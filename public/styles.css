@@ -889,6 +889,16 @@ body {
   transform: scale(0.95);
 }
 
+.btn-share {
+  background: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-share:hover {
+  background: var(--color-primary-dark);
+}
+
 .btn-edit {
   background: var(--color-grey-light);
   color: var(--color-text);
@@ -1714,8 +1724,7 @@ button {
 }
 
 .detail-content {
-  padding: 0.5rem 0;
-  padding-bottom: 100px; /* Spazio per barra azioni fissa */
+  padding: 0.5rem 0 1rem 0;
   max-height: calc(100vh - 180px);
   overflow-y: auto;
 }
@@ -1949,57 +1958,100 @@ button {
   transform: scale(1.02);
 }
 
-.detail-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+/* MODAL CONDIVISIONE/AZIONI */
+.modal-share-content {
+  max-width: 500px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.share-content {
+  padding: 1.5rem 1rem;
+}
+
+.share-customer-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.share-order-date {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.share-actions {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: white;
-  border-top: 2px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  padding: 0.75rem;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  gap: 1rem;
 }
 
-.detail-actions button {
-  width: 100%;
-  min-width: 0;
-  border-radius: 12px;
-  padding: 1.1rem;
-  font-size: 1rem;
-  font-weight: 700;
+.btn-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.3rem 1.5rem;
   border: none;
-  margin-bottom: 0.5rem;
-  min-height: 54px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 60px;
 }
 
-.detail-actions button:last-child {
-  margin-bottom: 0;
+.btn-share svg {
+  flex-shrink: 0;
 }
 
-.detail-actions button:active {
-  transform: scale(0.98);
+.btn-share span {
+  flex: 1;
+  text-align: left;
 }
 
-/* Desktop: 3 colonne affiancate */
-@media (min-width: 768px) {
-  .detail-actions {
-    flex-direction: row;
-    padding: 1rem;
-  }
-  
-  .detail-actions button {
-    margin-bottom: 0;
-    margin-right: 0.75rem;
-  }
-  
-  .detail-actions button:last-child {
-    margin-right: 0;
-  }
+.btn-share:active {
+  transform: scale(0.97);
+}
+
+.btn-share-print {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-share-print:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 16px rgba(139, 193, 135, 0.3);
+}
+
+.btn-share-whatsapp {
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: white;
+}
+
+.btn-share-whatsapp:hover {
+  background: linear-gradient(135deg, #128C7E 0%, #075E54 100%);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
+}
+
+.btn-share-edit {
+  background: #F5F5F5;
+  color: var(--color-text);
+  border: 2px solid #E0E0E0;
+}
+
+.btn-share-edit:hover {
+  background: #EEEEEE;
+  border-color: var(--color-primary);
 }
 
 /* Miglioramento card ordine - click visibile */
