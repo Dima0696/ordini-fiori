@@ -1772,8 +1772,6 @@ button {
     max-width: 60mm !important;
     object-fit: contain !important;
     flex-shrink: 0 !important;
-    border: 1px solid #e0e0e0 !important; /* Debug: per vedere se logo c'è */
-    padding: 1mm !important;
   }
   
   .print-stack-customer {
