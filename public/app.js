@@ -1618,14 +1618,14 @@ function renderOrderDetail(order) {
   let html = `
     <div class="print-header-stack">
       <div class="print-stack-content">
-        <div class="print-stack-delivery ${order.delivery_type}">
-          ${deliveryIcon} ${deliveryText}${deliveryTime}
+        <div class="print-stack-customer">
+          ${escapeHtml(order.customer)}
         </div>
         <div class="print-stack-date">
           ${dateFormatted}
         </div>
-        <div class="print-stack-customer">
-          ${escapeHtml(order.customer)}
+        <div class="print-stack-delivery ${order.delivery_type}">
+          ${deliveryIcon} ${deliveryText}${deliveryTime}
         </div>
       </div>
       <img src="logo.png" alt="LombardaFlor" class="print-stack-logo">

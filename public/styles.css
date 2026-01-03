@@ -1772,9 +1772,11 @@ button {
     max-width: 60mm !important;
     object-fit: contain !important;
     flex-shrink: 0 !important;
+    border: 1px solid #e0e0e0 !important; /* Debug: per vedere se logo c'è */
+    padding: 1mm !important;
   }
   
-  .print-stack-delivery {
+  .print-stack-customer {
     font-size: 17pt !important;
     font-weight: 900 !important;
     text-transform: uppercase !important;
@@ -1782,14 +1784,6 @@ button {
     margin-bottom: 0.5mm !important;
     color: #000 !important;
     line-height: 1.1 !important;
-  }
-  
-  .print-stack-delivery.consegna {
-    color: #2563eb !important;
-  }
-  
-  .print-stack-delivery.ritiro {
-    color: #059669 !important;
   }
   
   .print-stack-date {
@@ -1801,13 +1795,20 @@ button {
     line-height: 1.1 !important;
   }
   
-  .print-stack-customer {
-    font-size: 15pt !important;
+  .print-stack-delivery {
+    font-size: 14pt !important;
     font-weight: 800 !important;
-    color: #000 !important;
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
     line-height: 1.1 !important;
+  }
+  
+  .print-stack-delivery.consegna {
+    color: #2563eb !important;
+  }
+  
+  .print-stack-delivery.ritiro {
+    color: #059669 !important;
   }
   
   /* Modal come documento */
