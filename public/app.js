@@ -1609,8 +1609,25 @@ function renderOrderDetail(order) {
   // Aggiorna titolo per stampa (cliente + data)
   document.getElementById('detail-header-title').textContent = `${order.customer} - ${dateShort}`;
   
+  // Intestazione stampa per impilamento ordini
+  const deliveryIcon = order.delivery_type === 'consegna' ? '🚚' : '📦';
+  const deliveryText = order.delivery_type === 'consegna' ? 'CONSEGNA' : 'RITIRO';
+  const deliveryTime = order.delivery_time ? ` - Ore ${order.delivery_time}` : '';
+  
   // Layout ottimizzato per stampa su una pagina
   let html = `
+    <div class="print-header-stack">
+      <div class="print-stack-delivery ${order.delivery_type}">
+        ${deliveryIcon} ${deliveryText}${deliveryTime}
+      </div>
+      <div class="print-stack-date">
+        ${dateFormatted}
+      </div>
+      <div class="print-stack-customer">
+        ${escapeHtml(order.customer)}
+      </div>
+    </div>
+    
     <div class="detail-section no-print">
       <h3>Stato Attuale</h3>
       <span class="detail-status order-status-badge ${order.status}">${statusLabels[order.status]}</span>
