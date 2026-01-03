@@ -1977,6 +1977,7 @@ function renderOrderDetail(order) {
   
   // Layout ottimizzato per stampa su una pagina
   let html = `
+    <!-- HEADER STAMPA (solo in stampa) -->
     <div class="print-header-stack">
       <div class="print-stack-content">
         <div class="print-stack-customer">
@@ -2017,9 +2018,8 @@ function renderOrderDetail(order) {
       <div class="detail-goods-content">${escapeHtml(order.description)}</div>
     </div>
     
-    <!-- Versione stampa: con checkbox per ogni riga -->
-    <div class="detail-section print-show">
-      <h3>Merce da Preparare</h3>
+    <!-- MERCE STAMPA: con checkbox per ogni riga (SOLO IN STAMPA) -->
+    <div class="print-merce-section">
       <div class="print-checklist">
         ${order.description.split('\n').map(line => {
           const trimmed = line.trim();
@@ -2032,20 +2032,20 @@ function renderOrderDetail(order) {
           `;
         }).join('')}
       </div>
-    </div>
-    
-    <div class="print-checkbox-area">
-      <div class="print-checkbox">
-        <span class="checkbox-square"></span>
-        <span class="checkbox-label">Merce preparata</span>
-      </div>
-      <div class="print-checkbox">
-        <span class="checkbox-square"></span>
-        <span class="checkbox-label">Merce controllata</span>
-      </div>
-      <div class="print-checkbox">
-        <span class="checkbox-square"></span>
-        <span class="checkbox-label">Pronta per ${order.delivery_type === 'consegna' ? 'consegna' : 'ritiro'}</span>
+      
+      <div class="print-checkbox-area">
+        <div class="print-checkbox">
+          <span class="checkbox-square"></span>
+          <span class="checkbox-label">Merce preparata</span>
+        </div>
+        <div class="print-checkbox">
+          <span class="checkbox-square"></span>
+          <span class="checkbox-label">Merce controllata</span>
+        </div>
+        <div class="print-checkbox">
+          <span class="checkbox-square"></span>
+          <span class="checkbox-label">Pronta per ${order.delivery_type === 'consegna' ? 'consegna' : 'ritiro'}</span>
+        </div>
       </div>
     </div>
   `;

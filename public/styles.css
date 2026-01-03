@@ -2206,6 +2206,7 @@ button {
 
 /* Nascondi elementi di stampa nella vista normale */
 .print-header-stack,
+.print-merce-section,
 .print-checklist,
 .print-stack-logo {
   display: none;
@@ -2230,24 +2231,28 @@ button {
     display: none !important;
   }
   
-  /* Nascondi elementi non necessari nel modal */
+  /* NASCONDI TUTTO tranne header stampa e merce */
   .no-print,
   .app-header,
   .modal-header,
   .detail-actions,
   .detail-status-actions,
   .detail-edit-action,
-  .status-segmented-control {
+  .status-segmented-control,
+  .detail-hero,
+  .detail-section,
+  .detail-info,
+  .detail-photos-section,
+  .detail-metadata {
     display: none !important;
   }
   
-  /* Nascondi hero header in stampa */
-  .detail-hero {
-    display: none !important;
+  /* Mostra SOLO header stampa e merce */
+  .print-header-stack {
+    display: flex !important;
   }
   
-  /* Mostra solo contenuto stampabile */
-  .print-show {
+  .print-merce-section {
     display: block !important;
   }
   
@@ -2361,51 +2366,19 @@ button {
     color: #000 !important;
   }
   
-  /* Assicura che le sezioni siano visibili */
-  .detail-section {
-    display: block !important;
-    background: white !important;
-    color: #000 !important;
-  }
-  
   /* Print header stack sempre visibile */
   .print-header-stack {
     display: flex !important;
     visibility: visible !important;
   }
   
-  
-  /* Sezioni compatte */
-  .detail-section.print-show {
+  /* SEZIONE MERCE STAMPA */
+  .print-merce-section {
+    display: block !important;
     background: white !important;
-    border: none !important;
-    page-break-inside: avoid;
-    padding: 3mm 0 !important;
-    margin-bottom: 0 !important;
-  }
-  
-  /* Titoli sezioni */
-  .detail-section h3 {
-    font-size: 10pt !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    color: #333 !important;
-    margin-bottom: 3mm !important;
-    letter-spacing: 0.5px !important;
-    border-bottom: 2px solid #ddd !important;
-    padding-bottom: 2mm !important;
-  }
-  
-  /* Contenuto merce */
-  .detail-section p {
-    font-size: 12pt !important;
-    font-weight: normal !important;
-    color: #000 !important;
-    line-height: 1.5 !important;
+    padding: 8mm 15mm !important;
     margin: 0 !important;
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
-    padding: 3mm 0 !important;
+    page-break-inside: avoid !important;
   }
   
   /* Checklist merce con checkbox per ogni articolo */
