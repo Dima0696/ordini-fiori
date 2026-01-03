@@ -400,7 +400,26 @@ function setupEventListeners() {
     document.getElementById('modal-detail').classList.remove('active');
   });
   
+  // Stampa con protezione contro loop
+  let isPrinting = false;
   document.getElementById('btn-print-order').addEventListener('click', () => {
+    if (isPrinting) return; // Previeni chiamate multiple
+    
+    isPrinting = true;
+    
+    // Resetta flag quando stampa finisce o viene cancellata
+    const onAfterPrint = () => {
+      isPrinting = false;
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+    
+    window.addEventListener('afterprint', onAfterPrint);
+    
+    // Fallback timeout se evento afterprint non viene triggerato
+    setTimeout(() => {
+      isPrinting = false;
+    }, 2000);
+    
     window.print();
   });
   
@@ -1007,11 +1026,11 @@ async function handleOrderSubmit(e) {
   
   try {
     if (orderId) {
-      // Aggiorna ordine esistente
+      // Aggiorna ordine esistente (includi date per permettere spostamento)
       await authenticatedFetch(`${API_URL}/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({ ...orderData, date })
       });
     } else {
       // Crea nuovo ordine

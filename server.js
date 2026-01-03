@@ -290,6 +290,7 @@ app.delete('/api/photos/:filename', authenticate, (req, res) => {
 app.put('/api/orders/:id', authenticate, async (req, res) => {
   try {
     const {
+      date,
       customer,
       description,
       status,
@@ -311,6 +312,7 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
     }
     
     const orderData = {
+      date: date || null, // AGGIUNGI: permetti modifica data
       customer,
       description,
       status,

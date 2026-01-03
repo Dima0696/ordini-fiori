@@ -214,6 +214,7 @@ const createOrder = (orderData, username) => {
 // Aggiorna ordine
 const updateOrder = (id, orderData, username) => {
   const {
+    date,
     customer,
     description,
     status,
@@ -225,23 +226,42 @@ const updateOrder = (id, orderData, username) => {
     photos
   } = orderData;
   
-  const stmt = db.prepare(`
+  // Se la data è presente, aggiornala; altrimenti mantieni la vecchia
+  let updateQuery = `
     UPDATE orders 
     SET customer = ?, description = ?, status = ?,
         order_type = ?, delivery_type = ?, delivery_time = ?,
         delivery_address = ?, goods_type = ?, photos = ?,
         updated_by = ?,
         updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+  `;
   
-  const photosJson = photos ? JSON.stringify(photos) : null;
-  stmt.run(
+  const params = [
     customer, description, status,
-    order_type, delivery_type, delivery_time, delivery_address, goods_type, photosJson,
-    username,
-    id
-  );
+    order_type, delivery_type, delivery_time, delivery_address, goods_type, 
+    photos ? JSON.stringify(photos) : null,
+    username
+  ];
+  
+  // Aggiungi date se presente
+  if (date) {
+    updateQuery = `
+      UPDATE orders 
+      SET date = ?, customer = ?, description = ?, status = ?,
+          order_type = ?, delivery_type = ?, delivery_time = ?,
+          delivery_address = ?, goods_type = ?, photos = ?,
+          updated_by = ?,
+          updated_at = CURRENT_TIMESTAMP
+    `;
+    params.unshift(date); // Aggiungi date all'inizio
+  }
+  
+  updateQuery += ` WHERE id = ?`;
+  params.push(id);
+  
+  const stmt = db.prepare(updateQuery);
+  stmt.run(...params);
+  
   return getOrderById(id);
 };
 
