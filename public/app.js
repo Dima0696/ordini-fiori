@@ -354,6 +354,47 @@ function setupEventListeners() {
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
   document.getElementById('order-form').addEventListener('submit', handleOrderSubmit);
   
+  // Gestione bottoni delivery (FIX: mancava!)
+  document.querySelectorAll('.btn-delivery').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const deliveryType = e.currentTarget.getAttribute('data-delivery');
+      
+      // Aggiorna valore hidden
+      document.getElementById('delivery-type').value = deliveryType;
+      
+      // Aggiorna bottoni attivi
+      document.querySelectorAll('.btn-delivery').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      
+      // Mostra/nascondi campo indirizzo
+      const addressGroup = document.getElementById('address-group');
+      const addressInput = document.getElementById('delivery-address');
+      
+      if (deliveryType === 'consegna') {
+        addressGroup.style.display = 'block';
+        addressInput.required = true;
+      } else {
+        addressGroup.style.display = 'none';
+        addressInput.required = false;
+        addressInput.value = ''; // Pulisci indirizzo se passa a ritiro
+      }
+    });
+  });
+  
+  // Gestione bottoni stato (FIX: mancava!)
+  document.querySelectorAll('.btn-status').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const status = e.currentTarget.getAttribute('data-status');
+      
+      // Aggiorna valore hidden
+      document.getElementById('order-status').value = status;
+      
+      // Aggiorna bottoni attivi
+      document.querySelectorAll('.btn-status').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+  });
+  
   // Modal dettaglio ordine
   document.getElementById('btn-close-detail').addEventListener('click', () => {
     document.getElementById('modal-detail').classList.remove('active');
