@@ -1029,6 +1029,22 @@ function renderOrders(orders) {
       photosHtml += '</div>';
     }
     
+    // Indicatori operativi compatti
+    let indicators = '';
+    if (order.photos && order.photos.length > 0) {
+      indicators += `<span class="order-indicator" title="Ha foto">📷</span>`;
+    }
+    if (order.delivery_type === 'consegna' && order.delivery_address) {
+      indicators += `<span class="order-indicator" title="Ha indirizzo">📍</span>`;
+    }
+    if (order.description && order.description.length > 50) {
+      indicators += `<span class="order-indicator" title="Descrizione lunga">📝</span>`;
+    }
+    // Indicatore dati incompleti
+    if (order.delivery_type === 'consegna' && !order.delivery_address) {
+      indicators += `<span class="order-indicator warning" title="Consegna senza indirizzo!">⚠️</span>`;
+    }
+    
     // Info utente
     let userInfoHtml = '<div class="order-user-info">';
     if (order.created_by) {
@@ -1049,7 +1065,10 @@ function renderOrders(orders) {
     orderCard.innerHTML = `
       <div class="order-content">
         <div class="order-header">
-          <div class="order-customer">${escapeHtml(order.customer)}</div>
+          <div class="order-customer">
+            ${escapeHtml(order.customer)}
+            ${indicators ? `<span class="order-indicators">${indicators}</span>` : ''}
+          </div>
           <span class="order-status-badge ${order.status}">${statusLabels[order.status]}</span>
         </div>
         ${infoBadges ? `<div class="order-info">${infoBadges}</div>` : ''}

@@ -556,11 +556,15 @@ body {
 }
 
 .status-dot.da-preparare {
-  background: var(--color-grey);
+  background: #FF9800; /* Arancione attenzione */
 }
 
 .status-dot.pronto {
-  background: var(--color-secondary);
+  background: #4CAF50; /* Verde OK */
+}
+
+.status-dot.ritirato {
+  background: #BDBDBD; /* Grigio completato */
 }
 
 /* Lista ordini */
@@ -731,28 +735,57 @@ body {
   font-weight: 600;
   color: var(--color-text);
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-indicators {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.order-indicator {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  display: inline-block;
+}
+
+.order-indicator.warning {
+  opacity: 1;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .order-status-badge {
-  padding: 0.3rem 0.75rem;
+  padding: 0.4rem 0.9rem;
   border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: white;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
   line-height: 1;
+  text-transform: uppercase;
 }
 
 .order-status-badge.da_preparare {
-  background: #B0BEC5;
+  background: #FF9800; /* Arancione - ATTENZIONE */
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }
 
 .order-status-badge.pronto {
-  background: var(--color-accent);
+  background: #4CAF50; /* Verde - OK */
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .order-status-badge.ritirato {
-  background: var(--color-success);
+  background: #9E9E9E; /* Grigio - Completato */
+  opacity: 0.7;
 }
 
 .order-description {
@@ -1596,6 +1629,9 @@ button {
 
 .detail-content {
   padding: 0.5rem 0;
+  padding-bottom: 100px; /* Spazio per barra azioni fissa */
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
 }
 
 .detail-section {
@@ -1665,16 +1701,36 @@ button {
 }
 
 .detail-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(168, 213, 164, 0.3);
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: white;
+  border-top: 2px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: env(safe-area-inset-bottom, 0);
 }
 
 .detail-actions button {
   min-width: 0;
+  border-radius: 0;
+  padding: 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.detail-actions button:last-child {
+  border-right: none;
+}
+
+.detail-actions button:active {
+  transform: scale(0.98);
 }
 
 .detail-status-actions {
