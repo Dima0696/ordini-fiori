@@ -19,6 +19,9 @@
   --color-text-light: #546E7A;
   --color-bg: #FAFAFA;
   
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  
   /* Ombre più delicate */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -584,6 +587,8 @@ body {
   text-overflow: ellipsis;
   max-width: 100%;
   transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .customer-name.clickable {
@@ -630,14 +635,18 @@ body {
   background: var(--color-primary);
   color: white;
   border: none;
-  padding: 0.8rem 1.4rem;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  padding: 1rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   letter-spacing: 0.3px;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:hover {
@@ -652,9 +661,17 @@ body {
 
 .btn-large {
   width: 100%;
-  padding: 1rem;
-  font-size: 1rem;
-  border-radius: 10px;
+  padding: 1.3rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  min-height: 56px;
+}
+
+.btn-compact {
+  padding: 0.75rem 1.2rem;
+  font-size: 0.9rem;
+  min-height: 44px;
 }
 
 /* Bottoni Header Moderni */
@@ -792,6 +809,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .order-indicators {
@@ -1003,25 +1022,28 @@ body {
 
 .form-group label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1.4;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
   width: 100%;
-  padding: 0.85rem 1.1rem;
+  padding: 1rem 1.2rem;
   border: 1.5px solid #E0E0E0;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 1rem;
   background: #FAFAFA;
   transition: all 0.2s ease;
   font-family: inherit;
+  min-height: 48px;
+  line-height: 1.5;
 }
 
 .form-group input:focus,
@@ -1051,7 +1073,7 @@ body {
   background: white;
   cursor: pointer;
   font-size: 1rem;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.2rem;
 }
 
 /* Campi input più leggibili */
@@ -1115,19 +1137,24 @@ body {
   background: var(--color-danger);
   color: white;
   border: none;
-  padding: 0.8rem 1.2rem;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  padding: 1rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   width: 100%;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-danger:hover {
   background: #E53935;
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .btn-danger:active {
@@ -1137,17 +1164,22 @@ body {
 .btn-secondary {
   background: #F5F5F5;
   color: var(--color-text);
-  border: 1px solid #E0E0E0;
-  padding: 0.8rem 1.2rem;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  border: 2px solid #E0E0E0;
+  padding: 1rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-secondary:hover {
   background: #EEEEEE;
+  border-color: var(--color-primary);
 }
 
 .btn-secondary:active {
@@ -2229,13 +2261,17 @@ button {
   background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 16px;
+  padding: 1rem 1.8rem;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-success:hover {

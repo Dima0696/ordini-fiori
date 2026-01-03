@@ -690,7 +690,7 @@ function renderCalendar() {
     
     if (stat && stat.total > 0) {
       content += `
-        <div class="day-count">📦 ${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</div>
+        <div class="day-count">${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</div>
         <div class="status-indicators">
       `;
       
@@ -869,7 +869,7 @@ function renderSearchResults(query, orders) {
       infoBadges += `<span class="info-badge ${deliveryClass}">${deliveryTypeLabels[order.delivery_type]}</span>`;
     }
     if (order.delivery_time) {
-      infoBadges += `<span class="info-badge">🕐 ${order.delivery_time}</span>`;
+      infoBadges += `<span class="info-badge">${order.delivery_time}</span>`;
     }
     
     html += `
@@ -1026,21 +1026,21 @@ function renderOrders(orders) {
     };
     
     const orderTypeLabels = {
-      'cliente': '👤 Cliente',
-      'whatsapp': '💬 WhatsApp',
-      'mail': '📧 Email',
-      'telefono': '📞 Telefono'
+      'cliente': 'Cliente',
+      'whatsapp': 'WhatsApp',
+      'mail': 'Email',
+      'telefono': 'Telefono'
     };
     
     const deliveryTypeLabels = {
-      'ritiro': '📦 Ritiro',
-      'consegna': '🚚 Consegna'
+      'ritiro': 'Ritiro',
+      'consegna': 'Consegna'
     };
     
     const goodsTypeLabels = {
-      'in_cella': '❄️ In giacenza',
-      'da_ordinare': '📝 Da ordinare',
-      'ordinata': '📦 Ordinata'
+      'in_cella': 'In giacenza',
+      'da_ordinare': 'Da ordinare',
+      'ordinata': 'Ordinata'
     };
     
     // Costruisci info badges
@@ -1058,10 +1058,10 @@ function renderOrders(orders) {
       infoBadges += `<span class="info-badge ${deliveryClass}">${deliveryTypeLabels[order.delivery_type] || order.delivery_type}</span>`;
     }
     if (order.delivery_time) {
-      infoBadges += `<span class="info-badge">🕐 ${order.delivery_time}</span>`;
+      infoBadges += `<span class="info-badge">${order.delivery_time}</span>`;
     }
     if (order.delivery_type === 'consegna' && order.delivery_address) {
-      infoBadges += `<span class="info-badge">📍 ${escapeHtml(order.delivery_address)}</span>`;
+      infoBadges += `<span class="info-badge">${escapeHtml(order.delivery_address)}</span>`;
     }
     
     // Costruisci foto
@@ -1707,18 +1707,18 @@ function renderFabbisogno(orders, totalOrders = 0) {
     };
     
     const orderTypeLabels = {
-      'cliente': '👤',
-      'whatsapp': '💬',
-      'mail': '📧',
-      'telefono': '📞'
+      'cliente': 'Cliente',
+      'whatsapp': 'WhatsApp',
+      'mail': 'Email',
+      'telefono': 'Telefono'
     };
     
-    const deliveryLabel = order.delivery_type === 'consegna' ? '🚚' : '📦';
+    const deliveryLabel = order.delivery_type === 'consegna' ? 'Consegna' : 'Ritiro';
     
-    let metaInfo = `<span class="info-badge">${orderTypeLabels[order.order_type] || '👤'}</span>`;
+    let metaInfo = `<span class="info-badge">${orderTypeLabels[order.order_type] || 'Cliente'}</span>`;
     metaInfo += `<span class="info-badge">${deliveryLabel}</span>`;
     if (order.delivery_time) {
-      metaInfo += `<span class="info-badge">🕐 ${order.delivery_time}</span>`;
+      metaInfo += `<span class="info-badge">${order.delivery_time}</span>`;
     }
     // Aggiungi badge stato
     metaInfo += `<span class="info-badge status-${status}">${statusLabels[status]}</span>`;
@@ -2132,5 +2132,67 @@ function shareOrderWhatsApp(order) {
     : `https://wa.me/?text=${encodedMessage}`;
   
   window.open(whatsappUrl, '_blank');
+}
+
+// ===========================
+// GESTURE NAVIGATION (Swipe Back)
+// ===========================
+function initSwipeGestures() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+  
+  const minSwipeDistance = 80; // px
+  const maxVerticalDistance = 100; // max vertical movement allowed
+  
+  document.addEventListener('touchstart', (e) => {
+    // Only detect swipe from left edge (< 50px from left)
+    if (e.touches[0].clientX < 50) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    } else {
+      touchStartX = 0;
+    }
+  }, { passive: true });
+  
+  document.addEventListener('touchend', (e) => {
+    if (touchStartX === 0) return; // Not a swipe from edge
+    
+    touchEndX = e.changedTouches[0].clientX;
+    touchEndY = e.changedTouches[0].clientY;
+    
+    const horizontalDistance = touchEndX - touchStartX;
+    const verticalDistance = Math.abs(touchEndY - touchStartY);
+    
+    // Swipe right from left edge
+    if (
+      horizontalDistance > minSwipeDistance && 
+      verticalDistance < maxVerticalDistance
+    ) {
+      handleSwipeBack();
+    }
+    
+    // Reset
+    touchStartX = 0;
+  }, { passive: true });
+}
+
+function handleSwipeBack() {
+  const currentPage = getCurrentPage();
+  
+  if (currentPage === 'orders') {
+    showCalendar();
+  } else if (currentPage === 'fabbisogno' || currentPage === 'detail') {
+    // Close modal
+    document.querySelector('.modal.show')?.classList.remove('show');
+  }
+}
+
+// Initialize swipe gestures after app is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSwipeGestures);
+} else {
+  initSwipeGestures();
 }
 

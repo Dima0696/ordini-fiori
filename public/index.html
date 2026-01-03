@@ -163,7 +163,7 @@
       </div>
       
       <div id="empty-message" class="empty-message" style="display: none;">
-        <p>📦 Nessun ordine per questo giorno</p>
+        <p>Nessun ordine per questo giorno</p>
         <p class="empty-subtitle">Tocca "Nuovo ordine" per iniziare</p>
       </div>
     </div>
@@ -183,37 +183,37 @@
         <!-- ROW 1: Data e Cliente -->
         <div class="form-row">
           <div class="form-group">
-            <label for="order-date">📅 Data</label>
+            <label for="order-date">Data</label>
             <input type="date" id="order-date" required>
           </div>
           
           <div class="form-group">
-            <label for="order-customer">👤 Cliente</label>
+            <label for="order-customer">Cliente</label>
             <input type="text" id="order-customer" placeholder="Fioreria Rossi" required>
           </div>
         </div>
         
         <!-- ROW 2: Descrizione (full width) -->
         <div class="form-group">
-          <label for="order-description">📝 Merce</label>
+          <label for="order-description">Merce</label>
           <textarea id="order-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
         </div>
         
         <!-- ROW 3: Tipo Ordine e Tipo Merce -->
         <div class="form-row">
           <div class="form-group">
-            <label for="order-type">📞 Ricevuto via</label>
+            <label for="order-type">Ricevuto via</label>
             <select id="order-type">
-              <option value="cliente">👤 Cliente</option>
-              <option value="whatsapp">💬 WhatsApp</option>
-              <option value="mail">📧 Email</option>
-              <option value="telefono">📞 Telefono</option>
+              <option value="cliente">Cliente</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="mail">Email</option>
+              <option value="telefono">Telefono</option>
             </select>
           </div>
           
           <div class="form-group">
             <label for="goods-type">
-              📦 Disponibilità
+              Disponibilità
               <span id="goods-type-info" style="display: none; font-size: 0.7rem; color: #999; font-weight: normal; text-transform: none;">
                 (solo magazzino)
               </span>
@@ -228,10 +228,10 @@
         
         <!-- ROW 4: Modalità Consegna -->
         <div class="form-group">
-          <label for="delivery-type">🚚 Modalità</label>
+          <label for="delivery-type">Modalità</label>
           <div class="delivery-buttons">
-            <button type="button" class="btn-delivery active" data-delivery="ritiro">📦 Ritiro</button>
-            <button type="button" class="btn-delivery" data-delivery="consegna">🚚 Consegna</button>
+            <button type="button" class="btn-delivery active" data-delivery="ritiro">Ritiro</button>
+            <button type="button" class="btn-delivery" data-delivery="consegna">Consegna</button>
           </div>
           <input type="hidden" id="delivery-type" value="ritiro">
         </div>
@@ -239,21 +239,21 @@
         <!-- ROW 5: Orario e Indirizzo (condizionale) -->
         <div class="form-row">
           <div class="form-group">
-            <label for="delivery-time">🕐 Orario</label>
+            <label for="delivery-time">Orario</label>
             <input type="time" id="delivery-time">
           </div>
           
           <div class="form-group" id="address-group" style="display: none;">
-            <label for="delivery-address">📍 Indirizzo</label>
+            <label for="delivery-address">Indirizzo</label>
             <input type="text" id="delivery-address" placeholder="Via, città">
           </div>
         </div>
         
         <!-- ROW 6: Foto -->
         <div class="form-group">
-          <label>📷 Foto</label>
+          <label>Foto</label>
           <input type="file" id="photo-input" accept="image/*" multiple style="display: none;">
-          <button type="button" id="btn-add-photo" class="btn-secondary btn-compact">📷 Aggiungi foto</button>
+          <button type="button" id="btn-add-photo" class="btn-secondary btn-compact">Aggiungi foto</button>
           <div id="photo-preview" class="photo-preview"></div>
         </div>
         
@@ -333,9 +333,9 @@
       </div>
       
       <div class="detail-actions no-print">
-        <button id="btn-print-order" class="btn-primary btn-large">🖨️ Stampa ordine</button>
-        <button id="btn-whatsapp-order" class="btn-success btn-large">💬 WhatsApp</button>
-        <button id="btn-edit-from-detail" class="btn-secondary btn-large">✏️ Modifica</button>
+        <button id="btn-print-order" class="btn-primary btn-large">Stampa ordine</button>
+        <button id="btn-whatsapp-order" class="btn-success btn-large">WhatsApp</button>
+        <button id="btn-edit-from-detail" class="btn-secondary btn-large">Modifica</button>
       </div>
       
       <div class="detail-status-actions no-print">
