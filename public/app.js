@@ -1046,25 +1046,12 @@ function renderOrders(orders) {
       'ordinata': 'Ordinata'
     };
     
-    // Costruisci info badges
+    // Mostra solo disponibilità merce
     let infoBadges = '';
-    if (order.order_type) {
-      const badgeClass = order.order_type === 'cliente' ? '' : order.order_type;
-      infoBadges += `<span class="info-badge ${badgeClass}">${orderTypeLabels[order.order_type] || order.order_type}</span>`;
-    }
     if (order.goods_type) {
-      const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : '';
+      const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : 
+                         order.goods_type === 'ordinata' ? 'ordinata' : '';
       infoBadges += `<span class="info-badge ${goodsClass}">${goodsTypeLabels[order.goods_type] || order.goods_type}</span>`;
-    }
-    if (order.delivery_type) {
-      const deliveryClass = order.delivery_type === 'consegna' ? 'consegna' : '';
-      infoBadges += `<span class="info-badge ${deliveryClass}">${deliveryTypeLabels[order.delivery_type] || order.delivery_type}</span>`;
-    }
-    if (order.delivery_time) {
-      infoBadges += `<span class="info-badge">${order.delivery_time}</span>`;
-    }
-    if (order.delivery_type === 'consegna' && order.delivery_address) {
-      infoBadges += `<span class="info-badge">${escapeHtml(order.delivery_address)}</span>`;
     }
     
     // Costruisci foto
