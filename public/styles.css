@@ -1232,20 +1232,11 @@ body {
 }
 
 .btn-goods.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-}
-
-.btn-goods[data-goods=\"in_cella\"].active {
-  border-color: var(--color-pronto);
-  background: var(--color-pronto);
-  color: white;
-}
-
-.btn-goods[data-goods=\"da_ordinare\"].active {
-  border-color: var(--color-da-preparare);
-  background: var(--color-da-preparare);
-  color: white;
 }
 
 .btn-danger {
