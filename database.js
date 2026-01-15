@@ -184,6 +184,7 @@ const createOrder = (orderData, username) => {
     date,
     customer,
     description,
+    status = 'da_preparare',
     order_type = 'cliente',
     delivery_type = 'ritiro',
     delivery_time = null,
@@ -199,12 +200,12 @@ const createOrder = (orderData, username) => {
       created_by, updated_by,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, 'da_preparare', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
   
   const photosJson = photos ? JSON.stringify(photos) : null;
   const info = stmt.run(
-    date, customer, description,
+    date, customer, description, status,
     order_type, delivery_type, delivery_time, delivery_address, goods_type, photosJson,
     username, username
   );
