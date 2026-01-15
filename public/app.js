@@ -1739,26 +1739,20 @@ async function loadFabbisognoChecks(orderId) {
     const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
     const checks = await response.json();
     
-    // Applica lo stato ai checkbox
-    Object.keys(checks).forEach(lineNumber => {
-      const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
-      if (checkbox) {
-        checkbox.checked = checks[lineNumber];
-        
-        // Aggiungi listener per salvare cambio
-        checkbox.addEventListener('change', async () => {
-          await toggleFabbisognoCheck(orderId, lineNumber, checkbox.checked);
-        });
-      }
-    });
-    
-    // Aggiungi listener anche ai checkbox non ancora flaggati
+    // Per ogni checkbox dell'ordine
     document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`).forEach(checkbox => {
+      const lineNum = parseInt(checkbox.dataset.lineNumber);
+      
+      // Imposta stato checked dal DB
+      if (checks[lineNum] !== undefined) {
+        checkbox.checked = checks[lineNum];
+      }
+      
+      // Aggiungi listener UNA SOLA VOLTA
       if (!checkbox.hasAttribute('data-listener')) {
         checkbox.setAttribute('data-listener', 'true');
         checkbox.addEventListener('change', async () => {
-          const lineNum = parseInt(checkbox.dataset.lineNumber);
-          await toggleFabbisognoCheck(orderId, lineNum, checkbox.checked);
+          await toggleFabbisognoCheck(orderId, lineNum);
         });
       }
     });
@@ -1768,7 +1762,7 @@ async function loadFabbisognoChecks(orderId) {
 }
 
 // Toggle checkbox fabbisogno
-async function toggleFabbisognoCheck(orderId, lineNumber, checked) {
+async function toggleFabbisognoCheck(orderId, lineNumber) {
   try {
     const response = await authenticatedFetch(
       `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`,
