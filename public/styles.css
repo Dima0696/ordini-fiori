@@ -1786,6 +1786,53 @@ body {
   box-shadow: 0 4px 12px rgba(139, 193, 135, 0.4);
 }
 
+/* Righe fabbisogno con checkbox */
+.fabbisogno-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.fabbisogno-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.fabbisogno-line:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.fabbisogno-checkbox {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  border-radius: 4px;
+}
+
+.fabbisogno-line-text {
+  flex: 1;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.fabbisogno-checkbox:checked + .fabbisogno-line-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+  color: var(--color-text-light);
+}
+
 /* iOS fix per input */
 input,
 textarea,

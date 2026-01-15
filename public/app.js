@@ -1697,19 +1697,98 @@ function renderFabbisogno(orders, totalOrders = 0) {
       goodsButtons = `<button class="btn-goods-action btn-mark-ordered" onclick="markAsOrdered(${order.id})">✅ Segna come ordinata</button>`;
     }
     
+    // Dividi descrizione in righe e aggiungi checkbox
+    const lines = order.description.split('\n').filter(line => line.trim());
+    let descriptionHtml = '<div class="fabbisogno-lines">';
+    lines.forEach((line, index) => {
+      descriptionHtml += `
+        <div class="fabbisogno-line">
+          <input 
+            type="checkbox" 
+            class="fabbisogno-checkbox" 
+            data-order-id="${order.id}" 
+            data-line-number="${index}"
+            id="check-${order.id}-${index}">
+          <label for="check-${order.id}-${index}" class="fabbisogno-line-text">${escapeHtml(line.trim())}</label>
+        </div>
+      `;
+    });
+    descriptionHtml += '</div>';
+    
     item.innerHTML = `
       <div class="fabbisogno-header">
         <div class="fabbisogno-customer">
           ${escapeHtml(order.customer)}
         </div>
       </div>
-      <div class="fabbisogno-description">${escapeHtml(order.description)}</div>
+      ${descriptionHtml}
       ${metaInfo ? `<div class="fabbisogno-meta">${metaInfo}</div>` : ''}
       ${goodsButtons ? `<div class="fabbisogno-actions">${goodsButtons}</div>` : ''}
     `;
     
     fabbisognoList.appendChild(item);
+    
+    // Carica stato checkbox e aggiungi listener
+    loadFabbisognoChecks(order.id);
   });
+}
+
+// Carica stato checkbox fabbisogno per un ordine
+async function loadFabbisognoChecks(orderId) {
+  try {
+    const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
+    const checks = await response.json();
+    
+    // Applica lo stato ai checkbox
+    Object.keys(checks).forEach(lineNumber => {
+      const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
+      if (checkbox) {
+        checkbox.checked = checks[lineNumber];
+        
+        // Aggiungi listener per salvare cambio
+        checkbox.addEventListener('change', async () => {
+          await toggleFabbisognoCheck(orderId, lineNumber, checkbox.checked);
+        });
+      }
+    });
+    
+    // Aggiungi listener anche ai checkbox non ancora flaggati
+    document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`).forEach(checkbox => {
+      if (!checkbox.hasAttribute('data-listener')) {
+        checkbox.setAttribute('data-listener', 'true');
+        checkbox.addEventListener('change', async () => {
+          const lineNum = parseInt(checkbox.dataset.lineNumber);
+          await toggleFabbisognoCheck(orderId, lineNum, checkbox.checked);
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Errore caricamento checks:', error);
+  }
+}
+
+// Toggle checkbox fabbisogno
+async function toggleFabbisognoCheck(orderId, lineNumber, checked) {
+  try {
+    const response = await authenticatedFetch(
+      `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`,
+      { method: 'POST' }
+    );
+    const data = await response.json();
+    
+    // Aggiorna checkbox con il valore dal server
+    const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
+    if (checkbox) {
+      checkbox.checked = data.checked;
+    }
+  } catch (error) {
+    console.error('Errore salvataggio check:', error);
+    // Ripristina stato precedente in caso di errore
+    const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
+    if (checkbox) {
+      checkbox.checked = !checkbox.checked;
+    }
+  }
 }
 
 // Funzione per segnare merce come ordinata (Carlo/Dimitri)

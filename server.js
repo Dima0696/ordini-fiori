@@ -500,7 +500,33 @@ app.delete('/api/orders/:id', authenticate, (req, res) => {
   }
 });
 
-// GET /api/stats/dates - Ottieni statistiche per date (per il calendario)
+// API Routes - Fabbisogno Checks
+
+// GET /api/fabbisogno-checks/:orderId - Ottieni checkbox di un ordine
+app.get('/api/fabbisogno-checks/:orderId', authenticate, (req, res) => {
+  try {
+    const checks = db.getFabbisognoChecks(req.params.orderId);
+    res.json(checks);
+  } catch (error) {
+    console.error('Errore lettura checks:', error);
+    res.status(500).json({ error: 'Errore lettura checks' });
+  }
+});
+
+// POST /api/fabbisogno-checks/:orderId/:lineNumber - Toggle checkbox
+app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const lineNumber = parseInt(req.params.lineNumber);
+    const checked = db.toggleFabbisognoCheck(orderId, lineNumber);
+    res.json({ checked });
+  } catch (error) {
+    console.error('Errore toggle check:', error);
+    res.status(500).json({ error: 'Errore toggle check' });
+  }
+});
+
+// API Routes - Stats - Ottieni statistiche per date (per il calendario)
 app.get('/api/stats/dates', (req, res) => {
   try {
     const stats = db.getOrdersCountByDate();

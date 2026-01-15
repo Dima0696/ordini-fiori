@@ -70,9 +70,22 @@ const initDb = () => {
     )
   `;
   
+  const createFabbisognoChecksTableQuery = `
+    CREATE TABLE IF NOT EXISTS fabbisogno_checks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      line_number INTEGER NOT NULL,
+      checked INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(order_id, line_number),
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    )
+  `;
+  
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
+  db.exec(createFabbisognoChecksTableQuery);
   
   // Crea indici per performance
   try {
@@ -398,6 +411,37 @@ const deleteSubscription = (endpoint) => {
   stmt.run(endpoint);
 };
 
+// Funzioni per gestire i checkbox del fabbisogno
+const getFabbisognoChecks = (orderId) => {
+  const stmt = db.prepare('SELECT line_number, checked FROM fabbisogno_checks WHERE order_id = ?');
+  const checks = stmt.all(orderId);
+  // Restituisci un oggetto { lineNumber: checked }
+  const result = {};
+  checks.forEach(c => {
+    result[c.line_number] = c.checked === 1;
+  });
+  return result;
+};
+
+const toggleFabbisognoCheck = (orderId, lineNumber) => {
+  // Prima verifica se esiste già
+  const checkStmt = db.prepare('SELECT checked FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?');
+  const existing = checkStmt.get(orderId, lineNumber);
+  
+  if (existing) {
+    // Esiste: toggle
+    const newChecked = existing.checked === 1 ? 0 : 1;
+    const updateStmt = db.prepare('UPDATE fabbisogno_checks SET checked = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?');
+    updateStmt.run(newChecked, orderId, lineNumber);
+    return newChecked === 1;
+  } else {
+    // Non esiste: crea con checked = 1
+    const insertStmt = db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked) VALUES (?, ?, 1)');
+    insertStmt.run(orderId, lineNumber);
+    return true;
+  }
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -413,6 +457,8 @@ module.exports = {
   verifyUser,
   saveSubscription,
   getAllSubscriptions,
-  deleteSubscription
+  deleteSubscription,
+  getFabbisognoChecks,
+  toggleFabbisognoCheck
 };
 
