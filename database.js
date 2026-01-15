@@ -92,6 +92,9 @@ const initDb = () => {
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(date)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_date_status ON orders(date, status)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_goods_type ON orders(goods_type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_fabbisogno_order ON fabbisogno_checks(order_id)');
     console.log('✓ Indici database creati per performance');
   } catch (error) {
     console.log('⚠️ Indici già esistenti');

@@ -15,6 +15,11 @@ let autoRefreshInterval = null;
 let lastUpdateTime = new Date();
 let currentFabbisognoDate = null; // Data del fabbisogno aperto
 
+// Cache in-memory per performance
+let calendarCache = null;
+let calendarCacheTime = 0;
+const CALENDAR_CACHE_TTL = 30000; // 30 secondi
+
 // Festività italiane (formato MM-DD)
 const holidays = [
   '01-01', // Capodanno
@@ -73,7 +78,7 @@ async function initializeApp() {
   await requestNotificationPermission();
   
   // Mostra calendario
-  await loadCalendar();
+  await loadCalendar(); // Usa cache se disponibile
   
   // Avvia auto-refresh ogni 2 minuti
   startAutoRefresh();
@@ -86,17 +91,34 @@ function startAutoRefresh() {
     clearInterval(autoRefreshInterval);
   }
   
-  // Auto-refresh ogni 3 minuti (180000 ms) - ottimizzato per performance
+  // Auto-refresh ogni 3 minuti SOLO se tab visibile
   autoRefreshInterval = setInterval(() => {
+    // Skip se tab non visibile (performance)
+    if (document.hidden) {
+      return;
+    }
+    
     const currentPage = document.querySelector('.page.active');
-    if (currentPage.id === 'page-calendar') {
+    if (currentPage && currentPage.id === 'page-calendar') {
       autoRefreshCalendar();
-    } else if (currentPage.id === 'page-orders') {
+    } else if (currentPage && currentPage.id === 'page-orders') {
       autoRefreshOrders();
     }
   }, 180000); // 3 minuti
   
-  console.log('⏰ Auto-refresh attivo: ogni 3 minuti');
+  // Refresh quando tab torna visibile
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      const currentPage = document.querySelector('.page.active');
+      if (currentPage && currentPage.id === 'page-calendar') {
+        autoRefreshCalendar();
+      } else if (currentPage && currentPage.id === 'page-orders') {
+        autoRefreshOrders();
+      }
+    }
+  });
+  
+  console.log('⏰ Auto-refresh attivo: ogni 3 minuti (solo se tab visibile)');
 }
 
 // Refresh manuale
@@ -261,25 +283,30 @@ async function checkAuth() {
     return false;
   }
   
+  // Mostra app SUBITO con credenziali salvate (performance)
+  authToken = savedToken;
+  currentUser = savedUser;
+  showApp();
+  await initializeApp();
+  
+  // Verifica validità token in background (non blocca UI)
   try {
     const response = await fetch(`${API_URL}/me`, {
       headers: { 'Authorization': `Bearer ${savedToken}` }
     });
     
-    if (response.ok) {
-      const data = await response.json();
-      authToken = savedToken;
-      currentUser = data.username;
-      showApp();
-      await initializeApp();
-      return true;
-    } else {
-      showLogin();
+    if (!response.ok) {
+      // Token scaduto: logout dopo 2s per permettere chiusura graziosa
+      setTimeout(() => {
+        logout('Sessione scaduta. Effettua il login.');
+      }, 2000);
       return false;
     }
+    return true;
   } catch (error) {
-    showLogin();
-    return false;
+    // Errore rete: permetti comunque l'uso (modalità offline)
+    console.log('Verifica auth in background fallita, continuo offline');
+    return true;
   }
 }
 
@@ -383,13 +410,13 @@ function setupEventListeners() {
   document.getElementById('prev-month').addEventListener('click', () => {
     // Crea una nuova data per evitare problemi con setMonth
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    loadCalendar();
+    loadCalendar(true);
   });
   
   document.getElementById('next-month').addEventListener('click', () => {
     // Crea una nuova data per evitare problemi con setMonth
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    loadCalendar();
+    loadCalendar(true);
   });
   
   // Navigazione pagine
@@ -578,23 +605,41 @@ function setupEventListeners() {
 }
 
 // Carica calendario
-async function loadCalendar() {
+async function loadCalendar(forceRefresh = false) {
   try {
+    const now = Date.now();
+    
+    // Usa cache se valida e non forceRefresh
+    if (!forceRefresh && calendarCache && (now - calendarCacheTime) < CALENDAR_CACHE_TTL) {
+      orderStats = calendarCache;
+      renderCalendar();
+      return;
+    }
+    
     // Carica statistiche ordini
     const response = await authenticatedFetch(`${API_URL}/stats/dates`);
     const stats = await response.json();
     
-    // Crea mappa per accesso veloce
+    // Crea mappa per accesso veloce e salva in cache
     orderStats = {};
     stats.forEach(stat => {
       orderStats[stat.date] = stat;
     });
     
+    calendarCache = orderStats;
+    calendarCacheTime = now;
+    
     // Genera giorni del mese
     renderCalendar();
   } catch (error) {
     console.error('Errore caricamento calendario:', error);
-    alert('Errore nel caricamento del calendario');
+    // Usa cache vecchia se disponibile
+    if (calendarCache) {
+      orderStats = calendarCache;
+      renderCalendar();
+    } else {
+      alert('Errore nel caricamento del calendario');
+    }
   }
 }
 
@@ -1313,7 +1358,7 @@ async function handleOrderSubmit(e) {
     closeOrderModal();
     uploadedPhotos = [];
     await loadOrders(currentDate);
-    await loadCalendar();
+    await loadCalendar(true);
   } catch (error) {
     console.error('Errore salvataggio ordine:', error);
     alert('Errore nel salvataggio dell\'ordine');
@@ -1330,7 +1375,7 @@ async function updateOrderStatus(orderId, status) {
     });
     
     await loadOrders(currentDate);
-    await loadCalendar();
+    await loadCalendar(true);
   } catch (error) {
     console.error('Errore aggiornamento stato:', error);
     alert('Errore nell\'aggiornamento dello stato');
@@ -1813,7 +1858,7 @@ async function markAsOrdered(orderId) {
       await loadOrders(currentDate);
     }
     // Aggiorna calendario
-    await loadCalendar();
+    await loadCalendar(true);
   } catch (error) {
     console.error('Errore:', error);
     alert('Errore nell\'aggiornamento dello stato della merce');

@@ -1,5 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-const CACHE_NAME = 'lombardaflor-orders-v2';
+const CACHE_NAME = 'lombardaflor-orders-v3';
+const STATIC_CACHE = 'lombardaflor-static-v3';
+const API_CACHE = 'lombardaflor-api-v3';
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -12,22 +15,22 @@ const urlsToCache = [
   '/icon-512.png'
 ];
 
-// Installazione
+// Installazione - precache risorse statiche
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => cache.addAll(urlsToCache))
       .then(() => self.skipWaiting())
   );
 });
 
-// Attivazione
+// Attivazione - rimuovi cache vecchie
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE && cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -36,31 +39,87 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch
+// Fetch - strategia ibrida
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Cacha solo richieste GET (non PUT/POST/DELETE)
-        if (event.request.method === 'GET') {
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            })
-            .catch((error) => {
-              // Ignora errori di caching silenziosamente
-              console.debug('Cache put error (ignorato):', error.message);
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  // Solo GET requests
+  if (request.method !== 'GET') {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // Risorse statiche: Cache First
+  if (urlsToCache.some(path => url.pathname.endsWith(path))) {
+    event.respondWith(
+      caches.match(request)
+        .then((cached) => {
+          if (cached) {
+            return cached;
+          }
+          return fetch(request).then((response) => {
+            return caches.open(STATIC_CACHE).then((cache) => {
+              cache.put(request, response.clone());
+              return response;
             });
-        }
-        
+          });
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+  
+  // API: Stale-While-Revalidate (max 30s)
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      caches.open(API_CACHE).then((cache) => {
+        return cache.match(request).then((cached) => {
+          const fetchPromise = fetch(request).then((response) => {
+            // Salva solo risposte OK
+            if (response.ok) {
+              cache.put(request, response.clone());
+            }
+            return response;
+          });
+          
+          // Se cache esiste e recente (< 30s), usala subito
+          if (cached) {
+            const cachedDate = new Date(cached.headers.get('date'));
+            const now = new Date();
+            const age = (now - cachedDate) / 1000;
+            
+            if (age < 30) {
+              // Cache fresca: ritorna subito, aggiorna in background
+              fetchPromise.catch(() => {}); // Ignora errori background
+              return cached;
+            }
+          }
+          
+          // Altrimenti aspetta il network (con fallback su cache)
+          return fetchPromise.catch(() => {
+            return cached || new Response('{"error": "Offline"}', {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        });
+      })
+    );
+    return;
+  }
+  
+  // Tutto il resto: Network First
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
+        }).catch(() => {});
         return response;
       })
-      .catch(() => {
-        // Fallback: prova a recuperare dalla cache
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(request))
   );
 });
 
@@ -116,4 +175,3 @@ self.addEventListener('notificationclick', (event) => {
       })
   );
 });
-
