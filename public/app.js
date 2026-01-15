@@ -1046,9 +1046,13 @@ function renderOrders(orders) {
       'ordinata': 'Ordinata'
     };
     
-    // Mostra solo disponibilità merce
+    // Mostra disponibilità: se ordine è pronto/ritirato, mostra solo quello
     let infoBadges = '';
-    if (order.goods_type) {
+    if (order.status === 'pronto' || order.status === 'ritirato') {
+      // Ordine già pronto o ritirato → mostra solo questo
+      infoBadges += `<span class="info-badge status-${order.status}">${statusLabels[order.status]}</span>`;
+    } else if (order.goods_type) {
+      // Ordine da preparare → mostra stato merce
       const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : 
                          order.goods_type === 'ordinata' ? 'ordinata' : '';
       infoBadges += `<span class="info-badge ${goodsClass}">${goodsTypeLabels[order.goods_type] || order.goods_type}</span>`;
