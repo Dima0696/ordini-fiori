@@ -13,6 +13,10 @@
   --color-accent: #64B5F6;
   --color-accent-dark: #42A5F5;
   --color-success: #81C784;
+  /* Stati ordine */
+  --color-da-preparare: #FF9800;
+  --color-pronto: #4CAF50;
+  --color-ritirato: #9E9E9E;
   --color-grey: #B0BEC5;
   --color-danger: #EF5350;
   --color-text: #2C3E50;

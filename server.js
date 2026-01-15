@@ -90,14 +90,7 @@ db.initDb();
 
 // Configura Web Push
 webpush.setVapidDetails(
-  'mailto:info@lombardaflor.it',
-  pushConfig.vapidKeys.publicKey,
-  pushConfig.vapidKeys.privateKey
-);
-
-// Configura Web Push
-webpush.setVapidDetails(
-  'mailto:info@lombardaflor.it',
+  'mailto:notifications@localhost',
   pushConfig.vapidKeys.publicKey,
   pushConfig.vapidKeys.privateKey
 );
