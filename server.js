@@ -282,17 +282,17 @@ app.post('/api/orders', authenticate, async (req, res) => {
     
     const order = db.createOrder(orderData, req.user.username);
     
-    // Invia notifica a tutti (non-bloccante)
-    const deliveryInfo = delivery_type === 'consegna' && delivery_time 
-      ? ` - Consegna ore ${delivery_time}`
-      : '';
-    setImmediate(() => {
-      sendNotificationToAll(
-        '📦 Nuovo Ordine',
-        `${customer} - ${date}${deliveryInfo}`,
-        'new-order'
-      );
-    });
+    // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
+    // const deliveryInfo = delivery_type === 'consegna' && delivery_time 
+    //   ? ` - Consegna ore ${delivery_time}`
+    //   : '';
+    // setImmediate(() => {
+    //   sendNotificationToAll(
+    //     '📦 Nuovo Ordine',
+    //     `${customer} - ${date}${deliveryInfo}`,
+    //     'new-order'
+    //   );
+    // });
     
     res.status(201).json(order);
   } catch (error) {
@@ -374,14 +374,14 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
     
     const order = db.updateOrder(req.params.id, orderData, req.user.username);
     if (order) {
-      // Invia notifica modifica (non-bloccante)
-      setImmediate(() => {
-        sendNotificationToAll(
-          '✏️ Ordine Modificato',
-          `${customer} - aggiornato`,
-          'order-update'
-        );
-      });
+      // Invia notifica modifica (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
+      // setImmediate(() => {
+      //   sendNotificationToAll(
+      //     '✏️ Ordine Modificato',
+      //     `${customer} - aggiornato`,
+      //     'order-update'
+      //   );
+      // });
       
       res.json(order);
     } else {
@@ -409,24 +409,24 @@ app.patch('/api/orders/:id/status', authenticate, async (req, res) => {
     
     const order = db.updateOrderStatus(req.params.id, status, req.user.username);
     if (order) {
-      // Invia notifica in base allo stato (non-bloccante)
-      if (status === 'pronto') {
-        setImmediate(() => {
-          sendNotificationToAll(
-            '✅ Ordine Pronto',
-            `${order.customer} - pronto per il ritiro`,
-            'order-ready'
-          );
-        });
-      } else if (status === 'ritirato') {
-        setImmediate(() => {
-          sendNotificationToAll(
-            '🎉 Ordine Ritirato',
-            `${order.customer} - ritirato`,
-            'order-completed'
-          );
-        });
-      }
+      // Invia notifica in base allo stato (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
+      // if (status === 'pronto') {
+      //   setImmediate(() => {
+      //     sendNotificationToAll(
+      //       '✅ Ordine Pronto',
+      //       `${order.customer} - pronto per il ritiro`,
+      //       'order-ready'
+      //     );
+      //   });
+      // } else if (status === 'ritirato') {
+      //   setImmediate(() => {
+      //     sendNotificationToAll(
+      //       '🎉 Ordine Ritirato',
+      //       `${order.customer} - ritirato`,
+      //       'order-completed'
+      //     );
+      //   });
+      // }
       
       res.json(order);
     } else {
