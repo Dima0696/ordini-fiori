@@ -442,6 +442,11 @@ const toggleFabbisognoCheck = (orderId, lineNumber) => {
   }
 };
 
+const clearFabbisognoChecks = (orderId) => {
+  const stmt = db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?');
+  stmt.run(orderId);
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -459,6 +464,7 @@ module.exports = {
   getAllSubscriptions,
   deleteSubscription,
   getFabbisognoChecks,
-  toggleFabbisognoCheck
+  toggleFabbisognoCheck,
+  clearFabbisognoChecks
 };
 

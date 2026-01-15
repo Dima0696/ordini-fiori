@@ -365,6 +365,12 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       photos: photos || []
     };
     
+    // Se goods_type cambia a "da_ordinare", cancella i flag del fabbisogno
+    const oldOrder = db.getOrderById(req.params.id);
+    if (oldOrder && goods_type === 'da_ordinare' && oldOrder.goods_type !== 'da_ordinare') {
+      db.clearFabbisognoChecks(req.params.id);
+    }
+    
     const order = db.updateOrder(req.params.id, orderData, req.user.username);
     if (order) {
       // Invia notifica modifica (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
