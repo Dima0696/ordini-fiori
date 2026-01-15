@@ -203,28 +203,16 @@
         <input type="hidden" id="order-type" value="cliente">
         <input type="hidden" id="delivery-type" value="ritiro">
         <input type="hidden" id="delivery-time" value="">
+        <input type="hidden" id="delivery-address" value="">
+        <input type="hidden" id="goods-type" value="in_cella">
         
-        <!-- ROW 3: Tipo Merce -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="goods-type">
-              Disponibilità
-              <span id="goods-type-info" style="display: none; font-size: 0.7rem; color: #999; font-weight: normal; text-transform: none;">
-                (solo magazzino)
-              </span>
-            </label>
-            <select id="goods-type">
-              <option value="in_cella">✅ In giacenza</option>
-              <option value="da_ordinare">🔴 Da ordinare</option>
-              <option value="ordinata">🟠 Ordinata</option>
-            </select>
+        <!-- ROW 3: Disponibilità (2 tasti) -->
+        <div class="form-group">
+          <label>Disponibilità</label>
+          <div class="goods-buttons">
+            <button type="button" class="btn-goods active" data-goods="in_cella">Pronto</button>
+            <button type="button" class="btn-goods" data-goods="da_ordinare">Da ordinare</button>
           </div>
-        </div>
-        
-        <!-- ROW 4: Indirizzo (opzionale) -->
-        <div class="form-group" id="address-group">
-          <label for="delivery-address">Indirizzo (opzionale)</label>
-          <input type="text" id="delivery-address" placeholder="Via, città">
         </div>
         
         <!-- ROW 6: Foto -->

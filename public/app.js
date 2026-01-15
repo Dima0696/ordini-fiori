@@ -440,6 +440,14 @@ function setupEventListeners() {
       e.currentTarget.classList.add('active');
     });
   });
+
+  // Gestione bottoni disponibilità
+  document.querySelectorAll('.btn-goods').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodsType = e.currentTarget.getAttribute('data-goods');
+      setGoodsButtons(goodsType);
+    });
+  });
   
   // Modal dettaglio ordine
   const modalDetail = document.getElementById('modal-detail');
@@ -841,7 +849,7 @@ function renderSearchResults(query, orders) {
     };
     
     const goodsTypeLabels = {
-      'in_cella': '❄️ In giacenza',
+      'in_cella': '✅ Pronto',
       'da_ordinare': '📝 Da ordinare',
       'ordinata': '📦 Ordinata'
     };
@@ -1033,7 +1041,7 @@ function renderOrders(orders) {
     };
     
     const goodsTypeLabels = {
-      'in_cella': 'In giacenza',
+      'in_cella': 'Pronto',
       'da_ordinare': 'Da ordinare',
       'ordinata': 'Ordinata'
     };
@@ -1167,6 +1175,18 @@ function renderOrders(orders) {
   });
 }
 
+
+// Aggiorna UI disponibilità merce
+function setGoodsButtons(value) {
+  const normalized = value === 'da_ordinare' ? 'da_ordinare' : 'in_cella';
+  const input = document.getElementById('goods-type');
+  if (input) input.value = normalized;
+  document.querySelectorAll('.btn-goods').forEach(btn => {
+    const isActive = btn.getAttribute('data-goods') == normalized;
+    btn.classList.toggle('active', isActive);
+  });
+}
+
 // Apri modal nuovo ordine
 function openNewOrderModal() {
   // Controlla se è domenica o festività
@@ -1199,13 +1219,10 @@ function openNewOrderModal() {
   document.getElementById('order-type').value = 'cliente';
   document.getElementById('delivery-type').value = 'ritiro';
   document.getElementById('delivery-time').value = '';
+  document.getElementById('delivery-address').value = '';
   
-  // Mostra/nascondi opzione "ordinata" in base all'utente (NUOVO ordine, NON modifica)
-  updateGoodsTypeOptions(false);
-  
-  // Imposta goods_type DOPO aver aggiornato le opzioni
-  document.getElementById('goods-type').value = 'in_cella';
-    document.getElementById('status-group').style.display = 'none';
+  setGoodsButtons('in_cella');
+  document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'none';
   
   renderPhotoPreview();
@@ -1231,12 +1248,8 @@ function openEditOrderModal(order) {
   document.getElementById('delivery-time').value = order.delivery_time || '';
   document.getElementById('delivery-address').value = order.delivery_address || '';
   
-  // Mostra/nascondi opzione "ordinata" in base all'utente (MODIFICA ordine)
-  updateGoodsTypeOptions(true);
-  
-  // Imposta goods_type DOPO aver aggiornato le opzioni
-  document.getElementById('goods-type').value = order.goods_type || 'in_cella';
-    // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
+  setGoodsButtons(order.goods_type || 'in_cella');
+  // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
   document.getElementById('status-group').style.display = 'none';
   
   document.getElementById('btn-delete-order').style.display = 'block';
@@ -1258,12 +1271,18 @@ async function handleOrderSubmit(e) {
   const date = document.getElementById('order-date').value;
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
-  const status = document.getElementById('order-status').value;
+  let status = document.getElementById('order-status').value;
   const orderType = document.getElementById('order-type').value;
   const goodsType = document.getElementById('goods-type').value;
   const deliveryType = document.getElementById('delivery-type').value;
   const deliveryTime = document.getElementById('delivery-time').value;
   const deliveryAddress = document.getElementById('delivery-address').value.trim();
+
+  // Se la merce è pronta, lo stato ordine diventa "pronto" (tranne se già ritirato)
+  if (!currentEditOrder || currentEditOrder.status !== 'ritirato') {
+    status = goodsType === 'da_ordinare' ? 'da_preparare' : 'pronto';
+    document.getElementById('order-status').value = status;
+  }
   
   // Solo cliente, merce e giorno sono obbligatori
   if (!customer || !description) {
@@ -1685,7 +1704,7 @@ function renderFabbisogno(orders, totalOrders = 0) {
     item.className = `fabbisogno-item ${goodsTypeClass} status-${status}`;
     
     const badgeLabels = {
-      'in_cella': 'In giacenza',
+      'in_cella': 'Pronto',
       'da_ordinare': 'Da ordinare',
       'ordinata': 'Ordinata'
     };
@@ -1738,51 +1757,6 @@ function renderFabbisogno(orders, totalOrders = 0) {
     
     fabbisognoList.appendChild(item);
   });
-}
-
-// Funzione per mostrare/nascondere opzione "ordinata" nel form
-function updateGoodsTypeOptions(isEditMode = false) {
-  const goodsTypeSelect = document.getElementById('goods-type');
-  if (!goodsTypeSelect) return;
-  
-  // Trova l'opzione "ordinata"
-  let ordinataOption = goodsTypeSelect.querySelector('option[value="ordinata"]');
-  
-  const infoSpan = document.getElementById('goods-type-info');
-  
-  // VENDITORI: In modifica, il campo è DISABILITATO (solo visualizzazione)
-  if (currentUser && currentUser !== 'Carlo' && currentUser !== 'Dimitri') {
-    if (isEditMode) {
-      // Disabilita il campo per i venditori in modifica
-      goodsTypeSelect.disabled = true;
-      goodsTypeSelect.style.opacity = '0.6';
-      goodsTypeSelect.style.cursor = 'not-allowed';
-      if (infoSpan) infoSpan.style.display = 'inline';
-    } else {
-      // In creazione nuovo ordine, rimuovi "ordinata" e abilita
-      goodsTypeSelect.disabled = false;
-      goodsTypeSelect.style.opacity = '1';
-      goodsTypeSelect.style.cursor = 'pointer';
-      if (infoSpan) infoSpan.style.display = 'none';
-      if (ordinataOption) {
-        ordinataOption.remove();
-      }
-    }
-  } else if (currentUser && (currentUser === 'Carlo' || currentUser === 'Dimitri')) {
-    // MAGAZZINIERI: possono sempre modificare
-    goodsTypeSelect.disabled = false;
-    goodsTypeSelect.style.opacity = '1';
-    goodsTypeSelect.style.cursor = 'pointer';
-    if (infoSpan) infoSpan.style.display = 'none';
-    
-    // Aggiungi opzione "ordinata" se non c'è
-    if (!ordinataOption) {
-      ordinataOption = document.createElement('option');
-      ordinataOption.value = 'ordinata';
-      ordinataOption.textContent = 'Merce ordinata';
-      goodsTypeSelect.appendChild(ordinataOption);
-    }
-  }
 }
 
 // Funzione per segnare merce come ordinata (Carlo/Dimitri)
@@ -1903,7 +1877,7 @@ function renderOrderDetail(order) {
   };
   
   const goodsTypeLabels = {
-    'in_cella': 'In giacenza',
+    'in_cella': 'Pronto',
     'da_ordinare': 'Da ordinare',
     'ordinata': 'Ordinata'
   };
@@ -2187,7 +2161,7 @@ function shareOrderWhatsApp(order) {
   if (order.goods_type === 'da_ordinare') {
     message += `⚠️ *Merce da ordinare*\n\n`;
   } else {
-    message += `✅ *Merce in cella*\n\n`;
+    message += `✅ *Merce pronta*\n\n`;
   }
   
   message += `───────────────\n`;

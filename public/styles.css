@@ -1186,6 +1186,12 @@ body {
   margin-top: 0.3rem;
 }
 
+.goods-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
 .btn-status {
   flex: 1;
   padding: 0.6rem;
@@ -1205,6 +1211,35 @@ body {
 .btn-status.active {
   border-color: var(--color-primary);
   background: var(--color-primary);
+  color: white;
+}
+
+.btn-goods {
+  flex: 1;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.btn-goods:active {
+  transform: scale(0.97);
+}
+
+.btn-goods[data-goods=\"in_cella\"].active {
+  border-color: var(--color-pronto);
+  background: var(--color-pronto);
+  color: white;
+}
+
+.btn-goods[data-goods=\"da_ordinare\"].active {
+  border-color: var(--color-da-preparare);
+  background: var(--color-da-preparare);
   color: white;
 }
 
