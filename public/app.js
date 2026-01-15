@@ -1813,6 +1813,13 @@ async function markAsOrdered(orderId) {
     
     // Ricarica il fabbisogno con la data salvata
     await openFabbisognoModal(currentFabbisognoDate);
+    
+    // Aggiorna anche l'elenco ordini se è aperto
+    if (currentDate) {
+      await loadOrders(currentDate);
+    }
+    // Aggiorna calendario
+    await loadCalendar();
   } catch (error) {
     console.error('Errore:', error);
     alert('Errore nell\'aggiornamento dello stato della merce');
