@@ -199,18 +199,13 @@
           <textarea id="order-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
         </div>
         
-        <!-- ROW 3: Tipo Ordine e Tipo Merce -->
+        <!-- Campi nascosti (non modificabili) -->
+        <input type="hidden" id="order-type" value="cliente">
+        <input type="hidden" id="delivery-type" value="ritiro">
+        <input type="hidden" id="delivery-time" value="">
+        
+        <!-- ROW 3: Tipo Merce -->
         <div class="form-row">
-          <div class="form-group">
-            <label for="order-type">Ricevuto via</label>
-            <select id="order-type">
-              <option value="cliente">Cliente</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="mail">Email</option>
-              <option value="telefono">Telefono</option>
-            </select>
-          </div>
-          
           <div class="form-group">
             <label for="goods-type">
               Disponibilità
@@ -226,27 +221,10 @@
           </div>
         </div>
         
-        <!-- ROW 4: Modalità Consegna -->
-        <div class="form-group">
-          <label for="delivery-type">Modalità</label>
-          <div class="delivery-buttons">
-            <button type="button" class="btn-delivery active" data-delivery="ritiro">Ritiro</button>
-            <button type="button" class="btn-delivery" data-delivery="consegna">Consegna</button>
-          </div>
-          <input type="hidden" id="delivery-type" value="ritiro">
-        </div>
-        
-        <!-- ROW 5: Orario e Indirizzo (condizionale) -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="delivery-time">Orario</label>
-            <input type="time" id="delivery-time">
-          </div>
-          
-          <div class="form-group" id="address-group" style="display: none;">
-            <label for="delivery-address">Indirizzo</label>
-            <input type="text" id="delivery-address" placeholder="Via, città">
-          </div>
+        <!-- ROW 4: Indirizzo (opzionale) -->
+        <div class="form-group" id="address-group">
+          <label for="delivery-address">Indirizzo (opzionale)</label>
+          <input type="text" id="delivery-address" placeholder="Via, città">
         </div>
         
         <!-- ROW 6: Foto -->

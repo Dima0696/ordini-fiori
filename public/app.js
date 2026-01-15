@@ -6,6 +6,7 @@ let currentDate = null;
 let currentMonth = new Date(); // Parte dal mese corrente
 let currentOrderId = null;
 let currentDetailOrder = null;
+let currentEditOrder = null;
 let orderStats = {};
 let uploadedPhotos = []; // Array di URL foto caricate
 let authToken = null;
@@ -426,31 +427,6 @@ function setupEventListeners() {
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
   document.getElementById('order-form').addEventListener('submit', handleOrderSubmit);
   
-  // Gestione bottoni delivery (FIX: mancava!)
-  document.querySelectorAll('.btn-delivery').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const deliveryType = e.currentTarget.getAttribute('data-delivery');
-      
-      // Aggiorna valore hidden
-      document.getElementById('delivery-type').value = deliveryType;
-      
-      // Aggiorna bottoni attivi
-      document.querySelectorAll('.btn-delivery').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      
-      // Mostra/nascondi campo indirizzo
-      const addressGroup = document.getElementById('address-group');
-      const addressInput = document.getElementById('delivery-address');
-      
-      if (deliveryType === 'consegna') {
-        addressGroup.style.display = 'block';
-      } else {
-        addressGroup.style.display = 'none';
-        addressInput.value = ''; // Pulisci indirizzo se passa a ritiro
-      }
-    });
-  });
-  
   // Gestione bottoni stato (FIX: mancava!)
   document.querySelectorAll('.btn-status').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -564,26 +540,7 @@ function setupEventListeners() {
       document.getElementById('order-status').value = e.target.dataset.status;
     });
   });
-  
-  // Pulsanti delivery type
-  document.querySelectorAll('.btn-delivery').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.btn-delivery').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-      const deliveryType = e.target.dataset.delivery;
-      document.getElementById('delivery-type').value = deliveryType;
-      
-      // Mostra/nascondi campo indirizzo
-      const addressGroup = document.getElementById('address-group');
-      if (deliveryType === 'consegna') {
-        addressGroup.style.display = 'block';
-      } else {
-        addressGroup.style.display = 'none';
-      }
-    });
-  });
-  
-  // Upload foto
+    // Upload foto
   document.getElementById('btn-add-photo').addEventListener('click', () => {
     document.getElementById('photo-input').click();
   });
@@ -1231,6 +1188,7 @@ function openNewOrderModal() {
   }
   
   currentOrderId = null;
+  currentEditOrder = null;
   uploadedPhotos = [];
   
   document.getElementById('modal-title').textContent = 'Nuovo ordine';
@@ -1240,19 +1198,14 @@ function openNewOrderModal() {
   document.getElementById('order-status').value = 'da_preparare';
   document.getElementById('order-type').value = 'cliente';
   document.getElementById('delivery-type').value = 'ritiro';
+  document.getElementById('delivery-time').value = '';
   
   // Mostra/nascondi opzione "ordinata" in base all'utente (NUOVO ordine, NON modifica)
   updateGoodsTypeOptions(false);
   
   // Imposta goods_type DOPO aver aggiornato le opzioni
   document.getElementById('goods-type').value = 'in_cella';
-  
-  // Reset delivery buttons
-  document.querySelectorAll('.btn-delivery').forEach(b => b.classList.remove('active'));
-  document.querySelector('.btn-delivery[data-delivery="ritiro"]').classList.add('active');
-  
-  document.getElementById('address-group').style.display = 'none';
-  document.getElementById('status-group').style.display = 'none';
+    document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'none';
   
   renderPhotoPreview();
@@ -1262,6 +1215,7 @@ function openNewOrderModal() {
 // Apri modal modifica ordine
 function openEditOrderModal(order) {
   currentOrderId = order.id;
+  currentEditOrder = order;
   uploadedPhotos = order.photos || [];
   
   document.getElementById('modal-title').textContent = 'Modifica ordine';
@@ -1282,21 +1236,7 @@ function openEditOrderModal(order) {
   
   // Imposta goods_type DOPO aver aggiornato le opzioni
   document.getElementById('goods-type').value = order.goods_type || 'in_cella';
-  
-  // Delivery buttons
-  document.querySelectorAll('.btn-delivery').forEach(b => b.classList.remove('active'));
-  const deliveryType = order.delivery_type || 'ritiro';
-  document.querySelector(`.btn-delivery[data-delivery="${deliveryType}"]`)?.classList.add('active');
-  
-  // Mostra/nascondi indirizzo
-  const addressGroup = document.getElementById('address-group');
-  if (deliveryType === 'consegna') {
-    addressGroup.style.display = 'block';
-  } else {
-    addressGroup.style.display = 'none';
-  }
-  
-  // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
+    // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
   document.getElementById('status-group').style.display = 'none';
   
   document.getElementById('btn-delete-order').style.display = 'block';
@@ -1596,9 +1536,25 @@ async function handlePhotoUpload(e) {
       headers: {} // FormData gestisce Content-Type automaticamente
     });
     
-    if (!response.ok) throw new Error('Errore upload');
+    if (!response.ok) {
+      let message = '';
+      try {
+        const err = await response.json();
+        message = err.error || JSON.stringify(err);
+      } catch {
+        try {
+          message = await response.text();
+        } catch {
+          message = '';
+        }
+      }
+      throw new Error(`Errore upload (${response.status})${message ? `: ${message}` : ''}`);
+    }
     
     const data = await response.json();
+    if (!data.photos || !Array.isArray(data.photos)) {
+      throw new Error('Risposta upload non valida');
+    }
     uploadedPhotos = [...uploadedPhotos, ...data.photos];
     renderPhotoPreview();
     
