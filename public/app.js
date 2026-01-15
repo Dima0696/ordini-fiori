@@ -1629,12 +1629,12 @@ async function openFabbisognoModal(date) {
     const response = await authenticatedFetch(`${API_URL}/orders/date/${dateToUse}`);
     const allOrders = await response.json();
     
-    // Filtra solo ordini da preparare e pronti (escludi ritirati)
-    const activeOrders = allOrders.filter(order => 
-      order.status === 'da_preparare' || order.status === 'pronto'
+    // Filtra solo ordini con merce DA ORDINARE
+    const ordersToOrder = allOrders.filter(order => 
+      order.goods_type === 'da_ordinare'
     );
     
-    renderFabbisogno(activeOrders, allOrders.length);
+    renderFabbisogno(ordersToOrder, allOrders.length);
     document.getElementById('modal-fabbisogno').classList.add('active');
   } catch (error) {
     console.error('Errore caricamento fabbisogno:', error);
@@ -1662,8 +1662,8 @@ function renderFabbisogno(orders, totalOrders = 0) {
       emptyP.textContent = '📭 Nessun ordine per questo giorno';
       emptySubtitle.textContent = '';
     } else {
-      emptyP.textContent = '✅ Tutti gli ordini completati';
-      emptySubtitle.textContent = 'Tutti gli ordini sono stati ritirati';
+      emptyP.textContent = '✅ Nessuna merce da ordinare';
+      emptySubtitle.textContent = 'Tutta la merce è già disponibile o ordinata';
     }
     return;
   }
@@ -1672,25 +1672,13 @@ function renderFabbisogno(orders, totalOrders = 0) {
   fabbisognoList.style.display = 'flex';
   
   // Aggiorna titolo con conteggio
-  const daPreparare = orders.filter(o => o.status === 'da_preparare').length;
-  const pronti = orders.filter(o => o.status === 'pronto').length;
   const title = document.getElementById('fabbisogno-title');
-  title.innerHTML = `Fabbisogno del giorno <span style="color: var(--color-primary); font-weight: 700;">(${daPreparare} da prep. • ${pronti} pronti)</span>`;
+  title.innerHTML = `Merce da ordinare <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
   
-  // Ordina per: 
-  // 1. Stato (da_preparare prima, poi pronto, poi ritirato)
-  // 2. Tipo merce (da_ordinare > ordinata > in_cella)
-  const sortedOrders = [...orders].sort((a, b) => {
-    // Prima per stato
-    const statusOrder = { 'da_preparare': 0, 'pronto': 1, 'ritirato': 2 };
-    const statusDiff = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
-    if (statusDiff !== 0) return statusDiff;
-    
-    // Poi per tipo merce (priorità: da_ordinare > ordinata > in_cella)
-    const goodsOrder = { 'da_ordinare': 0, 'ordinata': 1, 'in_cella': 2 };
-    const goodsDiff = (goodsOrder[a.goods_type] || 2) - (goodsOrder[b.goods_type] || 2);
-    return goodsDiff;
-  });
+  // Ordina per cliente (alfabetico)
+  const sortedOrders = [...orders].sort((a, b) => 
+    a.customer.localeCompare(b.customer)
+  );
   
   sortedOrders.forEach(order => {
     const item = document.createElement('div');
@@ -1703,55 +1691,29 @@ function renderFabbisogno(orders, totalOrders = 0) {
     // Classe per tipo merce E stato
     item.className = `fabbisogno-item ${goodsTypeClass} status-${status}`;
     
-    const badgeLabels = {
-      'in_cella': 'Pronto',
-      'da_ordinare': 'Da ordinare',
-      'ordinata': 'Ordinata'
-    };
-    
-    const statusLabels = {
-      'da_preparare': 'Da preparare',
-      'pronto': 'Pronto',
-      'ritirato': 'Ritirato'
-    };
-    
-    const orderTypeLabels = {
-      'cliente': 'Cliente',
-      'whatsapp': 'WhatsApp',
-      'mail': 'Email',
-      'telefono': 'Telefono'
-    };
-    
-    const deliveryLabel = order.delivery_type === 'consegna' ? 'Consegna' : 'Ritiro';
-    
-    let metaInfo = `<span class="info-badge">${orderTypeLabels[order.order_type] || 'Cliente'}</span>`;
-    metaInfo += `<span class="info-badge">${deliveryLabel}</span>`;
-    if (order.delivery_time) {
-      metaInfo += `<span class="info-badge">${order.delivery_time}</span>`;
+    // Info essenziali
+    let metaInfo = `<span class="info-badge">${order.customer}</span>`;
+    if (order.delivery_type === 'consegna') {
+      metaInfo += `<span class="info-badge consegna">🚚 Consegna</span>`;
+      if (order.delivery_time) {
+        metaInfo += `<span class="info-badge">${order.delivery_time}</span>`;
+      }
     }
-    // Aggiungi badge stato
-    metaInfo += `<span class="info-badge status-${status}">${statusLabels[status]}</span>`;
     
-    // Pulsanti gestione merce (solo per Carlo e Dimitri)
+    // Pulsante per segnare come ordinata (solo per Carlo e Dimitri)
     let goodsButtons = '';
     if (currentUser && (currentUser === 'Carlo' || currentUser === 'Dimitri')) {
-      if (goodsType === 'da_ordinare') {
-        goodsButtons = `<button class="btn-goods-action btn-mark-ordered" onclick="markAsOrdered(${order.id})">📦 Segna come ordinata</button>`;
-      } else if (goodsType === 'ordinata') {
-        goodsButtons = `<button class="btn-goods-action btn-mark-available" onclick="markAsAvailable(${order.id})">✅ Segna in giacenza</button>`;
-      }
+      goodsButtons = `<button class="btn-goods-action btn-mark-ordered" onclick="markAsOrdered(${order.id})">✅ Segna come ordinata</button>`;
     }
     
     item.innerHTML = `
       <div class="fabbisogno-header">
         <div class="fabbisogno-customer">
-          <span class="fabbisogno-dot ${goodsTypeClass}"></span>
           ${escapeHtml(order.customer)}
         </div>
-        <span class="fabbisogno-badge ${goodsTypeClass}">${badgeLabels[goodsType]}</span>
       </div>
       <div class="fabbisogno-description">${escapeHtml(order.description)}</div>
-      <div class="fabbisogno-meta">${metaInfo}</div>
+      ${metaInfo ? `<div class="fabbisogno-meta">${metaInfo}</div>` : ''}
       ${goodsButtons ? `<div class="fabbisogno-actions">${goodsButtons}</div>` : ''}
     `;
     
@@ -1775,38 +1737,6 @@ async function markAsOrdered(orderId) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ goods_type: 'ordinata' })
-    });
-    
-    if (!response.ok) throw new Error('Errore aggiornamento');
-    
-    // Ricarica il fabbisogno con la data salvata
-    await openFabbisognoModal(currentFabbisognoDate);
-  } catch (error) {
-    console.error('Errore:', error);
-    alert('Errore nell\'aggiornamento dello stato della merce');
-    // Ricarica comunque per ripristinare lo stato
-    if (currentFabbisognoDate) {
-      await openFabbisognoModal(currentFabbisognoDate);
-    }
-  }
-}
-
-// Funzione per segnare merce come in giacenza (Carlo/Dimitri)
-async function markAsAvailable(orderId) {
-  if (!confirm('Segnare questa merce come in giacenza?')) return;
-  
-  try {
-    // Feedback visivo
-    const button = event.target.closest('.btn-goods-action');
-    if (button) {
-      button.disabled = true;
-      button.innerHTML = '⏳ Aggiornamento...';
-    }
-    
-    const response = await authenticatedFetch(`${API_URL}/orders/${orderId}/goods-type`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ goods_type: 'in_cella' })
     });
     
     if (!response.ok) throw new Error('Errore aggiornamento');
