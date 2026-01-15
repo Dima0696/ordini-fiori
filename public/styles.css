@@ -1126,6 +1126,60 @@ body {
   }
 }
 
+@media (max-width: 600px) {
+  .app-header {
+    gap: 0.5rem;
+  }
+
+  .app-header-right {
+    gap: 0.4rem;
+  }
+
+  .orders-title {
+    font-size: 1.1rem;
+  }
+
+  .order-actions-top {
+    flex-direction: column;
+  }
+
+  .order-actions-top .btn-large {
+    width: 100%;
+  }
+
+  .order-actions {
+    flex-direction: column;
+  }
+
+  .order-actions button {
+    width: 100%;
+  }
+
+  .detail-hero {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .status-segmented-control {
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .status-segment {
+    padding: 0.75rem 0.6rem;
+    font-size: 0.85rem;
+    min-height: 46px;
+  }
+
+  .detail-section {
+    padding: 0.8rem 0.75rem;
+  }
+
+  .modal-content {
+    padding: 1rem;
+  }
+}
+
 .status-buttons {
   display: flex;
   gap: 0.5rem;
