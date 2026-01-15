@@ -51,7 +51,7 @@
 }
 
 .login-card {
-  background: white;
+  background: #f7f7f7;
   border-radius: 20px;
   padding: 2.5rem;
   max-width: 400px;
@@ -1229,6 +1229,11 @@ body {
 
 .btn-goods:active {
   transform: scale(0.97);
+}
+
+.btn-goods.active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
 .btn-goods[data-goods=\"in_cella\"].active {
