@@ -533,7 +533,46 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res)
     res.json({ checked });
   } catch (error) {
     console.error('❌ Errore toggle check:', error);
-    res.status(500).json({ error: 'Errore toggle check' });
+    console.error('Stack:', error.stack);
+    res.status(500).json({ error: 'Errore toggle check: ' + error.message });
+  }
+});
+
+// DEBUG: Verifica schema database
+app.get('/api/debug/schema', authenticate, (req, res) => {
+  try {
+    const sqlite = require('better-sqlite3');
+    const dbPath = process.env.DATABASE_PATH || './ordini.db';
+    const database = sqlite(dbPath);
+    
+    // Lista tutte le tabelle
+    const tables = database.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    
+    // Schema fabbisogno_checks se esiste
+    let fabbisognoSchema = null;
+    try {
+      fabbisognoSchema = database.prepare("PRAGMA table_info(fabbisogno_checks)").all();
+    } catch (e) {
+      fabbisognoSchema = { error: e.message };
+    }
+    
+    // Conta record in fabbisogno_checks
+    let count = 0;
+    try {
+      const result = database.prepare("SELECT COUNT(*) as count FROM fabbisogno_checks").get();
+      count = result.count;
+    } catch (e) {
+      count = { error: e.message };
+    }
+    
+    res.json({
+      dbPath,
+      tables,
+      fabbisognoSchema,
+      fabbisognoCount: count
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
