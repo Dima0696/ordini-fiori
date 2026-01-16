@@ -1543,6 +1543,7 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1rem 1.25rem;
   color: white;
+  border-radius: 16px 16px 0 0;
 }
 
 /* Riga titolo + chiudi */
