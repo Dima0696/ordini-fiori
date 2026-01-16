@@ -2898,35 +2898,41 @@ button {
     overflow: hidden !important;
   }
   
-  /* MOSTRA il contenuto degli ordini */
+  /* FORZA VISIBILITÀ DI TUTTO IL CONTENUTO FABBISOGNO */
+  #modal-fabbisogno.active .fabbisogno-item,
+  #modal-fabbisogno.active .fabbisogno-item *:not(button):not(.btn-goods-action):not(.btn-mark-ordered):not(.btn-edit):not(.btn-delete):not(.btn-secondary):not(.info-badge.consegna) {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    width: auto !important;
+    height: auto !important;
+    opacity: 1 !important;
+  }
+  
+  /* Forza display specifici per layout */
   #modal-fabbisogno.active .fabbisogno-item {
     display: block !important;
-    visibility: visible !important;
-    position: relative !important;
-    left: 0 !important;
-  }
-  
-  /* MOSTRA le checkbox */
-  #modal-fabbisogno.active .fabbisogno-checkbox {
-    display: inline-flex !important;
-    visibility: visible !important;
-    position: relative !important;
-    left: 0 !important;
-    width: 3.5mm !important;
-    height: 3.5mm !important;
-  }
-  
-  /* MOSTRA le linee merce */
-  #modal-fabbisogno.active .fabbisogno-lines,
-  #modal-fabbisogno.active .fabbisogno-line,
-  #modal-fabbisogno.active .fabbisogno-line-text,
-  #modal-fabbisogno.active .info-badge:not(.consegna) {
-    display: block !important;
-    visibility: visible !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-line {
     display: flex !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-checkbox {
+    display: inline-flex !important;
+    width: 3.5mm !important;
+    height: 3.5mm !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-header,
+  #modal-fabbisogno.active .fabbisogno-customer,
+  #modal-fabbisogno.active .fabbisogno-lines,
+  #modal-fabbisogno.active .fabbisogno-line-text,
+  #modal-fabbisogno.active .fabbisogno-meta,
+  #modal-fabbisogno.active .info-badge:not(.consegna) {
+    display: block !important;
   }
   
   /* Modal fabbisogno come documento */
