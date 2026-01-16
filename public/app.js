@@ -1309,11 +1309,19 @@ function renderOrders(orders) {
 
 // Aggiorna UI disponibilità merce
 function setGoodsButtons(value) {
-  const normalized = value === 'da_ordinare' ? 'da_ordinare' : 'in_cella';
+  // MANTIENI il valore originale invece di normalizzare tutto a in_cella
+  const normalized = value || 'in_cella';
   const input = document.getElementById('goods-type');
   if (input) input.value = normalized;
+  
+  // Attiva il pulsante corrispondente
+  // Se il valore è 'ordinata' o altro, seleziona 'in_cella' come fallback visivo
+  const displayValue = (normalized === 'da_ordinare' || normalized === 'ordinata') ? normalized : 'in_cella';
+  
   document.querySelectorAll('.btn-goods').forEach(btn => {
-    const isActive = btn.getAttribute('data-goods') == normalized;
+    const btnValue = btn.getAttribute('data-goods');
+    // Se l'ordine è "ordinata", mostra come "in_cella" (ma mantieni il valore reale)
+    const isActive = btnValue === displayValue || (normalized === 'ordinata' && btnValue === 'in_cella');
     btn.classList.toggle('active', isActive);
   });
 }
