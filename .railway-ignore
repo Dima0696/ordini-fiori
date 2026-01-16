@@ -1,0 +1,7 @@
+# Ignora file temporanei e di debug
+*.log
+*.tmp
+.DS_Store
+debug-*.js
+test-*.js
+test-*.html
