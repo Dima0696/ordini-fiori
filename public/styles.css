@@ -2605,8 +2605,8 @@ button {
     display: block !important;
   }
   
-  /* INTESTAZIONE AL BORDO DEL FOGLIO per impilamento sfalsato */
-  .print-header-stack {
+  /* INTESTAZIONE AL BORDO DEL FOGLIO per impilamento sfalsato - SOLO per ordine singolo */
+  #modal-detail.active .print-header-stack {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
@@ -2681,16 +2681,22 @@ button {
     display: block !important;
   }
   
+  /* Modal-content generico per stampa */
   .modal-content {
     box-shadow: none !important;
     max-width: 100% !important;
     border: none !important;
     border-radius: 0 !important;
-    padding: 15mm !important;
-    padding-top: 30mm !important; /* Spazio per intestazione fissa compatta */
+    padding: 0 !important;
     margin: 0 !important;
     background: white !important;
     display: block !important;
+  }
+  
+  /* Padding specifico per ordine singolo (ha header fisso) */
+  #modal-detail.active .modal-content {
+    padding: 15mm !important;
+    padding-top: 30mm !important; /* Spazio per intestazione fissa compatta */
   }
   
   /* Assicura che il contenuto sia visibile */
@@ -2730,14 +2736,9 @@ button {
     visibility: visible !important;
   }
   
+  /* Padding minimo per fabbisogno (nessun header fisso) */
   #modal-fabbisogno.active .modal-content {
-    box-shadow: none !important;
-    max-width: 100% !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 3mm !important;
-    margin: 0 !important;
-    background: white !important;
+    padding: 2mm !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-container {
