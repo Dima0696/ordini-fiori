@@ -1865,13 +1865,11 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     // Crea header del giorno (solo se multi-day)
     if (isMultiDay) {
       const dayHeader = document.createElement('div');
-      dayHeader.className = 'fabbisogno-day-group';
+      dayHeader.className = 'fabbisogno-day-header';
       dayHeader.innerHTML = `
-        <div class="fabbisogno-day-header">
-          <span class="day-icon">📅</span>
-          <span>${formatDateItalian(date)}</span>
-          <span class="day-count">${dayOrders.length} ${dayOrders.length === 1 ? 'ordine' : 'ordini'}</span>
-        </div>
+        <span class="day-icon">📅</span>
+        <span>${formatDateItalian(date)}</span>
+        <span class="day-count">${dayOrders.length} ${dayOrders.length === 1 ? 'ordine' : 'ordini'}</span>
       `;
       fabbisognoList.appendChild(dayHeader);
     }

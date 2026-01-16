@@ -1806,11 +1806,7 @@ body {
   }
 }
 
-/* Raggruppamento per giorno */
-.fabbisogno-day-group {
-  margin-bottom: 2rem;
-}
-
+/* Header per giorno */
 .fabbisogno-day-header {
   padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2976,12 +2972,8 @@ button {
   }
   
   /* Header giorno compatto - occupa entrambe le colonne */
-  #modal-fabbisogno.active .fabbisogno-day-group {
-    grid-column: 1 / -1 !important;
-    margin-bottom: 0 !important;
-  }
-  
   #modal-fabbisogno.active .fabbisogno-day-header {
+    grid-column: 1 / -1 !important;
     background: #e5e7eb !important;
     color: #000 !important;
     padding: 2mm !important;
@@ -2992,7 +2984,10 @@ button {
     font-weight: 800 !important;
     border-bottom: 2px solid #000 !important;
     page-break-after: avoid !important;
+    break-after: avoid !important;
     text-align: center !important;
+    display: block !important;
+    visibility: visible !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-day-header .day-icon {
