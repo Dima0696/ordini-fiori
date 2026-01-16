@@ -2867,17 +2867,12 @@ button {
   
   /* ========== STAMPA FABBISOGNO ========== */
   
-  /* Nascondi elementi UI nel fabbisogno */
+  /* Nascondi elementi UI nel fabbisogno - MA MOSTRA CONTENUTO */
   #modal-fabbisogno.active .modal-header,
   #modal-fabbisogno.active .fabbisogno-header-redesign,
-  #modal-fabbisogno.active .btn-goods-action,
-  #modal-fabbisogno.active .btn-mark-ordered,
-  #modal-fabbisogno.active .btn-edit,
-  #modal-fabbisogno.active .btn-delete,
   #modal-fabbisogno.active .info-badge.consegna,
   #modal-fabbisogno.active .empty-message,
-  #modal-fabbisogno.active #fabbisogno-empty,
-  #modal-fabbisogno.active button {
+  #modal-fabbisogno.active #fabbisogno-empty {
     display: none !important;
     visibility: hidden !important;
     position: absolute !important;
@@ -2888,7 +2883,30 @@ button {
     padding: 0 !important;
   }
   
-  /* Eccezione: mostra solo le checkbox */
+  /* Nascondi SOLO i pulsanti azione specifici */
+  #modal-fabbisogno.active .btn-goods-action,
+  #modal-fabbisogno.active .btn-mark-ordered,
+  #modal-fabbisogno.active .btn-edit,
+  #modal-fabbisogno.active .btn-delete,
+  #modal-fabbisogno.active .btn-secondary,
+  #modal-fabbisogno.active .fabbisogno-item button:not(.fabbisogno-checkbox) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* MOSTRA il contenuto degli ordini */
+  #modal-fabbisogno.active .fabbisogno-item {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    left: 0 !important;
+  }
+  
+  /* MOSTRA le checkbox */
   #modal-fabbisogno.active .fabbisogno-checkbox {
     display: inline-flex !important;
     visibility: visible !important;
@@ -2896,6 +2914,19 @@ button {
     left: 0 !important;
     width: 3.5mm !important;
     height: 3.5mm !important;
+  }
+  
+  /* MOSTRA le linee merce */
+  #modal-fabbisogno.active .fabbisogno-lines,
+  #modal-fabbisogno.active .fabbisogno-line,
+  #modal-fabbisogno.active .fabbisogno-line-text,
+  #modal-fabbisogno.active .info-badge:not(.consegna) {
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-line {
+    display: flex !important;
   }
   
   /* Modal fabbisogno come documento */
