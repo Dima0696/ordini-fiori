@@ -260,26 +260,23 @@
   <!-- MODAL FABBISOGNO -->
   <div id="modal-fabbisogno" class="modal">
     <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="fabbisogno-title">Fabbisogno</h2>
-        <div class="header-actions">
-          <button id="btn-print-fabbisogno" class="btn-action">🖨️ Stampa</button>
+      <!-- Header compatto ridisegnato -->
+      <div class="fabbisogno-header-redesign">
+        <div class="fabbisogno-title-row">
+          <h2 id="fabbisogno-title">Fabbisogno</h2>
           <button id="btn-close-fabbisogno" class="btn-close">✕</button>
         </div>
-      </div>
-      
-      <!-- Selettore range date -->
-      <div class="fabbisogno-date-selector">
-        <div class="date-range-inputs">
-          <label>
-            <span>Da:</span>
-            <input type="date" id="fabbisogno-date-from" class="date-input-small">
-          </label>
-          <label>
-            <span>A:</span>
-            <input type="date" id="fabbisogno-date-to" class="date-input-small">
-          </label>
-          <button id="btn-load-fabbisogno-range" class="btn-primary-small">Carica</button>
+        
+        <div class="fabbisogno-controls-row">
+          <div class="date-range-compact">
+            <input type="date" id="fabbisogno-date-from" class="date-input-compact">
+            <span class="date-separator">→</span>
+            <input type="date" id="fabbisogno-date-to" class="date-input-compact">
+          </div>
+          <div class="action-buttons-compact">
+            <button id="btn-load-fabbisogno-range" class="btn-compact btn-load">Carica</button>
+            <button id="btn-print-fabbisogno" class="btn-compact btn-print">🖨️ Stampa</button>
+          </div>
         </div>
       </div>
       
