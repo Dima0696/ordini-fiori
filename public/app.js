@@ -1901,6 +1901,19 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     sortedOrders.forEach(order => {
     console.log(`📦 Rendering ordine #${order.id} - ${order.customer} - ${order.photos ? order.photos.length : 0} foto`);
     
+    // DEBUG SPECIALE PER ORDINE CON FOTO
+    if (order.photos && order.photos.length > 0) {
+      console.log(`🖼️ ORDINE CON FOTO TROVATO:`);
+      console.log(`  ID: ${order.id}`);
+      console.log(`  Cliente: ${order.customer}`);
+      console.log(`  goods_type: ${order.goods_type}`);
+      console.log(`  status: ${order.status}`);
+      console.log(`  delivery_type: ${order.delivery_type}`);
+      console.log(`  order_type: ${order.order_type}`);
+      console.log(`  Foto: ${order.photos.length}`);
+      console.log(`  Tutte le proprietà:`, Object.keys(order));
+    }
+    
     const item = document.createElement('div');
     const goodsType = order.goods_type || 'in_cella';
     const status = order.status || 'da_preparare';
@@ -1915,6 +1928,12 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     item.setAttribute('data-order-id', order.id);
     item.setAttribute('data-customer', order.customer);
     item.setAttribute('data-has-photos', order.photos && order.photos.length > 0 ? 'true' : 'false');
+    
+    // DEBUG: Log classe completa per ordini con foto
+    if (order.photos && order.photos.length > 0) {
+      console.log(`  ✅ Classe CSS assegnata: "${item.className}"`);
+      console.log(`  ✅ Attributi data:`, item.dataset);
+    }
     
     // Info essenziali
     let metaInfo = `<span class="info-badge">${order.customer}</span>`;
