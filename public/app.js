@@ -1799,28 +1799,36 @@ function renderFabbisogno(orders, totalOrders = 0) {
 // Carica stato checkbox fabbisogno per un ordine
 async function loadFabbisognoChecks(orderId) {
   try {
+    console.log('🔵 LOAD CHECKS per orderId:', orderId);
     const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
     const checks = await response.json();
+    console.log('🟢 CHECKS RICEVUTE:', checks);
     
     // Per ogni checkbox dell'ordine
-    document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`).forEach(checkbox => {
+    const checkboxes = document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`);
+    console.log('🔵 TROVATE', checkboxes.length, 'CHECKBOX per ordine', orderId);
+    
+    checkboxes.forEach(checkbox => {
       const lineNum = parseInt(checkbox.dataset.lineNumber);
+      console.log('  - Checkbox lineNum:', lineNum, 'valore DB:', checks[lineNum]);
       
       // Imposta stato checked dal DB
       if (checks[lineNum] !== undefined) {
         checkbox.checked = checks[lineNum];
+        console.log('  ✅ Impostata a:', checks[lineNum]);
       }
       
       // Aggiungi listener UNA SOLA VOLTA
       if (!checkbox.hasAttribute('data-listener')) {
         checkbox.setAttribute('data-listener', 'true');
         checkbox.addEventListener('change', async () => {
+          console.log('📍 CHANGE EVENT: orderId=', orderId, 'lineNum=', lineNum);
           await toggleFabbisognoCheck(orderId, lineNum);
         });
       }
     });
   } catch (error) {
-    console.error('Errore caricamento checks:', error);
+    console.error('❌ ERRORE CARICAMENTO CHECKS:', error);
   }
 }
 
@@ -1833,20 +1841,31 @@ async function toggleFabbisognoCheck(orderId, lineNumber) {
   pendingSaves++;
   updateSaveIndicator();
   
+  console.log('🔵 TOGGLE: orderId=', orderId, 'lineNumber=', lineNumber);
+  
   try {
-    const response = await authenticatedFetch(
-      `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`,
-      { method: 'POST' }
-    );
+    const url = `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`;
+    console.log('🔵 POST URL:', url);
+    
+    const response = await authenticatedFetch(url, { method: 'POST' });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('🟢 RISPOSTA SERVER:', data);
     
     // Aggiorna checkbox con il valore dal server
     const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
     if (checkbox) {
       checkbox.checked = data.checked;
+      console.log('🟢 CHECKBOX AGGIORNATA:', data.checked);
+    } else {
+      console.error('❌ CHECKBOX NON TROVATA: check-' + orderId + '-' + lineNumber);
     }
   } catch (error) {
-    console.error('Errore salvataggio check:', error);
+    console.error('❌ ERRORE SALVATAGGIO:', error);
     // Ripristina stato precedente in caso di errore
     const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
     if (checkbox) {

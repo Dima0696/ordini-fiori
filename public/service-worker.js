@@ -1,7 +1,7 @@
 // Service Worker per LombardaFlor Orders PWA
-const CACHE_NAME = 'lombardaflor-orders-v4-instant-save';
-const STATIC_CACHE = 'lombardaflor-static-v4-instant-save';
-const API_CACHE = 'lombardaflor-api-v4-instant-save';
+const CACHE_NAME = 'lombardaflor-orders-v5-debug';
+const STATIC_CACHE = 'lombardaflor-static-v5-debug';
+const API_CACHE = 'lombardaflor-api-v5-debug';
 
 const urlsToCache = [
   '/',

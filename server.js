@@ -511,10 +511,13 @@ app.delete('/api/orders/:id', authenticate, (req, res) => {
 // GET /api/fabbisogno-checks/:orderId - Ottieni checkbox di un ordine
 app.get('/api/fabbisogno-checks/:orderId', authenticate, (req, res) => {
   try {
-    const checks = db.getFabbisognoChecks(req.params.orderId);
+    const orderId = parseInt(req.params.orderId);
+    console.log('🔵 GET /fabbisogno-checks/' + orderId);
+    const checks = db.getFabbisognoChecks(orderId);
+    console.log('🟢 CHECKS DB:', JSON.stringify(checks));
     res.json(checks);
   } catch (error) {
-    console.error('Errore lettura checks:', error);
+    console.error('❌ Errore lettura checks:', error);
     res.status(500).json({ error: 'Errore lettura checks' });
   }
 });
@@ -524,10 +527,12 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res)
   try {
     const orderId = parseInt(req.params.orderId);
     const lineNumber = parseInt(req.params.lineNumber);
+    console.log('🔵 POST /fabbisogno-checks/' + orderId + '/' + lineNumber);
     const checked = db.toggleFabbisognoCheck(orderId, lineNumber);
+    console.log('🟢 SALVATO checked=' + checked);
     res.json({ checked });
   } catch (error) {
-    console.error('Errore toggle check:', error);
+    console.error('❌ Errore toggle check:', error);
     res.status(500).json({ error: 'Errore toggle check' });
   }
 });
