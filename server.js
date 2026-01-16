@@ -180,6 +180,21 @@ app.get('/api/orders/date/:date', authenticate, (req, res) => {
   }
 });
 
+// GET /api/orders/date-range - Ordini per range di date
+app.get('/api/orders/date-range', authenticate, (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Parametri from e to richiesti' });
+    }
+    const orders = db.getOrdersByDateRange(from, to);
+    res.json(orders);
+  } catch (error) {
+    console.error('Errore range date:', error);
+    res.status(500).json({ error: 'Errore nel recupero degli ordini' });
+  }
+});
+
 // GET /api/orders/search - Ricerca ordini (PRIMA di :id per evitare conflitti!)
 app.get('/api/orders/search', authenticate, (req, res) => {
   console.log('[API] /api/orders/search chiamato');

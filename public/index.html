@@ -261,8 +261,23 @@
   <div id="modal-fabbisogno" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="fabbisogno-title">Fabbisogno del giorno</h2>
+        <h2 id="fabbisogno-title">Fabbisogno</h2>
         <button id="btn-close-fabbisogno" class="btn-close">✕</button>
+      </div>
+      
+      <!-- Selettore range date -->
+      <div class="fabbisogno-date-selector">
+        <div class="date-range-inputs">
+          <label>
+            <span>Da:</span>
+            <input type="date" id="fabbisogno-date-from" class="date-input-small">
+          </label>
+          <label>
+            <span>A:</span>
+            <input type="date" id="fabbisogno-date-to" class="date-input-small">
+          </label>
+          <button id="btn-load-fabbisogno-range" class="btn-primary-small">Carica</button>
+        </div>
       </div>
       
       <div class="fabbisogno-container">

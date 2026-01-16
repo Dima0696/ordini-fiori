@@ -13,7 +13,8 @@ let authToken = null;
 let currentUser = null;
 let autoRefreshInterval = null;
 let lastUpdateTime = new Date();
-let currentFabbisognoDate = null; // Data del fabbisogno aperto
+let currentFabbisognoDate = null; // Data inizio del fabbisogno aperto
+let currentFabbisognoDateTo = null; // Data fine del fabbisogno aperto (null = singolo giorno)
 
 // Cache in-memory per performance
 let calendarCache = null;
@@ -444,6 +445,28 @@ function setupEventListeners() {
   } else {
     btnFabbisogno.style.display = 'none';
   }
+  
+  // Listener per caricamento range date fabbisogno
+  document.getElementById('btn-load-fabbisogno-range').addEventListener('click', () => {
+    const dateFrom = document.getElementById('fabbisogno-date-from').value;
+    const dateTo = document.getElementById('fabbisogno-date-to').value;
+    
+    if (!dateFrom || !dateTo) {
+      alert('Seleziona entrambe le date');
+      return;
+    }
+    
+    if (dateFrom > dateTo) {
+      alert('La data di inizio deve essere precedente o uguale alla data di fine');
+      return;
+    }
+    
+    // Chiudi e riapri con il nuovo range
+    closeFabbisognoModal();
+    setTimeout(() => {
+      openFabbisognoModal(dateFrom, dateTo);
+    }, 100);
+  });
   
   document.getElementById('btn-close-fabbisogno').addEventListener('click', async () => {
     // Se ci sono salvataggi in corso, aspetta che finiscano
@@ -1441,6 +1464,13 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+// Formatta data in formato italiano (es. "16 Gennaio 2026")
+function formatDateItalian(dateString) {
+  const date = new Date(dateString + 'T00:00:00');
+  const options = { day: 'numeric', month: 'long', year: 'numeric' };
+  return date.toLocaleDateString('it-IT', options);
+}
+
 // Utility: escape HTML
 function escapeHtml(text) {
   if (!text) return '';
@@ -1668,36 +1698,55 @@ function removePhoto(index) {
 }
 
 // Apri modal fabbisogno
-async function openFabbisognoModal(date) {
+async function openFabbisognoModal(date, dateTo = null) {
   try {
     // Usa la data passata o quella corrente
-    const dateToUse = date || currentDate;
-    if (!dateToUse) {
+    const dateFrom = date || currentDate;
+    if (!dateFrom) {
       alert('Seleziona prima un giorno dal calendario');
       return;
     }
     
-    // Salva la data per i reload
-    currentFabbisognoDate = dateToUse;
+    // Se dateTo non è specificato, usa dateFrom (singolo giorno)
+    const dateToUse = dateTo || dateFrom;
     
-    const response = await authenticatedFetch(`${API_URL}/orders/date/${dateToUse}`);
-    const allOrders = await response.json();
+    // Popola gli input del selettore date
+    document.getElementById('fabbisogno-date-from').value = dateFrom;
+    document.getElementById('fabbisogno-date-to').value = dateToUse;
+    
+    // Salva le date per i reload
+    currentFabbisognoDate = dateFrom;
+    currentFabbisognoDateTo = dateToUse;
+    
+    let allOrders;
+    if (dateFrom === dateToUse) {
+      // Singolo giorno
+      const response = await authenticatedFetch(`${API_URL}/orders/date/${dateFrom}`);
+      allOrders = await response.json();
+    } else {
+      // Range di date
+      const response = await authenticatedFetch(`${API_URL}/orders/date-range?from=${dateFrom}&to=${dateToUse}`);
+      allOrders = await response.json();
+    }
     
     // Filtra solo ordini con merce DA ORDINARE
     const ordersToOrder = allOrders.filter(order => 
       order.goods_type === 'da_ordinare'
     );
     
-    renderFabbisogno(ordersToOrder, allOrders.length);
+    renderFabbisogno(ordersToOrder, allOrders.length, dateFrom, dateToUse);
     document.getElementById('modal-fabbisogno').classList.add('active');
+    
+    // Blocca scroll body
+    document.body.classList.add('modal-open');
   } catch (error) {
     console.error('Errore caricamento fabbisogno:', error);
     alert('Errore nel caricamento del fabbisogno');
   }
 }
 
-// Renderizza fabbisogno
-function renderFabbisogno(orders, totalOrders = 0) {
+// Renderizza fabbisogno (con raggruppamento per giorno)
+function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
   const fabbisognoList = document.getElementById('fabbisogno-list');
   const fabbisognoEmpty = document.getElementById('fabbisogno-empty');
   
@@ -1713,7 +1762,7 @@ function renderFabbisogno(orders, totalOrders = 0) {
     const emptySubtitle = fabbisognoEmpty.querySelector('.empty-subtitle');
     
     if (totalOrders === 0) {
-      emptyP.textContent = '📭 Nessun ordine per questo giorno';
+      emptyP.textContent = '📭 Nessun ordine per questo periodo';
       emptySubtitle.textContent = '';
     } else {
       emptyP.textContent = '✅ Nessuna merce da ordinare';
@@ -1727,14 +1776,51 @@ function renderFabbisogno(orders, totalOrders = 0) {
   
   // Aggiorna titolo con conteggio
   const title = document.getElementById('fabbisogno-title');
-  title.innerHTML = `Merce da ordinare <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
+  const isMultiDay = dateFrom !== dateTo;
+  if (isMultiDay) {
+    const fromFormatted = formatDateItalian(dateFrom);
+    const toFormatted = formatDateItalian(dateTo);
+    title.innerHTML = `Fabbisogno ${fromFormatted} - ${toFormatted} <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
+  } else {
+    title.innerHTML = `Merce da ordinare <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
+  }
   
-  // Ordina per cliente (alfabetico)
-  const sortedOrders = [...orders].sort((a, b) => 
-    a.customer.localeCompare(b.customer)
-  );
+  // Raggruppa ordini per data
+  const ordersByDate = {};
+  orders.forEach(order => {
+    if (!ordersByDate[order.date]) {
+      ordersByDate[order.date] = [];
+    }
+    ordersByDate[order.date].push(order);
+  });
   
-  sortedOrders.forEach(order => {
+  // Ordina le date
+  const sortedDates = Object.keys(ordersByDate).sort();
+  
+  // Per ogni giorno
+  sortedDates.forEach(date => {
+    const dayOrders = ordersByDate[date];
+    
+    // Crea header del giorno (solo se multi-day)
+    if (isMultiDay) {
+      const dayHeader = document.createElement('div');
+      dayHeader.className = 'fabbisogno-day-group';
+      dayHeader.innerHTML = `
+        <div class="fabbisogno-day-header">
+          <span class="day-icon">📅</span>
+          <span>${formatDateItalian(date)}</span>
+          <span class="day-count">${dayOrders.length} ${dayOrders.length === 1 ? 'ordine' : 'ordini'}</span>
+        </div>
+      `;
+      fabbisognoList.appendChild(dayHeader);
+    }
+    
+    // Ordina ordini per cliente (alfabetico)
+    const sortedOrders = [...dayOrders].sort((a, b) => 
+      a.customer.localeCompare(b.customer)
+    );
+    
+    sortedOrders.forEach(order => {
     const item = document.createElement('div');
     const goodsType = order.goods_type || 'in_cella';
     const status = order.status || 'da_preparare';
@@ -1789,13 +1875,17 @@ function renderFabbisogno(orders, totalOrders = 0) {
       ${goodsButtons ? `<div class="fabbisogno-actions">${goodsButtons}</div>` : ''}
     `;
     
-    fabbisognoList.appendChild(item);
+      fabbisognoList.appendChild(item);
+    });
   });
   
   // DOPO aver creato tutto il DOM, carica stati e aggiungi listener
+  // Raccogli tutti gli order ID da tutti i giorni
+  const allOrderIds = orders.map(order => order.id);
+  
   // (usa Promise.all per parallelizzare)
   Promise.all(
-    sortedOrders.map(order => loadFabbisognoChecks(order.id))
+    allOrderIds.map(orderId => loadFabbisognoChecks(orderId))
   ).catch(err => console.error('Errore caricamento checks:', err));
 }
 

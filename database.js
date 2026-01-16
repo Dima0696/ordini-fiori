@@ -180,6 +180,22 @@ const getOrdersByDate = (date) => {
   });
 };
 
+// Ottieni ordini per range di date
+const getOrdersByDateRange = (dateFrom, dateTo) => {
+  const stmt = db.prepare('SELECT * FROM orders WHERE date >= ? AND date <= ? ORDER BY date ASC, created_at DESC');
+  const orders = stmt.all(dateFrom, dateTo);
+  return orders.map(order => {
+    if (order.photos) {
+      try {
+        order.photos = JSON.parse(order.photos);
+      } catch (e) {
+        order.photos = [];
+      }
+    }
+    return order;
+  });
+};
+
 // Ottieni singolo ordine
 const getOrderById = (id) => {
   const stmt = db.prepare('SELECT * FROM orders WHERE id = ?');
@@ -529,6 +545,7 @@ module.exports = {
   initDb,
   getAllOrders,
   getOrdersByDate,
+  getOrdersByDateRange,
   getOrderById,
   createOrder,
   updateOrder,

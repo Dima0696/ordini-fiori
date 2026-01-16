@@ -1538,6 +1538,98 @@ body {
 }
 
 /* Fabbisogno */
+/* Selettore range date fabbisogno */
+.fabbisogno-date-selector {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.date-range-inputs label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.date-input-small {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  min-width: 140px;
+  transition: all 0.2s;
+}
+
+.date-input-small:focus {
+  outline: none;
+  border-color: white;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary-small {
+  padding: 0.5rem 1.25rem;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+
+.btn-primary-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary-small:active {
+  transform: translateY(0);
+}
+
+/* Raggruppamento per giorno */
+.fabbisogno-day-group {
+  margin-bottom: 2rem;
+}
+
+.fabbisogno-day-header {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.fabbisogno-day-header .day-icon {
+  font-size: 1.3rem;
+}
+
+.fabbisogno-day-header .day-count {
+  margin-left: auto;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
 .fabbisogno-container {
   padding: 1.5rem;
 }
