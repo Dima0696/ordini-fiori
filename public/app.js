@@ -1518,11 +1518,14 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-// Formatta data in formato italiano (es. "16 Gennaio 2026")
+// Formatta data in formato italiano (es. "Giovedì 16 Gennaio 2026")
 function formatDateItalian(dateString) {
-  const date = new Date(dateString + 'T00:00:00');
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-  return date.toLocaleDateString('it-IT', options);
+  const formatted = date.toLocaleDateString('it-IT', options);
+  // Capitalize first letter
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 // Utility: escape HTML
