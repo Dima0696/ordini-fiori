@@ -3031,8 +3031,15 @@ button {
     opacity: 0.7 !important;
   }
   
-  /* Item ordine compatto in colonna - NO BREAK */
-  #modal-fabbisogno.active .fabbisogno-item {
+  /* Item ordine compatto in colonna - NO BREAK - FORZA TUTTO */
+  #modal-fabbisogno.active .fabbisogno-item,
+  #modal-fabbisogno.active .fabbisogno-item.status-pronto,
+  #modal-fabbisogno.active .fabbisogno-item.status-da_preparare,
+  #modal-fabbisogno.active .fabbisogno-item.status-ritirato,
+  #modal-fabbisogno.active .fabbisogno-item.da-ordinare,
+  #modal-fabbisogno.active .fabbisogno-item.in-cella,
+  #modal-fabbisogno.active .fabbisogno-item[data-has-photos="true"],
+  #modal-fabbisogno.active .fabbisogno-item[data-has-photos="false"] {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -3052,6 +3059,13 @@ button {
     left: 0 !important;
     width: auto !important;
     height: auto !important;
+  }
+  
+  /* Rimuovi pseudo-elementi in stampa */
+  #modal-fabbisogno.active .fabbisogno-item::before,
+  #modal-fabbisogno.active .fabbisogno-item::after {
+    display: none !important;
+    content: none !important;
   }
   
   /* Cliente in grassetto piccolo */
