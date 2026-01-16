@@ -2894,41 +2894,73 @@ button {
     overflow: hidden !important;
   }
   
-  /* FORZA VISIBILITÀ DI TUTTO IL CONTENUTO FABBISOGNO */
-  #modal-fabbisogno.active .fabbisogno-item,
-  #modal-fabbisogno.active .fabbisogno-item *:not(button):not(.btn-goods-action):not(.btn-mark-ordered):not(.btn-edit):not(.btn-delete):not(.btn-secondary):not(.info-badge.consegna) {
+  /* FORZA VISIBILITÀ TOTALE - Approccio più aggressivo */
+  #modal-fabbisogno.active .fabbisogno-item {
     display: block !important;
     visibility: visible !important;
+    opacity: 1 !important;
     position: relative !important;
     left: 0 !important;
     right: auto !important;
     width: auto !important;
     height: auto !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-header {
+    display: block !important;
+    visibility: visible !important;
     opacity: 1 !important;
   }
   
-  /* Forza display specifici per layout */
-  #modal-fabbisogno.active .fabbisogno-item {
+  #modal-fabbisogno.active .fabbisogno-customer {
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-lines {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-line {
     display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-line-text {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-checkbox {
     display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     width: 3.5mm !important;
     height: 3.5mm !important;
   }
   
-  #modal-fabbisogno.active .fabbisogno-header,
-  #modal-fabbisogno.active .fabbisogno-customer,
-  #modal-fabbisogno.active .fabbisogno-lines,
-  #modal-fabbisogno.active .fabbisogno-line-text,
-  #modal-fabbisogno.active .fabbisogno-meta,
-  #modal-fabbisogno.active .info-badge:not(.consegna) {
+  #modal-fabbisogno.active .fabbisogno-meta {
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  #modal-fabbisogno.active .info-badge:not(.consegna) {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  #modal-fabbisogno.active .fabbisogno-actions {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
   /* Modal fabbisogno come documento */
@@ -3001,6 +3033,9 @@ button {
   
   /* Item ordine compatto in colonna - NO BREAK */
   #modal-fabbisogno.active .fabbisogno-item {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     background: white !important;
     border: 1px solid #999 !important;
     border-radius: 2mm !important;
@@ -3013,6 +3048,10 @@ button {
     page-break-after: auto !important;
     break-after: auto !important;
     overflow: visible !important;
+    position: relative !important;
+    left: 0 !important;
+    width: auto !important;
+    height: auto !important;
   }
   
   /* Cliente in grassetto piccolo */
