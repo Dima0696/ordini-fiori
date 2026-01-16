@@ -1810,16 +1810,25 @@ async function openFabbisognoModal(date, dateTo = null) {
       allOrders = await response.json();
     }
     
-    // Filtra solo ordini con merce DA ORDINARE
+    // Filtra solo ordini con merce DA ORDINARE (NON 'ordinata' o 'in_cella')
     const ordersToOrder = allOrders.filter(order => 
       order.goods_type === 'da_ordinare'
     );
     
     console.log('🔍 DEBUG FABBISOGNO:');
     console.log(`📦 Totale ordini: ${allOrders.length}`);
-    console.log(`✅ Ordini DA ORDINARE: ${ordersToOrder.length}`);
+    console.log(`✅ Ordini DA ORDINARE: ${ordersToOrder.length} (goods_type === 'da_ordinare')`);
+    
+    // Debug: mostra TUTTI gli ordini con i loro goods_type
+    console.log('\n📊 TUTTI gli ordini per goods_type:');
+    allOrders.forEach(order => {
+      const icon = order.goods_type === 'da_ordinare' ? '✅' : '❌';
+      console.log(`  ${icon} #${order.id} ${order.customer} - goods_type: "${order.goods_type}" - ${order.photos ? order.photos.length : 0} foto`);
+    });
+    
+    console.log('\n🟢 Ordini NEL fabbisogno:');
     ordersToOrder.forEach(order => {
-      console.log(`  - #${order.id} ${order.customer} - ${order.photos ? order.photos.length : 0} foto - goods_type: ${order.goods_type}`);
+      console.log(`  - #${order.id} ${order.customer} - ${order.photos ? order.photos.length : 0} foto`);
     });
     
     renderFabbisogno(ordersToOrder, allOrders.length, dateFrom, dateToUse);

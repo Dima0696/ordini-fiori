@@ -3083,27 +3083,8 @@ button {
     height: 0 !important;
   }
   
-  /* DEBUG ESTREMO: Border rosso per vedere TUTTO in stampa */
-  #modal-fabbisogno.active .fabbisogno-item {
-    border: 3px solid red !important;
-    background: yellow !important;
-    padding: 5mm !important;
-    margin: 3mm !important;
-    min-height: 20mm !important;
-  }
-  
-  /* Forza contenuto visibile */
-  #modal-fabbisogno.active .fabbisogno-item * {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    color: black !important;
-  }
-  
-  /* EMERGENCY: Forza visibilità ordini specifici se necessario */
-  #modal-fabbisogno.active [data-order-id="56"],
-  #modal-fabbisogno.active .fabbisogno-list > *,
-  #modal-fabbisogno.active .fabbisogno-list > div {
+  /* FORZA visibilità per TUTTI i figli diretti di fabbisogno-list */
+  #modal-fabbisogno.active .fabbisogno-list > * {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -3112,15 +3093,11 @@ button {
   /* Assicura che i day-header occupino tutta la larghezza */
   #modal-fabbisogno.active .fabbisogno-list > .fabbisogno-day-header {
     grid-column: 1 / -1 !important;
-    display: block !important;
-    background: blue !important;
-    color: white !important;
   }
   
   /* Gli items occupano 1 colonna */
   #modal-fabbisogno.active .fabbisogno-list > .fabbisogno-item {
     grid-column: auto !important;
-    display: block !important;
   }
   
   /* Cliente in grassetto piccolo */
