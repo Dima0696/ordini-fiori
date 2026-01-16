@@ -3083,6 +3083,27 @@ button {
     height: 0 !important;
   }
   
+  /* EMERGENCY: Forza visibilità ordini specifici se necessario */
+  #modal-fabbisogno.active [data-order-id="56"],
+  #modal-fabbisogno.active .fabbisogno-list > *,
+  #modal-fabbisogno.active .fabbisogno-list > div {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Assicura che i day-header occupino tutta la larghezza */
+  #modal-fabbisogno.active .fabbisogno-list > .fabbisogno-day-header {
+    grid-column: 1 / -1 !important;
+    display: block !important;
+  }
+  
+  /* Gli items occupano 1 colonna */
+  #modal-fabbisogno.active .fabbisogno-list > .fabbisogno-item {
+    grid-column: auto !important;
+    display: block !important;
+  }
+  
   /* Cliente in grassetto piccolo */
   #modal-fabbisogno.active .fabbisogno-item .info-badge {
     font-size: 8pt !important;
