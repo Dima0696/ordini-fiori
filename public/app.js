@@ -429,9 +429,61 @@ function setupEventListeners() {
     openNewOrderModal();
   });
   
-  // Floating Action Button - Nuovo ordine (sempre visibile)
-  document.getElementById('btn-fab-new-order').addEventListener('click', () => {
+  // ========== FAB MENU ESPANDIBILE ==========
+  
+  const fabContainer = document.querySelector('.fab-container');
+  const fabMain = document.getElementById('btn-fab-main');
+  const fabMenu = document.getElementById('fab-menu');
+  
+  // Toggle menu FAB
+  fabMain.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fabContainer.classList.toggle('active');
+    
+    // Crea/rimuovi backdrop
+    if (fabContainer.classList.contains('active')) {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'fab-backdrop active';
+      backdrop.id = 'fab-backdrop';
+      backdrop.addEventListener('click', closeFabMenu);
+      document.body.appendChild(backdrop);
+    } else {
+      closeFabMenu();
+    }
+  });
+  
+  // Chiudi menu FAB
+  function closeFabMenu() {
+    fabContainer.classList.remove('active');
+    const backdrop = document.getElementById('fab-backdrop');
+    if (backdrop) {
+      backdrop.classList.remove('active');
+      setTimeout(() => backdrop.remove(), 300);
+    }
+  }
+  
+  // Nuovo ordine
+  document.getElementById('fab-nuovo-ordine').addEventListener('click', () => {
+    closeFabMenu();
     openNewOrderModal();
+  });
+  
+  // Ordine fisso (TODO)
+  document.getElementById('fab-ordine-fisso').addEventListener('click', () => {
+    closeFabMenu();
+    alert('🔄 Ordine fisso - In arrivo! Potrai creare ordini ricorrenti per più giorni.');
+  });
+  
+  // Merce in arrivo (TODO)
+  document.getElementById('fab-arrivi').addEventListener('click', () => {
+    closeFabMenu();
+    alert('📦 Merce in arrivo - In arrivo! Calendario degli arrivi di merce.');
+  });
+  
+  // Listini (TODO)
+  document.getElementById('fab-listini').addEventListener('click', () => {
+    closeFabMenu();
+    alert('📋 Listini - In arrivo! Carica PDF o foto dei listini per le festività.');
   });
   
   // Pulsante fabbisogno (solo Carlo e Dimitri)
