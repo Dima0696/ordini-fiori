@@ -492,17 +492,27 @@ const setFabbisognoCheck = (orderId, lineNumber, checked) => {
       if (existing) {
         // Esiste: update
         const stmt = db.prepare('UPDATE fabbisogno_checks SET checked = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?');
-        stmt.run(checkedInt, orderId, lineNumber);
-        console.log('🟢 DB UPDATED to', checkedInt);
+        const info = stmt.run(checkedInt, orderId, lineNumber);
+        console.log('🟢 DB UPDATED to', checkedInt, 'changes:', info.changes);
       } else {
         // Non esiste: insert
         const stmt = db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked) VALUES (?, ?, ?)');
-        stmt.run(orderId, lineNumber, checkedInt);
-        console.log('🟢 DB INSERTED with', checkedInt);
+        const info = stmt.run(orderId, lineNumber, checkedInt);
+        console.log('🟢 DB INSERTED with', checkedInt, 'lastInsertRowid:', info.lastInsertRowid);
       }
     });
     
     upsert();
+    
+    // VERIFICA: Rileggi dal DB per confermare
+    const verification = db.prepare('SELECT checked FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
+    console.log('✅ DB VERIFICA DOPO SAVE:', verification);
+    
+    if (!verification || verification.checked !== checkedInt) {
+      console.error('❌ VERIFICA FALLITA! Atteso:', checkedInt, 'Trovato:', verification);
+      throw new Error('Salvataggio non verificato');
+    }
+    
     return checked;
   } catch (error) {
     console.error('❌ DB setFabbisognoCheck ERROR:', error);
