@@ -445,8 +445,26 @@ function setupEventListeners() {
     btnFabbisogno.style.display = 'none';
   }
   
-  document.getElementById('btn-close-fabbisogno').addEventListener('click', () => {
+  document.getElementById('btn-close-fabbisogno').addEventListener('click', async () => {
+    // Se ci sono salvataggi in corso, aspetta che finiscano
+    if (pendingSaves > 0) {
+      const indicator = document.getElementById('save-indicator');
+      if (indicator) {
+        indicator.innerHTML = '⏳ Attendi salvataggio...';
+        indicator.style.background = '#FF9800';
+      }
+      
+      // Aspetta max 3 secondi per completare i salvataggi
+      const maxWait = 30; // 3 secondi (30 * 100ms)
+      let waited = 0;
+      while (pendingSaves > 0 && waited < maxWait) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waited++;
+      }
+    }
+    
     document.getElementById('modal-fabbisogno').classList.remove('active');
+    document.body.classList.remove('modal-open');
   });
   
   
@@ -1806,8 +1824,15 @@ async function loadFabbisognoChecks(orderId) {
   }
 }
 
-// Toggle checkbox fabbisogno
+// Counter salvataggi pending
+let pendingSaves = 0;
+
+// Toggle checkbox fabbisogno con salvataggio garantito
 async function toggleFabbisognoCheck(orderId, lineNumber) {
+  // Incrementa counter salvataggi pending
+  pendingSaves++;
+  updateSaveIndicator();
+  
   try {
     const response = await authenticatedFetch(
       `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`,
@@ -1826,6 +1851,45 @@ async function toggleFabbisognoCheck(orderId, lineNumber) {
     const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
     if (checkbox) {
       checkbox.checked = !checkbox.checked;
+    }
+  } finally {
+    // Decrementa counter salvataggi pending
+    pendingSaves--;
+    updateSaveIndicator();
+  }
+}
+
+// Mostra/nascondi indicatore salvataggio
+function updateSaveIndicator() {
+  let indicator = document.getElementById('save-indicator');
+  
+  if (pendingSaves > 0) {
+    if (!indicator) {
+      // Crea indicatore se non esiste
+      indicator = document.createElement('div');
+      indicator.id = 'save-indicator';
+      indicator.innerHTML = '💾 Salvataggio...';
+      indicator.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-primary);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: fadeIn 0.2s;
+      `;
+      document.body.appendChild(indicator);
+    }
+  } else {
+    // Rimuovi indicatore quando tutti i salvataggi sono completati
+    if (indicator) {
+      indicator.style.animation = 'fadeOut 0.2s';
+      setTimeout(() => indicator.remove(), 200);
     }
   }
 }
