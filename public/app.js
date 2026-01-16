@@ -2423,3 +2423,23 @@ if (document.readyState === 'loading') {
 } else {
   initSwipeGestures();
 }
+
+// DEBUG: Funzione per verificare schema DB (usa da console browser)
+async function debugSchema() {
+  try {
+    const response = await authenticatedFetch(API_URL + '/debug/schema');
+    const data = await response.json();
+    console.log('📊 DATABASE SCHEMA:', JSON.stringify(data, null, 2));
+    console.table(data.tables);
+    console.log('📈 Fabbisogno Count:', data.fabbisognoCount);
+    console.log('📋 Fabbisogno Schema:', data.fabbisognoSchema);
+    return data;
+  } catch (error) {
+    console.error('❌ Errore:', error);
+  }
+}
+
+// Rendi disponibile globalmente per debug
+window.debugSchema = debugSchema;
+
+console.log('💡 DEBUG: Usa debugSchema() nella console per verificare il database');
