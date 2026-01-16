@@ -1788,6 +1788,13 @@ async function openFabbisognoModal(date, dateTo = null) {
       order.goods_type === 'da_ordinare'
     );
     
+    console.log('🔍 DEBUG FABBISOGNO:');
+    console.log(`📦 Totale ordini: ${allOrders.length}`);
+    console.log(`✅ Ordini DA ORDINARE: ${ordersToOrder.length}`);
+    ordersToOrder.forEach(order => {
+      console.log(`  - #${order.id} ${order.customer} - ${order.photos ? order.photos.length : 0} foto - goods_type: ${order.goods_type}`);
+    });
+    
     renderFabbisogno(ordersToOrder, allOrders.length, dateFrom, dateToUse);
     document.getElementById('modal-fabbisogno').classList.add('active');
     
