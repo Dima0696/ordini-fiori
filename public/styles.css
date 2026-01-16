@@ -241,8 +241,8 @@ body {
 
 /* FAB principale */
 .fab-main {
-  width: 64px;
-  height: 64px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
@@ -257,7 +257,7 @@ body {
 }
 
 .fab-main:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
   box-shadow: 0 8px 28px rgba(11, 93, 82, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -265,36 +265,14 @@ body {
   transform: scale(0.95);
 }
 
-/* Icone del FAB principale */
-.fab-icon-plus,
-.fab-icon-close {
-  position: absolute;
+/* Icona menu hamburger - sempre visibile */
+.fab-icon-menu {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fab-icon-plus {
-  opacity: 1;
-  transform: rotate(0deg);
-}
-
-.fab-icon-close {
-  opacity: 0;
-  transform: rotate(-90deg);
-}
-
-/* Quando il menu è aperto */
-.fab-container.active .fab-icon-plus {
-  opacity: 0;
+/* Quando il menu è aperto - leggera rotazione */
+.fab-container.active .fab-icon-menu {
   transform: rotate(90deg);
-}
-
-.fab-container.active .fab-icon-close {
-  opacity: 1;
-  transform: rotate(0deg);
-}
-
-.fab-container.active .fab-main {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 }
 
 /* Menu espandibile */
