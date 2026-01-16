@@ -446,6 +446,11 @@ function setupEventListeners() {
     btnFabbisogno.style.display = 'none';
   }
   
+  // Listener per stampa fabbisogno
+  document.getElementById('btn-print-fabbisogno').addEventListener('click', () => {
+    window.print();
+  });
+  
   // Listener per caricamento range date fabbisogno
   document.getElementById('btn-load-fabbisogno-range').addEventListener('click', () => {
     const dateFrom = document.getElementById('fabbisogno-date-from').value;
