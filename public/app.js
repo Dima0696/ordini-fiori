@@ -1888,10 +1888,13 @@ async function toggleFabbisognoCheck(orderId, lineNumber) {
   recentlyModifiedOrders.add(orderId);
   console.log('🟡 Ordine', orderId, 'marcato come recentemente modificato');
   
-  // Rimuovi dopo 3 secondi
-  setTimeout(() => {
+  // Rimuovi dopo 3 secondi MA SOLO se non ci sono salvataggi in corso
+  setTimeout(async () => {
+    // Aspetta che tutti i salvataggi finiscano prima di rimuovere
+    console.log('⏰ Timeout scaduto, aspetto che pendingSaves finiscano...');
+    await waitForPendingSaves();
+    console.log('✅ Nessun salvataggio in corso, rimuovo ordine', orderId);
     recentlyModifiedOrders.delete(orderId);
-    console.log('✅ Ordine', orderId, 'rimosso da recentemente modificati');
   }, 3000);
   
   // Leggi lo stato attuale della checkbox (quello che l'utente vuole)
