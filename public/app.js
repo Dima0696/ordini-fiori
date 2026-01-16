@@ -461,11 +461,8 @@ function setupEventListeners() {
       return;
     }
     
-    // Chiudi e riapri con il nuovo range
-    closeFabbisognoModal();
-    setTimeout(() => {
-      openFabbisognoModal(dateFrom, dateTo);
-    }, 100);
+    // Ricarica con il nuovo range (non serve chiudere)
+    openFabbisognoModal(dateFrom, dateTo);
   });
   
   document.getElementById('btn-close-fabbisogno').addEventListener('click', async () => {
