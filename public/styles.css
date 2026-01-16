@@ -1603,33 +1603,44 @@ body {
 
 /* Pulsante stampa fabbisogno */
 .header-actions {
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .btn-action {
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: white;
+  color: #667eea;
+  border: 2px solid white;
   border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
   min-height: 44px;
-  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-action:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: white;
+  background: rgba(255, 255, 255, 0.95);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .btn-action:active {
   transform: translateY(0);
+}
+
+/* Assicura che il titolo non spinga fuori i pulsanti */
+#modal-fabbisogno .modal-header h2 {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Raggruppamento per giorno */
