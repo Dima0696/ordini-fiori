@@ -1883,6 +1883,8 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     );
     
     sortedOrders.forEach(order => {
+    console.log(`📦 Rendering ordine #${order.id} - ${order.customer} - ${order.photos ? order.photos.length : 0} foto`);
+    
     const item = document.createElement('div');
     const goodsType = order.goods_type || 'in_cella';
     const status = order.status || 'da_preparare';
@@ -1892,6 +1894,11 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     
     // Classe per tipo merce E stato
     item.className = `fabbisogno-item ${goodsTypeClass} status-${status}`;
+    
+    // Debug: aggiungi attributo data per identificare ordine
+    item.setAttribute('data-order-id', order.id);
+    item.setAttribute('data-customer', order.customer);
+    item.setAttribute('data-has-photos', order.photos && order.photos.length > 0 ? 'true' : 'false');
     
     // Info essenziali
     let metaInfo = `<span class="info-badge">${order.customer}</span>`;
@@ -1938,8 +1945,14 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     `;
     
       fabbisognoList.appendChild(item);
+      console.log(`✅ Ordine #${order.id} aggiunto al DOM`);
     });
   });
+  
+  console.log(`🎯 Totale elementi nel fabbisogno-list: ${fabbisognoList.children.length}`);
+  console.log('📋 Elementi:', Array.from(fabbisognoList.children).map(el => {
+    return `${el.className} ${el.dataset.orderId ? `(#${el.dataset.orderId})` : ''}`;
+  }));
   
   // DOPO aver creato tutto il DOM, carica stati e aggiungi listener
   // Raccogli tutti gli order ID da tutti i giorni
