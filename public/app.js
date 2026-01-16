@@ -1754,6 +1754,22 @@ function removePhoto(index) {
   renderPhotoPreview();
 }
 
+// DEBUG: Test visibilità in stampa
+window.testPrintVisibility = function() {
+  console.log('\n🖨️ TEST VISIBILITÀ IN STAMPA:');
+  document.querySelectorAll('.fabbisogno-item').forEach(el => {
+    const style = getComputedStyle(el);
+    console.log(`Ordine #${el.dataset.orderId} - ${el.dataset.customer}`);
+    console.log(`  Display: ${style.display}`);
+    console.log(`  Visibility: ${style.visibility}`);
+    console.log(`  Opacity: ${style.opacity}`);
+    console.log(`  Width: ${style.width}`);
+    console.log(`  Height: ${style.height}`);
+    console.log(`  Position: ${style.position}`);
+    console.log('');
+  });
+};
+
 // Apri modal fabbisogno
 async function openFabbisognoModal(date, dateTo = null) {
   try {

@@ -3039,7 +3039,10 @@ button {
   #modal-fabbisogno.active .fabbisogno-item.da-ordinare,
   #modal-fabbisogno.active .fabbisogno-item.in-cella,
   #modal-fabbisogno.active .fabbisogno-item[data-has-photos="true"],
-  #modal-fabbisogno.active .fabbisogno-item[data-has-photos="false"] {
+  #modal-fabbisogno.active .fabbisogno-item[data-has-photos="false"],
+  #modal-fabbisogno.active .fabbisogno-item[data-order-id],
+  #modal-fabbisogno.active div.fabbisogno-item,
+  #modal-fabbisogno.active div[class*="fabbisogno-item"] {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -3047,8 +3050,7 @@ button {
     border: 1px solid #999 !important;
     border-radius: 2mm !important;
     padding: 1.5mm !important;
-    margin: 0 !important;
-    margin-bottom: 2mm !important;
+    margin: 0 0 2mm 0 !important;
     box-shadow: none !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -3057,15 +3059,28 @@ button {
     overflow: visible !important;
     position: relative !important;
     left: 0 !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
     width: auto !important;
+    max-width: none !important;
     height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    transform: none !important;
+    clip: auto !important;
+    clip-path: none !important;
   }
   
   /* Rimuovi pseudo-elementi in stampa */
   #modal-fabbisogno.active .fabbisogno-item::before,
-  #modal-fabbisogno.active .fabbisogno-item::after {
+  #modal-fabbisogno.active .fabbisogno-item::after,
+  #modal-fabbisogno.active div.fabbisogno-item::before,
+  #modal-fabbisogno.active div.fabbisogno-item::after {
     display: none !important;
     content: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
   
   /* Cliente in grassetto piccolo */
