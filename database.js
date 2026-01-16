@@ -432,27 +432,35 @@ const getFabbisognoChecks = (orderId) => {
 const toggleFabbisognoCheck = (orderId, lineNumber) => {
   console.log('🔵 DB toggleFabbisognoCheck: orderId=', orderId, 'lineNumber=', lineNumber);
   
-  // Prima verifica se esiste già
-  const checkStmt = db.prepare('SELECT checked FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?');
-  const existing = checkStmt.get(orderId, lineNumber);
-  console.log('🔵 DB existing:', existing);
+  // Usa una transaction per garantire atomicità
+  const toggle = db.transaction(() => {
+    // Prima verifica se esiste già
+    const checkStmt = db.prepare('SELECT checked FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?');
+    const existing = checkStmt.get(orderId, lineNumber);
+    console.log('🔵 DB existing:', existing);
+    
+    if (existing) {
+      // Esiste: toggle
+      const newChecked = existing.checked === 1 ? 0 : 1;
+      console.log('🟡 DB TOGGLE:', existing.checked, '→', newChecked);
+      const updateStmt = db.prepare('UPDATE fabbisogno_checks SET checked = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?');
+      updateStmt.run(newChecked, orderId, lineNumber);
+      console.log('🟢 DB UPDATED in transaction');
+      return newChecked === 1;
+    } else {
+      // Non esiste: crea con checked = 1
+      console.log('🟡 DB INSERT nuovo record checked=1');
+      const insertStmt = db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked) VALUES (?, ?, 1)');
+      insertStmt.run(orderId, lineNumber);
+      console.log('🟢 DB INSERTED in transaction');
+      return true;
+    }
+  });
   
-  if (existing) {
-    // Esiste: toggle
-    const newChecked = existing.checked === 1 ? 0 : 1;
-    console.log('🟡 DB TOGGLE:', existing.checked, '→', newChecked);
-    const updateStmt = db.prepare('UPDATE fabbisogno_checks SET checked = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?');
-    updateStmt.run(newChecked, orderId, lineNumber);
-    console.log('🟢 DB UPDATED');
-    return newChecked === 1;
-  } else {
-    // Non esiste: crea con checked = 1
-    console.log('🟡 DB INSERT nuovo record checked=1');
-    const insertStmt = db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked) VALUES (?, ?, 1)');
-    insertStmt.run(orderId, lineNumber);
-    console.log('🟢 DB INSERTED');
-    return true;
-  }
+  // Esegui transaction e restituisci risultato
+  const result = toggle();
+  console.log('🟢 DB TRANSACTION COMMITTED, result:', result);
+  return result;
 };
 
 const clearFabbisognoChecks = (orderId) => {

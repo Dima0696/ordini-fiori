@@ -1802,8 +1802,26 @@ function renderFabbisogno(orders, totalOrders = 0) {
 // Carica stato checkbox fabbisogno per un ordine
 async function loadFabbisognoChecks(orderId) {
   try {
+    // ⚠️ SKIP se l'ordine è stato modificato di recente (ultimi 3 secondi)
+    if (recentlyModifiedOrders.has(orderId)) {
+      console.log('⏭️ SKIP LOAD per ordine', orderId, '(modificato di recente)');
+      
+      // Aggiungi solo i listener se non esistono già
+      const checkboxes = document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`);
+      checkboxes.forEach(checkbox => {
+        const lineNum = parseInt(checkbox.dataset.lineNumber);
+        if (!checkbox._hasListener) {
+          checkbox._hasListener = true;
+          checkbox.addEventListener('change', async () => {
+            console.log('📍 CHANGE EVENT: orderId=', orderId, 'lineNum=', lineNum);
+            await toggleFabbisognoCheck(orderId, lineNum);
+          });
+        }
+      });
+      return; // ESCI senza caricare dal DB
+    }
+    
     // ⚠️ IMPORTANTE: Se ci sono salvataggi in corso, ASPETTA che finiscano
-    // per evitare di sovrascrivere valori appena salvati
     if (pendingSaves > 0) {
       console.log('⏳ Aspetto salvataggi pending prima di caricare checks...');
       await new Promise(resolve => {
@@ -1857,11 +1875,24 @@ async function loadFabbisognoChecks(orderId) {
 // Counter salvataggi pending
 let pendingSaves = 0;
 
+// Set di ordini con modifiche recenti (evita reload immediato dopo toggle)
+const recentlyModifiedOrders = new Set();
+
 // Toggle checkbox fabbisogno con salvataggio garantito
 async function toggleFabbisognoCheck(orderId, lineNumber) {
   // Incrementa counter salvataggi pending
   pendingSaves++;
   updateSaveIndicator();
+  
+  // Marca ordine come recentemente modificato
+  recentlyModifiedOrders.add(orderId);
+  console.log('🟡 Ordine', orderId, 'marcato come recentemente modificato');
+  
+  // Rimuovi dopo 3 secondi
+  setTimeout(() => {
+    recentlyModifiedOrders.delete(orderId);
+    console.log('✅ Ordine', orderId, 'rimosso da recentemente modificati');
+  }, 3000);
   
   console.log('🔵 TOGGLE: orderId=', orderId, 'lineNumber=', lineNumber);
   
@@ -1878,7 +1909,7 @@ async function toggleFabbisognoCheck(orderId, lineNumber) {
     const data = await response.json();
     console.log('🟢 RISPOSTA SERVER:', data);
     
-    // Aggiorna checkbox con il valore dal server
+    // Aggiorna checkbox con il valore dal server (fonte di verità)
     const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
     if (checkbox) {
       checkbox.checked = data.checked;
