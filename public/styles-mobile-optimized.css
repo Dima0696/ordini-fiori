@@ -1,0 +1,359 @@
+/* ========== OTTIMIZZAZIONI MOBILE-FIRST ==========
+   Design compatto e professionale per uso mobile primario
+   ================================================== */
+
+/* ===== HEADER ===== */
+.app-header {
+  padding: 0.7rem 1rem !important;
+  min-height: 52px !important;
+}
+
+.app-header h1,
+.orders-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+.app-logo {
+  height: 32px !important;
+}
+
+.btn-logout {
+  padding: 0.35rem 0.7rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* ===== PULSANTI PRINCIPALI ===== */
+.btn-primary,
+.btn-secondary {
+  font-size: 0.9rem !important;
+  padding: 0.7rem 1rem !important;
+  font-weight: 600 !important;
+}
+
+.btn-large {
+  padding: 0.8rem 1.2rem !important;
+  font-size: 0.95rem !important;
+}
+
+.btn-compact {
+  font-size: 0.85rem !important;
+  padding: 0.5rem 0.9rem !important;
+}
+
+/* ===== CARDS ORDINI ===== */
+.order-card {
+  padding: 0.9rem !important;
+  border-radius: 10px !important;
+}
+
+.order-card-header {
+  margin-bottom: 0.6rem !important;
+}
+
+.order-customer {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 0.3rem !important;
+}
+
+.order-date {
+  font-size: 0.8rem !important;
+}
+
+.order-info-row {
+  gap: 0.4rem !important;
+  margin: 0.4rem 0 !important;
+}
+
+.info-badge {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
+}
+
+.order-description {
+  font-size: 0.85rem !important;
+  line-height: 1.4 !important;
+  margin: 0.5rem 0 !important;
+}
+
+/* ===== STATUS BADGE ===== */
+.status-badge {
+  padding: 0.35rem 0.7rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* ===== MODAL ===== */
+.modal-header {
+  padding: 1.2rem 1rem !important;
+}
+
+.modal-header h2 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+}
+
+.btn-close {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 1.3rem !important;
+}
+
+/* ===== DETTAGLIO ORDINE ===== */
+.detail-customer-name,
+.share-customer-name {
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+
+.detail-date {
+  font-size: 0.85rem !important;
+}
+
+.detail-info-row {
+  padding: 0.6rem 0.8rem !important;
+  font-size: 0.85rem !important;
+}
+
+.detail-description {
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+  padding: 0.8rem !important;
+}
+
+/* ===== FORM ===== */
+.form-group {
+  margin-bottom: 1rem !important;
+}
+
+.form-group label {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  font-size: 0.9rem !important;
+  padding: 0.7rem 0.8rem !important;
+  border-radius: 10px !important;
+}
+
+textarea {
+  line-height: 1.4 !important;
+}
+
+/* ===== FABBISOGNO ===== */
+.fabbisogno-header-redesign {
+  padding: 0.9rem 1rem !important;
+}
+
+.fabbisogno-title-row h2 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+}
+
+.date-input-compact {
+  font-size: 0.85rem !important;
+  padding: 0.5rem 0.7rem !important;
+  min-height: 42px !important;
+}
+
+.date-separator {
+  font-size: 1.1rem !important;
+}
+
+.btn-compact {
+  font-size: 0.82rem !important;
+  min-height: 42px !important;
+}
+
+.fabbisogno-day-header {
+  font-size: 0.95rem !important;
+  padding: 0.6rem 0.8rem !important;
+}
+
+.fabbisogno-day-header .day-count {
+  font-size: 0.8rem !important;
+}
+
+.fabbisogno-item {
+  padding: 0.8rem !important;
+  border-radius: 10px !important;
+}
+
+.fabbisogno-item .info-badge {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.fabbisogno-line {
+  padding: 0.3rem 0 !important;
+  gap: 0.5rem !important;
+}
+
+.fabbisogno-checkbox {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+.fabbisogno-line-text {
+  font-size: 0.85rem !important;
+  line-height: 1.35 !important;
+}
+
+/* ===== FAB MENU ===== */
+.fab-menu-item {
+  padding: 0.65rem 1rem !important;
+  font-size: 0.85rem !important;
+  min-height: 44px !important;
+  gap: 0.6rem !important;
+}
+
+.fab-menu-item svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* ===== CALENDARIO ===== */
+.calendar-header h2 {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.weekday-header {
+  padding: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+
+.calendar-day {
+  padding: 0.6rem !important;
+  min-height: 60px !important;
+}
+
+.day-number {
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 0.2rem !important;
+}
+
+.day-badge {
+  font-size: 0.7rem !important;
+  padding: 0.15rem 0.35rem !important;
+  border-radius: 5px !important;
+}
+
+/* ===== ORDER ACTIONS ===== */
+.order-actions-top {
+  gap: 0.6rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* ===== EMPTY STATES ===== */
+.empty-message p:first-child {
+  font-size: 1rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.empty-subtitle {
+  font-size: 0.85rem !important;
+}
+
+.search-no-results-icon {
+  font-size: 2.5rem !important;
+  margin-bottom: 0.8rem !important;
+}
+
+.search-no-results p {
+  font-size: 0.9rem !important;
+}
+
+/* ===== LOGIN ===== */
+.login-card h1 {
+  font-size: 1.5rem !important;
+}
+
+.login-subtitle {
+  font-size: 0.9rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* ===== SEGMENTED CONTROL ===== */
+.status-segmented-control {
+  padding: 0.3rem !important;
+}
+
+.segment-option {
+  padding: 0.6rem 0.8rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+}
+
+/* ===== MOBILE SPECIFICO ===== */
+@media (max-width: 600px) {
+  /* Testi ancora più compatti su schermi piccoli */
+  .order-customer {
+    font-size: 1rem !important;
+  }
+  
+  .detail-customer-name,
+  .share-customer-name {
+    font-size: 1.1rem !important;
+  }
+  
+  .modal-header h2,
+  .fabbisogno-title-row h2 {
+    font-size: 1.05rem !important;
+  }
+  
+  /* Pulsanti un po' più compatti */
+  .btn-large {
+    padding: 0.7rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  /* Cards più compatte */
+  .order-card {
+    padding: 0.8rem !important;
+  }
+  
+  /* FAB menu compatto */
+  .fab-menu-item {
+    padding: 0.6rem 0.9rem !important;
+    font-size: 0.82rem !important;
+  }
+  
+  /* Form compatto */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 0.85rem !important;
+    padding: 0.65rem 0.75rem !important;
+  }
+}
+
+/* ===== UTILITIES ===== */
+/* Previeni wrap su testi critici */
+.no-wrap {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Spaziatura compatta */
+.compact-spacing {
+  gap: 0.4rem !important;
+}
+
+/* Padding compatto */
+.compact-padding {
+  padding: 0.6rem 0.8rem !important;
+}
