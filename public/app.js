@@ -1790,15 +1790,37 @@ function renderFabbisogno(orders, totalOrders = 0) {
     `;
     
     fabbisognoList.appendChild(item);
-    
-    // Carica stato checkbox e aggiungi listener
-    loadFabbisognoChecks(order.id);
   });
+  
+  // DOPO aver creato tutto il DOM, carica stati e aggiungi listener
+  // (usa Promise.all per parallelizzare)
+  Promise.all(
+    sortedOrders.map(order => loadFabbisognoChecks(order.id))
+  ).catch(err => console.error('Errore caricamento checks:', err));
 }
 
 // Carica stato checkbox fabbisogno per un ordine
 async function loadFabbisognoChecks(orderId) {
   try {
+    // ⚠️ IMPORTANTE: Se ci sono salvataggi in corso, ASPETTA che finiscano
+    // per evitare di sovrascrivere valori appena salvati
+    if (pendingSaves > 0) {
+      console.log('⏳ Aspetto salvataggi pending prima di caricare checks...');
+      await new Promise(resolve => {
+        const checkInterval = setInterval(() => {
+          if (pendingSaves === 0) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
+        // Timeout dopo 3 secondi
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve();
+        }, 3000);
+      });
+    }
+    
     console.log('🔵 LOAD CHECKS per orderId:', orderId);
     const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
     const checks = await response.json();
@@ -1818,9 +1840,9 @@ async function loadFabbisognoChecks(orderId) {
         console.log('  ✅ Impostata a:', checks[lineNum]);
       }
       
-      // Aggiungi listener UNA SOLA VOLTA
-      if (!checkbox.hasAttribute('data-listener')) {
-        checkbox.setAttribute('data-listener', 'true');
+      // Aggiungi listener SOLO se non esiste già
+      if (!checkbox._hasListener) {
+        checkbox._hasListener = true;
         checkbox.addEventListener('change', async () => {
           console.log('📍 CHANGE EVENT: orderId=', orderId, 'lineNum=', lineNum);
           await toggleFabbisognoCheck(orderId, lineNum);
