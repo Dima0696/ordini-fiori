@@ -1802,42 +1802,9 @@ function renderFabbisogno(orders, totalOrders = 0) {
 // Carica stato checkbox fabbisogno per un ordine
 async function loadFabbisognoChecks(orderId) {
   try {
-    // ⚠️ SKIP se l'ordine è stato modificato di recente (ultimi 3 secondi)
-    if (recentlyModifiedOrders.has(orderId)) {
-      console.log('⏭️ SKIP LOAD per ordine', orderId, '(modificato di recente)');
-      
-      // Aggiungi solo i listener se non esistono già
-      const checkboxes = document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`);
-      checkboxes.forEach(checkbox => {
-        const lineNum = parseInt(checkbox.dataset.lineNumber);
-        if (!checkbox._hasListener) {
-          checkbox._hasListener = true;
-          checkbox.addEventListener('change', async () => {
-            console.log('📍 CHANGE EVENT: orderId=', orderId, 'lineNum=', lineNum);
-            await toggleFabbisognoCheck(orderId, lineNum);
-          });
-        }
-      });
-      return; // ESCI senza caricare dal DB
-    }
-    
     // ⚠️ IMPORTANTE: Se ci sono salvataggi in corso, ASPETTA che finiscano
-    if (pendingSaves > 0) {
-      console.log('⏳ Aspetto salvataggi pending prima di caricare checks...');
-      await new Promise(resolve => {
-        const checkInterval = setInterval(() => {
-          if (pendingSaves === 0) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 50);
-        // Timeout dopo 3 secondi
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          resolve();
-        }, 3000);
-      });
-    }
+    // In questo modo il DB è sempre aggiornato prima di caricare
+    await waitForPendingSaves(5000);
     
     console.log('🔵 LOAD CHECKS per orderId:', orderId);
     const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
@@ -1875,27 +1842,33 @@ async function loadFabbisognoChecks(orderId) {
 // Counter salvataggi pending
 let pendingSaves = 0;
 
-// Set di ordini con modifiche recenti (evita reload immediato dopo toggle)
-const recentlyModifiedOrders = new Set();
+// Attende che tutti i salvataggi pending finiscano
+async function waitForPendingSaves(maxWaitMs = 5000) {
+  if (pendingSaves === 0) return;
+  
+  console.log('⏳ Aspetto', pendingSaves, 'salvataggi pending...');
+  
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (pendingSaves === 0) {
+        clearInterval(checkInterval);
+        console.log('✅ Tutti i salvataggi completati');
+        resolve();
+      } else if (Date.now() - startTime > maxWaitMs) {
+        clearInterval(checkInterval);
+        console.warn('⚠️ Timeout attesa salvataggi (ancora pending:', pendingSaves, ')');
+        resolve();
+      }
+    }, 50);
+  });
+}
 
 // Toggle checkbox fabbisogno con salvataggio garantito
 async function toggleFabbisognoCheck(orderId, lineNumber) {
   // Incrementa counter salvataggi pending
   pendingSaves++;
   updateSaveIndicator();
-  
-  // Marca ordine come recentemente modificato
-  recentlyModifiedOrders.add(orderId);
-  console.log('🟡 Ordine', orderId, 'marcato come recentemente modificato');
-  
-  // Rimuovi dopo 3 secondi MA SOLO se non ci sono salvataggi in corso
-  setTimeout(async () => {
-    // Aspetta che tutti i salvataggi finiscano prima di rimuovere
-    console.log('⏰ Timeout scaduto, aspetto che pendingSaves finiscano...');
-    await waitForPendingSaves();
-    console.log('✅ Nessun salvataggio in corso, rimuovo ordine', orderId);
-    recentlyModifiedOrders.delete(orderId);
-  }, 3000);
   
   // Leggi lo stato attuale della checkbox (quello che l'utente vuole)
   const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
