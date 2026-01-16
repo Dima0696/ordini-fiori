@@ -2755,27 +2755,43 @@ button {
   #modal-fabbisogno.active .fabbisogno-header-redesign,
   #modal-fabbisogno.active .btn-goods-action,
   #modal-fabbisogno.active .info-badge.consegna,
-  #modal-fabbisogno.active .empty-message {
+  #modal-fabbisogno.active .empty-message,
+  #modal-fabbisogno.active #fabbisogno-empty {
     display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
   /* Modal fabbisogno come documento */
   #modal-fabbisogno.active {
-    position: static !important;
+    position: relative !important;
     background: white !important;
     display: block !important;
     opacity: 1 !important;
     visibility: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
   }
   
   /* Padding minimo per fabbisogno (nessun header fisso) */
   #modal-fabbisogno.active .modal-content {
     padding: 2mm !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
   
   #modal-fabbisogno.active .fabbisogno-container {
     padding: 0 !important;
+    margin: 0 !important;
     max-height: none !important;
+    min-height: 0 !important;
+    height: auto !important;
     overflow: visible !important;
   }
   
@@ -2785,6 +2801,8 @@ button {
     grid-template-columns: 1fr 1fr !important;
     gap: 2mm !important;
     column-gap: 3mm !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
   
   /* Header giorno compatto - occupa entrambe le colonne */
