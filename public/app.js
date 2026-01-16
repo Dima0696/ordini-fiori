@@ -1894,13 +1894,21 @@ async function toggleFabbisognoCheck(orderId, lineNumber) {
     console.log('✅ Ordine', orderId, 'rimosso da recentemente modificati');
   }, 3000);
   
-  console.log('🔵 TOGGLE: orderId=', orderId, 'lineNumber=', lineNumber);
+  // Leggi lo stato attuale della checkbox (quello che l'utente vuole)
+  const checkbox = document.getElementById(`check-${orderId}-${lineNumber}`);
+  const desiredState = checkbox ? checkbox.checked : true;
+  
+  console.log('🔵 SET CHECK: orderId=', orderId, 'lineNumber=', lineNumber, 'desiredState=', desiredState);
   
   try {
     const url = `${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`;
-    console.log('🔵 POST URL:', url);
+    console.log('🔵 POST URL:', url, 'body:', { checked: desiredState });
     
-    const response = await authenticatedFetch(url, { method: 'POST' });
+    const response = await authenticatedFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked: desiredState })
+    });
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

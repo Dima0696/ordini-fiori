@@ -479,6 +479,37 @@ const toggleFabbisognoCheck = (orderId, lineNumber) => {
   }
 };
 
+// Set checkbox a valore specifico (non toggle)
+const setFabbisognoCheck = (orderId, lineNumber, checked) => {
+  console.log('🔵 DB setFabbisognoCheck: orderId=', orderId, 'lineNumber=', lineNumber, 'checked=', checked);
+  
+  const checkedInt = checked ? 1 : 0;
+  
+  try {
+    const upsert = db.transaction(() => {
+      const existing = db.prepare('SELECT checked FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
+      
+      if (existing) {
+        // Esiste: update
+        const stmt = db.prepare('UPDATE fabbisogno_checks SET checked = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?');
+        stmt.run(checkedInt, orderId, lineNumber);
+        console.log('🟢 DB UPDATED to', checkedInt);
+      } else {
+        // Non esiste: insert
+        const stmt = db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked) VALUES (?, ?, ?)');
+        stmt.run(orderId, lineNumber, checkedInt);
+        console.log('🟢 DB INSERTED with', checkedInt);
+      }
+    });
+    
+    upsert();
+    return checked;
+  } catch (error) {
+    console.error('❌ DB setFabbisognoCheck ERROR:', error);
+    throw error;
+  }
+};
+
 const clearFabbisognoChecks = (orderId) => {
   const stmt = db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?');
   stmt.run(orderId);
@@ -502,6 +533,7 @@ module.exports = {
   deleteSubscription,
   getFabbisognoChecks,
   toggleFabbisognoCheck,
+  setFabbisognoCheck,
   clearFabbisognoChecks
 };
 

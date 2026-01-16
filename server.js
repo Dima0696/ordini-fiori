@@ -522,19 +522,30 @@ app.get('/api/fabbisogno-checks/:orderId', authenticate, (req, res) => {
   }
 });
 
-// POST /api/fabbisogno-checks/:orderId/:lineNumber - Toggle checkbox
+// POST /api/fabbisogno-checks/:orderId/:lineNumber - Set checkbox (non toggle!)
 app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId);
     const lineNumber = parseInt(req.params.lineNumber);
-    console.log('🔵 POST /fabbisogno-checks/' + orderId + '/' + lineNumber);
-    const checked = db.toggleFabbisognoCheck(orderId, lineNumber);
-    console.log('🟢 SALVATO checked=' + checked);
-    res.json({ checked });
+    const checked = req.body && typeof req.body.checked === 'boolean' ? req.body.checked : null;
+    
+    console.log('🔵 POST /fabbisogno-checks/' + orderId + '/' + lineNumber, 'checked:', checked);
+    
+    let result;
+    if (checked === null) {
+      // Retrocompatibilità: se non c'è body, fa toggle
+      result = db.toggleFabbisognoCheck(orderId, lineNumber);
+    } else {
+      // Nuovo: imposta valore specifico
+      result = db.setFabbisognoCheck(orderId, lineNumber, checked);
+    }
+    
+    console.log('🟢 SALVATO checked=' + result);
+    res.json({ checked: result });
   } catch (error) {
-    console.error('❌ Errore toggle check:', error);
+    console.error('❌ Errore salvataggio check:', error);
     console.error('Stack:', error.stack);
-    res.status(500).json({ error: 'Errore toggle check: ' + error.message });
+    res.status(500).json({ error: 'Errore salvataggio: ' + error.message });
   }
 });
 
