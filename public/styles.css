@@ -2999,7 +2999,7 @@ button {
     column-gap: 4mm !important;
     height: auto !important;
     min-height: 0 !important;
-    grid-auto-flow: dense !important;
+    grid-auto-flow: row !important;
     align-items: start !important;
   }
   
@@ -3095,9 +3095,9 @@ button {
     grid-column: 1 / -1 !important;
   }
   
-  /* Gli items occupano 1 colonna */
+  /* Gli items occupano 1 colonna - ordine sequenziale */
   #modal-fabbisogno.active .fabbisogno-list > .fabbisogno-item {
-    grid-column: auto !important;
+    grid-column: span 1 !important;
   }
   
   /* Cliente in grassetto piccolo */
