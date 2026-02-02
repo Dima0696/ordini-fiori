@@ -1986,19 +1986,21 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
   
   // Se non ci sono ordini attivi (da preparare o pronti)
   if (orders.length === 0) {
-    fabbisognoEmpty.style.display = 'block';
+    fabbisognoEmpty.style.display = 'flex';
     fabbisognoList.style.display = 'none';
     
     // Aggiorna messaggio in base al contesto
-    const emptyP = fabbisognoEmpty.querySelector('p:first-child');
+    const emptyP = fabbisognoEmpty.querySelector('p:first-of-type');
     const emptySubtitle = fabbisognoEmpty.querySelector('.empty-subtitle');
     
-    if (totalOrders === 0) {
-      emptyP.textContent = '📭 Nessun ordine per questo periodo';
-      emptySubtitle.textContent = '';
-    } else {
-      emptyP.textContent = '✅ Nessuna merce da ordinare';
-      emptySubtitle.textContent = 'Tutta la merce è già disponibile o ordinata';
+    if (emptyP && emptySubtitle) {
+      if (totalOrders === 0) {
+        emptyP.textContent = '📭 Nessun ordine per questo periodo';
+        emptySubtitle.textContent = '';
+      } else {
+        emptyP.textContent = '✅ Nessuna merce da ordinare';
+        emptySubtitle.textContent = 'Tutta la merce è già disponibile o ordinata';
+      }
     }
     return;
   }
@@ -2006,15 +2008,17 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
   fabbisognoEmpty.style.display = 'none';
   fabbisognoList.style.display = 'flex';
   
-  // Aggiorna titolo con conteggio
+  // Aggiorna titolo con conteggio (opzionale, il titolo è ora fisso nell'header)
   const title = document.getElementById('fabbisogno-title');
-  const isMultiDay = dateFrom !== dateTo;
-  if (isMultiDay) {
-    const fromFormatted = formatDateItalian(dateFrom);
-    const toFormatted = formatDateItalian(dateTo);
-    title.innerHTML = `Fabbisogno ${fromFormatted} - ${toFormatted} <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
-  } else {
-    title.innerHTML = `Merce da ordinare <span style="color: var(--color-primary); font-weight: 700;">(${orders.length} ${orders.length === 1 ? 'ordine' : 'ordini'})</span>`;
+  if (title) {
+    const isMultiDay = dateFrom !== dateTo;
+    if (isMultiDay) {
+      const fromFormatted = formatDateItalian(dateFrom);
+      const toFormatted = formatDateItalian(dateTo);
+      title.innerHTML = `Fabbisogno ${fromFormatted} - ${toFormatted} <span style="color: #F97316; font-weight: 700;">(${orders.length})</span>`;
+    } else {
+      title.innerHTML = `Fabbisogno <span style="color: #F97316; font-weight: 700;">(${orders.length})</span>`;
+    }
   }
   
   // Raggruppa ordini per data
