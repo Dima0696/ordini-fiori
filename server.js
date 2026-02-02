@@ -787,5 +787,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🌸 Server ordini fiori avviato!`);
   console.log(`📱 Apri dal telefono: http://[IP-del-tuo-computer]:${PORT}`);
   console.log(`💻 Apri dal computer: http://localhost:${PORT}\n`);
+  
+  // Test volume persistente - Railway deploy
+  console.log('🧪 Volume test: Database path =', process.env.DATABASE_PATH || './ordini.db');
 });
 
