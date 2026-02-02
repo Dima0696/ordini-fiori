@@ -558,14 +558,15 @@ function setupEventListeners() {
   // Modal ordine fisso
   document.getElementById('btn-close-ordine-fisso').addEventListener('click', closeOrdineFissoModal);
   
-  // Gestione bottoni disponibilità ordine fisso
-  document.querySelectorAll('.btn-goods-fisso').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const goodsType = e.currentTarget.getAttribute('data-goods');
-      document.getElementById('fisso-goods-type').value = goodsType;
-      document.querySelectorAll('.btn-goods-fisso').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-    });
+  // Navigazione mesi calendario ordini fissi
+  document.getElementById('fisso-prev-month').addEventListener('click', () => {
+    fissoCurrentMonth.setMonth(fissoCurrentMonth.getMonth() - 1);
+    renderFissoCalendar();
+  });
+  
+  document.getElementById('fisso-next-month').addEventListener('click', () => {
+    fissoCurrentMonth.setMonth(fissoCurrentMonth.getMonth() + 1);
+    renderFissoCalendar();
   });
   
   // Clear dates
@@ -2655,12 +2656,6 @@ function openOrdineFissoModal() {
   
   document.getElementById('fisso-customer').value = '';
   document.getElementById('fisso-description').value = '';
-  document.getElementById('fisso-goods-type').value = GOODS_TYPE.DA_ORDINARE;
-  
-  // Reset bottoni disponibilità
-  document.querySelectorAll('.btn-goods-fisso').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-goods') === GOODS_TYPE.DA_ORDINARE);
-  });
   
   renderFissoCalendar();
   document.getElementById('modal-ordine-fisso').classList.add('active');
@@ -2680,6 +2675,11 @@ function renderFissoCalendar() {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   
+  // Aggiorna header mese/anno
+  const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+  document.getElementById('fisso-month-year').textContent = `${monthNames[month]} ${year}`;
+  
   const calendar = document.getElementById('fisso-calendar');
   calendar.innerHTML = '';
   
@@ -2687,11 +2687,7 @@ function renderFissoCalendar() {
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
   dayNames.forEach(name => {
     const header = document.createElement('div');
-    header.style.textAlign = 'center';
-    header.style.fontWeight = '700';
-    header.style.fontSize = '0.8rem';
-    header.style.color = 'var(--color-text-light)';
-    header.style.padding = '0.5rem 0';
+    header.className = 'fisso-calendar-day-header';
     header.textContent = name;
     calendar.appendChild(header);
   });
@@ -2755,7 +2751,6 @@ async function handleOrdineFissoSubmit(e) {
   
   const customer = document.getElementById('fisso-customer').value.trim();
   const description = document.getElementById('fisso-description').value.trim();
-  const goodsType = document.getElementById('fisso-goods-type').value;
   
   if (!customer || !description) {
     alert('Compila i campi obbligatori: Cliente e Merce');
@@ -2772,16 +2767,15 @@ async function handleOrdineFissoSubmit(e) {
   const datesArray = Array.from(fissoSelectedDates).sort();
   console.log(`📅 ORDINI FISSI: Creazione di ${datesCount} ordini per le date:`, datesArray);
   
-  if (!confirm(`Confermi la creazione di ${datesCount} ordini per le date selezionate?`)) {
+  if (!confirm(`Confermi la creazione di ${datesCount} ordini "Da ordinare" per le date selezionate?`)) {
     return;
   }
   
   closeOrdineFissoModal();
   
-  // Determina stato in base a goods_type
-  const status = (goodsType === GOODS_TYPE.IN_CELLA) 
-    ? ORDER_STATUS.PRONTO 
-    : ORDER_STATUS.DA_PREPARARE;
+  // Ordini fissi sono SEMPRE "da_ordinare" e "da_preparare"
+  const goodsType = GOODS_TYPE.DA_ORDINARE;
+  const status = ORDER_STATUS.DA_PREPARARE;
   
   try {
     console.log('🔄 Inizio creazione ordini fissi...');
@@ -2821,7 +2815,7 @@ async function handleOrdineFissoSubmit(e) {
     await loadCalendar(true);
     console.log('✅ Calendario ricaricato!');
     
-    alert(`✅ Creati ${datesCount} ordini con successo!`);
+    alert(`✅ Creati ${datesCount} ordini con successo!\nPuoi modificarli singolarmente dal calendario.`);
   } catch (error) {
     console.error('❌ Errore creazione ordini fissi:', error);
     alert('Errore nella creazione degli ordini: ' + error.message);

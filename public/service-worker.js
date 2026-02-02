@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v47 - ORDINI FISSI: Nuovi stili e funzionalità calendario multi-selezione
-const CACHE_NAME = 'lombardaflor-orders-v47-ordini-fissi';
-const STATIC_CACHE = 'lombardaflor-static-v47-ordini-fissi';
-const API_CACHE = 'lombardaflor-api-v47-ordini-fissi';
+// v48 - ORDINI FISSI MIGLIORATI: Calendario con mese/anno, design moderno, auto "da ordinare"
+const CACHE_NAME = 'lombardaflor-orders-v48-fissi-improved';
+const STATIC_CACHE = 'lombardaflor-static-v48-fissi-improved';
+const API_CACHE = 'lombardaflor-api-v48-fissi-improved';
 
 const urlsToCache = [
   '/',

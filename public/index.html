@@ -435,23 +435,31 @@
           <textarea id="fisso-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
         </div>
         
-        <!-- Disponibilità -->
-        <div class="form-group">
-          <label>Disponibilità</label>
-          <div class="goods-buttons">
-            <button type="button" class="btn-goods-fisso" data-goods="in_cella">Pronto</button>
-            <button type="button" class="btn-goods-fisso active" data-goods="da_ordinare">Da ordinare</button>
-          </div>
-          <input type="hidden" id="fisso-goods-type" value="da_ordinare">
-        </div>
-        
         <!-- Selezione Date Multiple -->
         <div class="form-group">
-          <label>📅 Seleziona Date (clicca più date)</label>
+          <label>📅 Seleziona Date</label>
+          <p class="form-hint">Gli ordini saranno creati con stato "Da ordinare"</p>
+          
+          <!-- Header calendario con navigazione -->
+          <div class="fisso-calendar-header">
+            <button type="button" id="fisso-prev-month" class="btn-calendar-nav">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <div class="fisso-month-year" id="fisso-month-year">Gennaio 2026</div>
+            <button type="button" id="fisso-next-month" class="btn-calendar-nav">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          
           <div class="date-selector-info">
             <span id="selected-dates-count">0 date selezionate</span>
             <button type="button" id="btn-clear-dates" class="btn-text">Cancella tutte</button>
           </div>
+          
           <div id="fisso-calendar" class="fisso-calendar">
             <!-- Calendario generato dinamicamente -->
           </div>
