@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v46 - FIX DEFINITIVO: Service Worker NON fa cache API (solo network)
-const CACHE_NAME = 'lombardaflor-orders-v46-no-api-cache';
-const STATIC_CACHE = 'lombardaflor-static-v46-no-api-cache';
-const API_CACHE = 'lombardaflor-api-v46-no-api-cache';
+// v47 - ORDINI FISSI: Nuovi stili e funzionalità calendario multi-selezione
+const CACHE_NAME = 'lombardaflor-orders-v47-ordini-fissi';
+const STATIC_CACHE = 'lombardaflor-static-v47-ordini-fissi';
+const API_CACHE = 'lombardaflor-api-v47-ordini-fissi';
 
 const urlsToCache = [
   '/',
