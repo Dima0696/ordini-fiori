@@ -1424,7 +1424,11 @@ async function handleOrderSubmit(e) {
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
   const goodsType = document.getElementById('goods-type').value;
-  const status = ORDER_STATUS.DA_PREPARARE; // Sempre "da preparare" (stato si cambia dopo)
+  
+  // LOGICA STATO: se merce è "pronto" → stato "pronto", altrimenti "da_preparare"
+  const status = (goodsType === GOODS_TYPE.IN_CELLA) 
+    ? ORDER_STATUS.PRONTO 
+    : ORDER_STATUS.DA_PREPARARE;
   
   // Solo cliente, merce e giorno sono obbligatori
   if (!customer || !description) {
