@@ -173,9 +173,20 @@ app.get('/api/orders', authenticate, (req, res) => {
 // GET /api/orders/date/:date - Ottieni ordini per data
 app.get('/api/orders/date/:date', authenticate, (req, res) => {
   try {
-    const orders = db.getOrdersByDate(req.params.date);
+    const requestedDate = req.params.date;
+    console.log('📥 GET /api/orders/date/:date - Richiesta per data:', requestedDate);
+    
+    const orders = db.getOrdersByDate(requestedDate);
+    console.log('✅ Trovati', orders.length, 'ordini per data', requestedDate);
+    
+    // Log dettagliato di ogni ordine
+    orders.forEach((order, index) => {
+      console.log(`  [${index}] ID: ${order.id}, Cliente: ${order.customer}, Data: "${order.date}", Goods: ${order.goods_type}`);
+    });
+    
     res.json(orders);
   } catch (error) {
+    console.error('❌ Errore GET orders/date:', error);
     res.status(500).json({ error: 'Errore nel recupero degli ordini' });
   }
 });
@@ -272,6 +283,8 @@ app.post('/api/orders', authenticate, async (req, res) => {
       photos
     } = req.body;
     
+    console.log('📝 POST /api/orders - Ricevuto:', { date, customer, description, goods_type });
+    
     if (!date || !customer || !description) {
       return res.status(400).json({ error: 'Dati mancanti: date, customer, description sono obbligatori' });
     }
@@ -289,6 +302,7 @@ app.post('/api/orders', authenticate, async (req, res) => {
     };
     
     const order = db.createOrder(orderData, req.user.username);
+    console.log('✅ Ordine creato - ID:', order.id, 'Data salvata nel DB: "' + order.date + '"');
     
     // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
     // const deliveryInfo = delivery_type === 'consegna' && delivery_time 
