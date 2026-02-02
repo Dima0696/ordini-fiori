@@ -1198,16 +1198,24 @@ async function loadOrders(date) {
 
 // Renderizza lista ordini
 function renderOrders(orders) {
+  console.log('🎨 renderOrders() chiamato con', orders.length, 'ordini');
+  console.log('🎨 ordersList element:', ordersList);
+  console.log('🎨 Prima di pulire, ordersList.children.length:', ordersList.children.length);
+  
   ordersList.innerHTML = '';
+  console.log('🎨 Dopo pulizia, ordersList.children.length:', ordersList.children.length);
   
   if (orders.length === 0) {
+    console.log('⚠️ Nessun ordine da renderizzare, mostro empty message');
     emptyMessage.style.display = 'block';
     return;
   }
   
+  console.log('✅ Rendering', orders.length, 'ordini...');
   emptyMessage.style.display = 'none';
   
-  orders.forEach(order => {
+  orders.forEach((order, index) => {
+    console.log(`  🎨 Rendering ordine [${index}]:`, order.id, order.customer);
     const orderCard = document.createElement('div');
     orderCard.className = `order-card status-${order.status}`;
     
@@ -1352,7 +1360,11 @@ function renderOrders(orders) {
     }
     
     ordersList.appendChild(orderCard);
+    console.log(`  ✅ Ordine ${order.id} aggiunto al DOM`);
   });
+  
+  console.log('🎨 FINE renderOrders - ordersList.children.length:', ordersList.children.length);
+  console.log('🎨 ordersList visibile?', ordersList.style.display, 'offsetHeight:', ordersList.offsetHeight);
 }
 
 
