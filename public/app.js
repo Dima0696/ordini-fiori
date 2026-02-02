@@ -833,29 +833,39 @@ function renderCalendar() {
     ? today.getDate() 
     : 1;
   
-  // Crea array di giorni partendo da oggi
-  const days = [];
+  // Crea array di date partendo da oggi
+  const dates = [];
   
-  // Prima: giorni da oggi alla fine del mese
+  // Prima: giorni da oggi alla fine del mese corrente
   for (let day = todayDay; day <= lastDay.getDate(); day++) {
-    days.push(day);
+    dates.push(new Date(year, month, day));
   }
   
-  // Poi: giorni dall'inizio del mese a ieri
-  for (let day = 1; day < todayDay; day++) {
-    days.push(day);
+  // Poi: giorni dall'inizio del mese SUCCESSIVO (non stesso mese)
+  // Aggiungi giorni dal mese prossimo fino ad arrivare a 'todayDay-1' giorni mostrati
+  const daysToShowFromNextMonth = todayDay - 1;
+  for (let day = 1; day <= daysToShowFromNextMonth; day++) {
+    dates.push(new Date(year, month + 1, day)); // mese + 1 = mese successivo
   }
   
   // Renderizza giorni nell'ordine corretto
-  for (let day of days) {
-    const date = new Date(year, month, day);
+  for (let date of dates) {
     const dateStr = formatDate(date);
     const stat = orderStats[dateStr];
     const dayOfWeek = date.getDay(); // 0 = Domenica
+    const day = date.getDate();
+    const dateMonth = date.getMonth();
+    const dateYear = date.getFullYear();
     
     const dayCard = document.createElement('div');
     dayCard.className = 'day-card';
     dayCard.dataset.date = dateStr;
+    
+    // Classe per mese successivo (per styling diverso)
+    const isNextMonth = dateMonth !== month;
+    if (isNextMonth) {
+      dayCard.classList.add('next-month');
+    }
     
     // Classe per ordini
     if (stat && stat.total > 0) {
@@ -869,8 +879,8 @@ function renderCalendar() {
       todayCard = dayCard;
     }
     
-    // Classe DOMENICA e FESTIVITÀ
-    const monthDay = String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    // Classe DOMENICA e FESTIVITÀ (usa il mese effettivo del giorno)
+    const monthDay = String(dateMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
     const isHoliday = holidays.includes(monthDay);
     
     if (dayOfWeek === 0) {
@@ -880,9 +890,9 @@ function renderCalendar() {
       dayCard.classList.add('holiday');
     }
     
-    // Formatta data italiana
+    // Formatta data italiana (usa il mese effettivo del giorno)
     const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][dayOfWeek];
-    let dateFormatted = `${dayName} ${day} ${monthNames[month]}`;
+    let dateFormatted = `${dayName} ${day} ${monthNames[dateMonth]}`;
     
     let content = `<div class="day-date">${dateFormatted}`;
     

@@ -594,6 +594,22 @@ body {
   width: 6px;
 }
 
+/* MESE SUCCESSIVO - Stile più chiaro */
+.day-card.next-month {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px dashed var(--glass-border);
+  opacity: 0.85;
+}
+
+.day-card.next-month .day-date {
+  color: var(--color-text-light);
+}
+
+.day-card.next-month:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.75);
+}
+
 /* DOMENICA e FESTIVITÀ - Accento leggero */
 .day-card.sunday, .day-card.holiday {
   background: var(--glass-bg);
