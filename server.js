@@ -510,20 +510,29 @@ app.patch('/api/orders/:id/goods-type', authenticate, (req, res) => {
 // DELETE /api/orders/:id - Elimina ordine
 app.delete('/api/orders/:id', authenticate, (req, res) => {
   try {
+    console.log('🗑️ DELETE /api/orders/:id - Elimino ordine ID:', req.params.id);
+    
     // Prima ottieni l'ordine per eliminare le foto
     const order = db.getOrderById(req.params.id);
+    console.log('📦 Ordine da eliminare:', order ? `ID ${order.id}, Foto: ${order.photos?.length || 0}` : 'NON TROVATO');
+    
     if (order && order.photos && order.photos.length > 0) {
+      console.log('🖼️ Elimino', order.photos.length, 'foto associate...');
       // Elimina le foto associate
       order.photos.forEach(photoUrl => {
         const filename = path.basename(photoUrl);
         const filePath = path.join(uploadsDir, filename);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
+          console.log('  ✅ Foto eliminata:', filename);
+        } else {
+          console.log('  ⚠️ Foto non trovata:', filename);
         }
       });
     }
     
     const deleted = db.deleteOrder(req.params.id);
+    console.log('✅ Ordine eliminato dal DB:', deleted ? 'SUCCESS' : 'FAILED');
     if (deleted) {
       res.json({ message: 'Ordine eliminato con successo' });
     } else {

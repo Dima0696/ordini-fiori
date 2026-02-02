@@ -1626,21 +1626,26 @@ async function handleOrderDelete() {
   // Elimina sul server, POI ricarica UI
   // (garantisce consistenza dati)
   try {
-    console.log('🗑️ Elimino ordine', currentOrderId);
+    console.log('🗑️ Elimino ordine', currentOrderId, 'per data:', currentDate);
     
-    await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
+    const deleteResponse = await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
       method: 'DELETE'
     });
     
+    console.log('✅ DELETE response status:', deleteResponse.status);
     console.log('✅ Ordine eliminato, ricarico UI...');
     
     // Ricarica UI
+    console.log('📥 Ricarico ordini per data:', currentDate);
     await loadOrders(currentDate);
+    
+    console.log('📅 Ricarico calendario...');
     await loadCalendar(true);
     
-    console.log('✅ UI ricaricata!');
+    console.log('✅ UI ricaricata completamente!');
   } catch (error) {
     console.error('❌ Errore eliminazione ordine:', error);
+    console.error('❌ Error stack:', error.stack);
     alert('Errore nell\'eliminazione dell\'ordine: ' + error.message);
   }
 }
