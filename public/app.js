@@ -1007,9 +1007,20 @@ function renderCalendar() {
       // Mostra nomi clienti (cliccabili!)
       if (stat.customers && stat.customers.length > 0) {
         content += `<div class="day-customers">`;
-        stat.customers.forEach(customer => {
+        
+        // Mostra max 4 nomi, poi "e altri X"
+        const maxToShow = 4;
+        const customersToShow = stat.customers.slice(0, maxToShow);
+        const remaining = stat.customers.length - maxToShow;
+        
+        customersToShow.forEach(customer => {
           content += `<span class="customer-name clickable" data-customer="${escapeHtml(customer)}" data-date="${dateStr}">${escapeHtml(customer)}</span>`;
         });
+        
+        if (remaining > 0) {
+          content += `<span class="customer-more">e altri ${remaining}</span>`;
+        }
+        
         content += `</div>`;
       }
     } else {

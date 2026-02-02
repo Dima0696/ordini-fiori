@@ -706,19 +706,22 @@ body {
 
 .day-customers {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  max-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .customer-name {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -726,6 +729,19 @@ body {
   transition: all 0.2s;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.customer-more {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(139, 193, 135, 0.15);
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 193, 135, 0.3);
+  text-align: center;
+  font-style: italic;
 }
 
 .customer-name.clickable {
@@ -4873,8 +4889,8 @@ button {
   }
   
   .day-card {
-    padding: 0.6rem 0.4rem !important;
-    min-height: 80px !important;
+    padding: 0.6rem 0.5rem !important;
+    min-height: auto !important;
   }
   
   .day-number {
@@ -4888,6 +4904,22 @@ button {
   .day-orders-count {
     font-size: 0.7rem !important;
     padding: 0.25rem 0.5rem !important;
+  }
+  
+  .day-customers {
+    gap: 0.3rem !important;
+    margin-top: 0.4rem !important;
+    max-height: 100px !important;
+  }
+  
+  .customer-name {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+  
+  .customer-more {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.5rem !important;
   }
   
   /* ORDERS LIST - Spacing */

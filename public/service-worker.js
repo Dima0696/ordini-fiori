@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v56 - MOBILE PERFETTO: Fix testi, bottoni, layout completo
-const CACHE_NAME = 'lombardaflor-orders-v56-mobile-perfect';
-const STATIC_CACHE = 'lombardaflor-static-v56-mobile-perfect';
-const API_CACHE = 'lombardaflor-api-v56-mobile-perfect';
+// v57 - FIX CALENDARIO: Nomi clienti verticali con spacing perfetto
+const CACHE_NAME = 'lombardaflor-orders-v57-calendar-names-fix';
+const STATIC_CACHE = 'lombardaflor-static-v57-calendar-names-fix';
+const API_CACHE = 'lombardaflor-api-v57-calendar-names-fix';
 
 const urlsToCache = [
   '/',
