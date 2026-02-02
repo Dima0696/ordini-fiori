@@ -2316,14 +2316,6 @@ async function markAsOrdered(orderId) {
     console.error('❌ Errore aggiornamento:', error);
     alert('Errore nell\'aggiornamento: ' + error.message);
   }
-  } catch (error) {
-    console.error('Errore:', error);
-    alert('Errore nell\'aggiornamento dello stato della merce');
-    // Ricarica comunque per ripristinare lo stato
-    if (currentFabbisognoDate) {
-      await openFabbisognoModal(currentFabbisognoDate);
-    }
-  }
 }
 
 // Apri dettaglio ordine
