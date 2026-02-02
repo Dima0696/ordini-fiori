@@ -1,7 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-const CACHE_NAME = 'lombardaflor-orders-v44-filter-fix';
-const STATIC_CACHE = 'lombardaflor-static-v44-filter-fix';
-const API_CACHE = 'lombardaflor-api-v44-filter-fix';
+// v45 - FIX CACHE HTTP: Disabilitata cache browser per tutte le GET API
+const CACHE_NAME = 'lombardaflor-orders-v45-cache-fix';
+const STATIC_CACHE = 'lombardaflor-static-v45-cache-fix';
+const API_CACHE = 'lombardaflor-api-v45-cache-fix';
 
 const urlsToCache = [
   '/',
