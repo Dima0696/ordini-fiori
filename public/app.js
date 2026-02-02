@@ -120,13 +120,10 @@ async function initializeApp() {
     }
   }
   
-  console.log('🚀 Chiamo setupEventListeners()...');
   try {
     setupEventListeners();
-    console.log('✅ setupEventListeners() completato');
   } catch (error) {
     console.error('❌ ERRORE in setupEventListeners():', error);
-    console.error('Stack:', error.stack);
   }
   // Pull-to-refresh disabilitato (dava problemi)
   // setupPullToRefresh();
@@ -433,10 +430,7 @@ function setupPullToRefresh() {
 
 // Setup event listeners
 function setupEventListeners() {
-  console.log('🎬 setupEventListeners() INIZIATO');
-  
   // Notifiche
-  console.log('📍 Aggiungo listener notifiche...');
   document.getElementById('btn-notifications').addEventListener('click', async () => {
     await requestNotificationPermission(true); // true = mostra sempre prompt
   });
@@ -621,19 +615,12 @@ function setupEventListeners() {
   });
   
   
-  console.log('📍 Arrivo a sezione Modal ordine...');
-  
   // Modal ordine
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
   
-  console.log('🔧 Cerco form ordine...');
   const orderForm = document.getElementById('order-form');
-  console.log('🔍 Form ordine trovato?', orderForm);
-  
   if (orderForm) {
     orderForm.addEventListener('submit', handleOrderSubmit);
-    console.log('✅ Listener submit aggiunto a form!');
-    console.log('🧪 Verifica: orderForm.onsubmit =', orderForm.onsubmit);
   } else {
     console.error('❌ ERRORE CRITICO: Form ordine NON TROVATO nel DOM!');
   }
@@ -786,8 +773,6 @@ function setupEventListeners() {
   modalConfirm.addEventListener('click', (e) => {
     if (e.target === modalConfirm) modalConfirm.classList.remove('active');
   });
-  
-  console.log('🏁 setupEventListeners() COMPLETATO!');
 }
 
 // Carica calendario
@@ -1241,28 +1226,8 @@ async function openDayOrders(date) {
 // Carica ordini di un giorno
 async function loadOrders(date) {
   try {
-    console.log('📥 Carico ordini per data:', date);
-    
-    // Fetch senza cache - sempre dati freschi dal server
     const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
-    
-    console.log('🔍 Response status:', response.status);
-    console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
-    
-    // Clona response per poter leggere body due volte
-    const responseClone = response.clone();
-    const rawText = await responseClone.text();
-    console.log('🔍 RAW response body:', rawText);
-    
     const orders = await response.json();
-    console.log('✅ Ricevuti', orders.length, 'ordini dalla risposta server');
-    console.log('✅ Array orders:', orders);
-    
-    // Log dettagliato di OGNI ordine
-    orders.forEach((order, index) => {
-      console.log(`  [${index}] ID: ${order.id}, Cliente: ${order.customer}, Data: ${order.date}, Status: ${order.status}, Goods: ${order.goods_type}`);
-    });
-    
     renderOrders(orders);
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
@@ -1272,24 +1237,16 @@ async function loadOrders(date) {
 
 // Renderizza lista ordini
 function renderOrders(orders) {
-  console.log('🎨 renderOrders() chiamato con', orders.length, 'ordini');
-  console.log('🎨 ordersList element:', ordersList);
-  console.log('🎨 Prima di pulire, ordersList.children.length:', ordersList.children.length);
-  
   ordersList.innerHTML = '';
-  console.log('🎨 Dopo pulizia, ordersList.children.length:', ordersList.children.length);
   
   if (orders.length === 0) {
-    console.log('⚠️ Nessun ordine da renderizzare, mostro empty message');
     emptyMessage.style.display = 'block';
     return;
   }
   
-  console.log('✅ Rendering', orders.length, 'ordini...');
   emptyMessage.style.display = 'none';
   
   orders.forEach((order, index) => {
-    console.log(`  🎨 Rendering ordine [${index}]:`, order.id, order.customer);
     const orderCard = document.createElement('div');
     orderCard.className = `order-card status-${order.status}`;
     
@@ -1410,11 +1367,7 @@ function renderOrders(orders) {
     }
     
     ordersList.appendChild(orderCard);
-    console.log(`  ✅ Ordine ${order.id} aggiunto al DOM`);
   });
-  
-  console.log('🎨 FINE renderOrders - ordersList.children.length:', ordersList.children.length);
-  console.log('🎨 ordersList visibile?', ordersList.style.display, 'offsetHeight:', ordersList.offsetHeight);
 }
 
 
@@ -1515,11 +1468,9 @@ function closeOrderModal() {
 
 // Gestisci submit form ordine
 async function handleOrderSubmit(e) {
-  console.log('🔥 handleOrderSubmit CHIAMATO!', e);
   e.preventDefault();
   
   const orderId = document.getElementById('order-id').value;
-  console.log('📝 orderId:', orderId);
   const date = document.getElementById('order-date').value;
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
@@ -1566,39 +1517,26 @@ async function handleOrderSubmit(e) {
   
   // Salva sul server E ricarica sempre (no ottimizzazioni!)
   try {
-    let savedOrder;
-    
     if (orderId) {
       // Aggiorna ordine esistente
-      const response = await authenticatedFetch(`${API_URL}/orders/${orderId}`, {
+      await authenticatedFetch(`${API_URL}/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
       });
-      savedOrder = await response.json();
     } else {
       // Crea nuovo ordine
-      const response = await authenticatedFetch(`${API_URL}/orders`, {
+      await authenticatedFetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
       });
-      savedOrder = await response.json();
     }
     
-    console.log('✅ Ordine salvato:', savedOrder);
-    
-    // IMPORTANTE: Switcha alla data dell'ordine salvato
+    // Switcha alla data dell'ordine salvato e ricarica
     currentDate = date;
-    
-    // Ricarica SEMPRE tutto (no cache, no ottimizzazioni)
-    console.log('🔄 Ricarico ordini per data:', date);
     await loadOrders(date);
-    
-    console.log('🔄 Ricarico calendario...');
     await loadCalendar(true);
-    
-    console.log('✅ Tutto ricaricato!');
   } catch (error) {
     console.error('❌ Errore salvataggio ordine:', error);
     alert('Errore nel salvataggio dell\'ordine: ' + error.message);
@@ -1607,27 +1545,18 @@ async function handleOrderSubmit(e) {
 
 // Aggiorna solo stato ordine
 async function updateOrderStatus(orderId, status) {
-  // Invalida cache
   calendarCache = null;
   calendarCacheTime = 0;
   
   try {
-    console.log('🔄 Aggiorno stato ordine', orderId, 'a', status);
-    
-    // Aggiorna sul server
     await authenticatedFetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
     
-    console.log('✅ Stato aggiornato, ricarico UI...');
-    
-    // Ricarica UI
     await loadOrders(currentDate);
     await loadCalendar(true);
-    
-    console.log('✅ UI ricaricata!');
   } catch (error) {
     console.error('❌ Errore aggiornamento stato:', error);
     alert('Errore nell\'aggiornamento dello stato: ' + error.message);
@@ -1638,37 +1567,20 @@ async function updateOrderStatus(orderId, status) {
 async function handleOrderDelete() {
   if (!currentOrderId) return;
   
-  // ✨ OPTIMISTIC UI UPDATE ✨
-  // Chiudi modal IMMEDIATAMENTE
   modalConfirm.classList.remove('active');
   
-  // Invalida cache
   calendarCache = null;
   calendarCacheTime = 0;
   
-  // Elimina sul server, POI ricarica UI
-  // (garantisce consistenza dati)
   try {
-    console.log('🗑️ Elimino ordine', currentOrderId, 'per data:', currentDate);
-    
-    const deleteResponse = await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
+    await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
       method: 'DELETE'
     });
     
-    console.log('✅ DELETE response status:', deleteResponse.status);
-    console.log('✅ Ordine eliminato, ricarico UI...');
-    
-    // Ricarica UI
-    console.log('📥 Ricarico ordini per data:', currentDate);
     await loadOrders(currentDate);
-    
-    console.log('📅 Ricarico calendario...');
     await loadCalendar(true);
-    
-    console.log('✅ UI ricaricata completamente!');
   } catch (error) {
     console.error('❌ Errore eliminazione ordine:', error);
-    console.error('❌ Error stack:', error.stack);
     alert('Errore nell\'eliminazione dell\'ordine: ' + error.message);
   }
 }
@@ -2193,15 +2105,12 @@ async function loadFabbisognoChecks(orderId) {
     // In questo modo il DB è sempre aggiornato prima di caricare
     await waitForPendingSaves(5000);
     
-    console.log('🔵 LOAD CHECKS per orderId:', orderId);
     // Fetch senza cache - sempre dati freschi
     const response = await fetchNoCache(`${API_URL}/fabbisogno-checks/${orderId}`);
     const checks = await response.json();
-    console.log('🟢 CHECKS RICEVUTE:', checks);
     
     // Per ogni checkbox dell'ordine
     const checkboxes = document.querySelectorAll(`.fabbisogno-checkbox[data-order-id="${orderId}"]`);
-    console.log('🔵 TROVATE', checkboxes.length, 'CHECKBOX per ordine', orderId);
     
     checkboxes.forEach(checkbox => {
       const lineNum = parseInt(checkbox.dataset.lineNumber);
@@ -2362,18 +2271,12 @@ async function markAsOrdered(orderId) {
   calendarCacheTime = 0;
   
   try {
-    console.log('📦 Segno come ordinata:', orderId);
-    
-    // Salva sul server
     await authenticatedFetch(`${API_URL}/orders/${orderId}/goods-type`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ goods_type: 'ordinata' })
+      body: JSON.stringify({ goods_type: GOODS_TYPE.ORDINATA })
     });
     
-    console.log('✅ Ordinata segnata, ricarico UI...');
-    
-    // Ricarica UI
     await loadCalendar(true);
     if (currentDate) {
       await loadOrders(currentDate);
@@ -2383,8 +2286,6 @@ async function markAsOrdered(orderId) {
     if (currentFabbisognoDate) {
       await openFabbisognoModal(currentFabbisognoDate, currentFabbisognoDateTo);
     }
-    
-    console.log('✅ UI ricaricata!');
   } catch (error) {
     console.error('❌ Errore aggiornamento:', error);
     alert('Errore nell\'aggiornamento: ' + error.message);
