@@ -265,6 +265,7 @@ app.post('/api/orders', authenticate, async (req, res) => {
       date,
       customer,
       description,
+      status,
       goods_type,
       photos
     } = req.body;
@@ -277,7 +278,8 @@ app.post('/api/orders', authenticate, async (req, res) => {
       date,
       customer,
       description,
-      goods_type: goods_type || 'in_cella', // Default: pronto (in cella)
+      status: status || 'da_preparare', // Default: da preparare
+      goods_type: goods_type || 'in_cella',
       photos: photos || []
     };
     
