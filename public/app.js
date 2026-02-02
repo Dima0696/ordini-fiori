@@ -1483,8 +1483,11 @@ async function handleOrderSubmit(e) {
     }
     
     // Ricarica UI DOPO che server ha risposto
+    // IMPORTANTE: Carica gli ordini per la data dell'ordine appena salvato
+    // (non currentDate, che potrebbe essere diversa!)
+    currentDate = date; // Switcha alla data dell'ordine salvato
     await Promise.all([
-      loadOrders(currentDate),
+      loadOrders(date), // ← Carica la data CORRETTA!
       loadCalendar(true)
     ]);
   } catch (error) {
