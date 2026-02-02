@@ -551,7 +551,9 @@ function setupEventListeners() {
   
   // Modal ordine
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
+  console.log('🔧 Aggiungo listener submit al form ordine...');
   document.getElementById('order-form').addEventListener('submit', handleOrderSubmit);
+  console.log('✅ Listener submit aggiunto!');
   
   // Gestione bottoni stato (FIX: mancava!)
   document.querySelectorAll('.btn-status').forEach(btn => {
@@ -1423,9 +1425,11 @@ function closeOrderModal() {
 
 // Gestisci submit form ordine
 async function handleOrderSubmit(e) {
+  console.log('🔥 handleOrderSubmit CHIAMATO!', e);
   e.preventDefault();
   
   const orderId = document.getElementById('order-id').value;
+  console.log('📝 orderId:', orderId);
   const date = document.getElementById('order-date').value;
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
