@@ -14,38 +14,12 @@ const ORDER_STATUS_LABELS = {
   [ORDER_STATUS.RITIRATO]: 'Ritirato'
 };
 
-const ORDER_TYPE = {
-  CLIENTE: 'cliente',
-  WHATSAPP: 'whatsapp',
-  MAIL: 'mail',
-  TELEFONO: 'telefono'
-};
-
-const ORDER_TYPE_LABELS = {
-  [ORDER_TYPE.CLIENTE]: 'Cliente',
-  [ORDER_TYPE.WHATSAPP]: 'WhatsApp',
-  [ORDER_TYPE.MAIL]: 'Email',
-  [ORDER_TYPE.TELEFONO]: 'Telefono'
-};
-
-const DELIVERY_TYPE = {
-  RITIRO: 'ritiro',
-  CONSEGNA: 'consegna'
-};
-
-const DELIVERY_TYPE_LABELS = {
-  [DELIVERY_TYPE.RITIRO]: 'Ritiro',
-  [DELIVERY_TYPE.CONSEGNA]: 'Consegna'
-};
-
 const GOODS_TYPE = {
-  IN_CELLA: 'in_cella',
   DA_ORDINARE: 'da_ordinare',
   ORDINATA: 'ordinata'
 };
 
 const GOODS_TYPE_LABELS = {
-  [GOODS_TYPE.IN_CELLA]: 'Pronto',
   [GOODS_TYPE.DA_ORDINARE]: 'Da ordinare',
   [GOODS_TYPE.ORDINATA]: 'Ordinata'
 };
@@ -639,13 +613,7 @@ function setupEventListeners() {
     });
   });
 
-  // Gestione bottoni disponibilità
-  document.querySelectorAll('.btn-goods').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const goodsType = e.currentTarget.getAttribute('data-goods');
-      setGoodsButtons(goodsType);
-    });
-  });
+  // Goods type è sempre "da_ordinare" di default (nessun bottone da gestire)
   
   // Modal dettaglio ordine
   const modalDetail = document.getElementById('modal-detail');
@@ -1082,14 +1050,6 @@ function renderSearchResults(query, orders) {
                     order.goods_type === GOODS_TYPE.ORDINATA ? '📦 Ordinata' : '';
       infoBadges += `<span class="info-badge ${goodsClass}">${label}</span>`;
     }
-    if (order.delivery_type) {
-      const deliveryClass = order.delivery_type === DELIVERY_TYPE.CONSEGNA ? 'consegna' : '';
-      const label = order.delivery_type === DELIVERY_TYPE.RITIRO ? '📦 Ritiro' : '🚚 Consegna';
-      infoBadges += `<span class="info-badge ${deliveryClass}">${label}</span>`;
-    }
-    if (order.delivery_time) {
-      infoBadges += `<span class="info-badge">${order.delivery_time}</span>`;
-    }
     
     html += `
       <div class="order-card" data-order-id="${order.id}">
@@ -1264,15 +1224,8 @@ function renderOrders(orders) {
     if (order.photos && order.photos.length > 0) {
       indicators += `<span class="order-indicator" title="Ha foto">📷</span>`;
     }
-    if (order.delivery_type === 'consegna' && order.delivery_address) {
-      indicators += `<span class="order-indicator" title="Ha indirizzo">📍</span>`;
-    }
     if (order.description && order.description.length > 50) {
       indicators += `<span class="order-indicator" title="Descrizione lunga">📝</span>`;
-    }
-    // Indicatore dati incompleti
-    if (order.delivery_type === 'consegna' && !order.delivery_address) {
-      indicators += `<span class="order-indicator warning" title="Consegna senza indirizzo!">⚠️</span>`;
     }
     
     // Info utente
@@ -1358,24 +1311,7 @@ function renderOrders(orders) {
 }
 
 
-// Aggiorna UI disponibilità merce
-function setGoodsButtons(value) {
-  // MANTIENI il valore originale invece di normalizzare tutto a in_cella
-  const normalized = value || 'in_cella';
-  const input = document.getElementById('goods-type');
-  if (input) input.value = normalized;
-  
-  // Attiva il pulsante corrispondente
-  // Se il valore è 'ordinata' o altro, seleziona 'in_cella' come fallback visivo
-  const displayValue = (normalized === 'da_ordinare' || normalized === 'ordinata') ? normalized : 'in_cella';
-  
-  document.querySelectorAll('.btn-goods').forEach(btn => {
-    const btnValue = btn.getAttribute('data-goods');
-    // Se l'ordine è "ordinata", mostra come "in_cella" (ma mantieni il valore reale)
-    const isActive = btnValue === displayValue || (normalized === 'ordinata' && btnValue === 'in_cella');
-    btn.classList.toggle('active', isActive);
-  });
-}
+// Goods type è sempre "da_ordinare" per nuovi ordini, può diventare "ordinata" dopo
 
 // Apri modal nuovo ordine
 function openNewOrderModal() {
@@ -1406,12 +1342,8 @@ function openNewOrderModal() {
   document.getElementById('order-id').value = '';
   document.getElementById('order-date').value = currentDate;
   document.getElementById('order-status').value = 'da_preparare';
-  document.getElementById('order-type').value = 'cliente';
-  document.getElementById('delivery-type').value = 'ritiro';
-  document.getElementById('delivery-time').value = '';
-  document.getElementById('delivery-address').value = '';
+  document.getElementById('goods-type').value = GOODS_TYPE.DA_ORDINARE; // Sempre "da ordinare" per nuovi ordini
   
-  setGoodsButtons('in_cella');
   document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'none';
   
@@ -1431,17 +1363,10 @@ function openEditOrderModal(order) {
   document.getElementById('order-customer').value = order.customer;
   document.getElementById('order-description').value = order.description;
   document.getElementById('order-status').value = order.status;
+  document.getElementById('goods-type').value = order.goods_type || GOODS_TYPE.DA_ORDINARE;
   
-  // Nuovi campi
-  document.getElementById('order-type').value = order.order_type || 'cliente';
-  document.getElementById('delivery-type').value = order.delivery_type || 'ritiro';
-  document.getElementById('delivery-time').value = order.delivery_time || '';
-  document.getElementById('delivery-address').value = order.delivery_address || '';
-  
-  setGoodsButtons(order.goods_type || 'in_cella');
-  // NASCONDO gruppo stato (lo stato si cambia solo dalla visualizzazione)
+  // Nascondo gruppo stato (lo stato si cambia solo dalla visualizzazione)
   document.getElementById('status-group').style.display = 'none';
-  
   document.getElementById('btn-delete-order').style.display = 'block';
   
   renderPhotoPreview();
@@ -1461,18 +1386,8 @@ async function handleOrderSubmit(e) {
   const date = document.getElementById('order-date').value;
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
-  let status = document.getElementById('order-status').value;
-  const orderType = document.getElementById('order-type').value;
   const goodsType = document.getElementById('goods-type').value;
-  const deliveryType = document.getElementById('delivery-type').value;
-  const deliveryTime = document.getElementById('delivery-time').value;
-  const deliveryAddress = document.getElementById('delivery-address').value.trim();
-
-  // Se la merce è pronta, lo stato ordine diventa "pronto" (tranne se già ritirato)
-  if (!currentEditOrder || currentEditOrder.status !== 'ritirato') {
-    status = goodsType === 'da_ordinare' ? 'da_preparare' : 'pronto';
-    document.getElementById('order-status').value = status;
-  }
+  const status = ORDER_STATUS.DA_PREPARARE; // Sempre "da preparare" (stato si cambia dopo)
   
   // Solo cliente, merce e giorno sono obbligatori
   if (!customer || !description) {
@@ -1484,11 +1399,7 @@ async function handleOrderSubmit(e) {
     customer,
     description,
     status,
-    order_type: orderType,
     goods_type: goodsType,
-    delivery_type: deliveryType,
-    delivery_time: deliveryTime || null,
-    delivery_address: deliveryAddress || null,
     photos: uploadedPhotos
   };
   
@@ -1994,8 +1905,6 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
       console.log(`  Cliente: ${order.customer}`);
       console.log(`  goods_type: ${order.goods_type}`);
       console.log(`  status: ${order.status}`);
-      console.log(`  delivery_type: ${order.delivery_type}`);
-      console.log(`  order_type: ${order.order_type}`);
       console.log(`  Foto: ${order.photos.length}`);
       console.log(`  Tutte le proprietà:`, Object.keys(order));
     }
@@ -2023,12 +1932,6 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
     
     // Info essenziali
     let metaInfo = `<span class="info-badge">${order.customer}</span>`;
-    if (order.delivery_type === 'consegna') {
-      metaInfo += `<span class="info-badge consegna">🚚 Consegna</span>`;
-      if (order.delivery_time) {
-        metaInfo += `<span class="info-badge">${order.delivery_time}</span>`;
-      }
-    }
     
     // Pulsante per segnare come ordinata (solo per Carlo e Dimitri)
     let goodsButtons = '';
@@ -2333,10 +2236,6 @@ function renderOrderDetail(order) {
   // Aggiorna titolo per stampa (cliente + data)
   document.getElementById('detail-header-title').textContent = `${order.customer} - ${dateShort}`;
   
-  // Intestazione stampa per impilamento ordini
-  const deliveryText = order.delivery_type === 'consegna' ? 'CONSEGNA' : 'RITIRO';
-  const deliveryTime = order.delivery_time ? ` - Ore ${order.delivery_time}` : '';
-  
   // Layout ottimizzato per stampa su una pagina
   let html = `
     <!-- HEADER STAMPA (solo in stampa) -->
@@ -2347,9 +2246,6 @@ function renderOrderDetail(order) {
         </div>
         <div class="print-stack-date">
           ${dateFormatted}
-        </div>
-        <div class="print-stack-delivery ${order.delivery_type}">
-          ${deliveryText}${deliveryTime}
         </div>
       </div>
       <img src="logo.png" alt="LombardaFlor" class="print-stack-logo">
@@ -2404,65 +2300,21 @@ function renderOrderDetail(order) {
           <span class="checkbox-square"></span>
           <span class="checkbox-label">Merce controllata</span>
         </div>
-        <div class="print-checkbox">
-          <span class="checkbox-square"></span>
-          <span class="checkbox-label">Pronta per ${order.delivery_type === 'consegna' ? 'consegna' : 'ritiro'}</span>
-        </div>
       </div>
     </div>
   `;
   
-  // INFO DELIVERY COMPATTE (solo a schermo)
-  if (order.delivery_type || order.delivery_time || order.delivery_address || order.goods_type) {
+  // INFO DISPONIBILITÀ (solo a schermo)
+  if (order.goods_type) {
     html += `<div class="detail-section detail-info no-print">`;
     html += `<div class="detail-info-grid">`;
     
-    // Modalità
-    if (order.delivery_type) {
-      html += `
-        <div class="detail-info-item">
-          <span class="detail-info-label">Modalità</span>
-          <span class="detail-info-value">${DELIVERY_TYPE_LABELS[order.delivery_type] || order.delivery_type}</span>
-        </div>
-      `;
-    }
-    
-    // Orario
-    if (order.delivery_time) {
-      html += `
-        <div class="detail-info-item">
-          <span class="detail-info-label">Orario</span>
-          <span class="detail-info-value">${order.delivery_time}</span>
-        </div>
-      `;
-    }
-    
-    // Indirizzo (full width se presente)
-    if (order.delivery_type === 'consegna' && order.delivery_address) {
-      html += `
-        <div class="detail-info-item detail-info-full">
-          <span class="detail-info-label">Indirizzo</span>
-          <span class="detail-info-value">${escapeHtml(order.delivery_address)}</span>
-        </div>
-      `;
-    }
-    
-    // Stato merce
+    // Disponibilità merce
     if (order.goods_type) {
       html += `
         <div class="detail-info-item">
           <span class="detail-info-label">Disponibilità</span>
           <span class="detail-info-value">${GOODS_TYPE_LABELS[order.goods_type] || order.goods_type}</span>
-        </div>
-      `;
-    }
-    
-    // Tipo ordine
-    if (order.order_type) {
-      html += `
-        <div class="detail-info-item">
-          <span class="detail-info-label">Ricevuto via</span>
-          <span class="detail-info-value">${ORDER_TYPE_LABELS[order.order_type] || order.order_type}</span>
         </div>
       `;
     }
@@ -2575,25 +2427,11 @@ function shareOrderWhatsApp(order) {
   message += `📅 *Data:* ${dateFormatted}\n\n`;
   message += `🌸 *Merce:*\n${order.description}\n\n`;
   
-  // Info aggiuntive se presenti
-  if (order.delivery_type === 'consegna') {
-    message += `🚚 *Consegna*\n`;
-    if (order.delivery_time) {
-      message += `⏰ Orario: ${order.delivery_time}\n`;
-    }
-    if (order.delivery_address) {
-      message += `📍 Indirizzo: ${order.delivery_address}\n`;
-    }
-    message += `\n`;
-  } else if (order.delivery_time) {
-    message += `📦 *Ritiro* alle ${order.delivery_time}\n\n`;
-  }
-  
-  // Tipo merce
-  if (order.goods_type === 'da_ordinare') {
+  // Disponibilità merce
+  if (order.goods_type === GOODS_TYPE.DA_ORDINARE) {
     message += `⚠️ *Merce da ordinare*\n\n`;
-  } else {
-    message += `✅ *Merce pronta*\n\n`;
+  } else if (order.goods_type === GOODS_TYPE.ORDINATA) {
+    message += `✅ *Merce ordinata*\n\n`;
   }
   
   message += `───────────────\n`;

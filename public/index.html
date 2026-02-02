@@ -247,21 +247,8 @@
           <textarea id="order-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
         </div>
         
-        <!-- Campi nascosti (non modificabili) -->
-        <input type="hidden" id="order-type" value="cliente">
-        <input type="hidden" id="delivery-type" value="ritiro">
-        <input type="hidden" id="delivery-time" value="">
-        <input type="hidden" id="delivery-address" value="">
-        <input type="hidden" id="goods-type" value="in_cella">
-        
-        <!-- ROW 3: Disponibilità (2 tasti) -->
-        <div class="form-group">
-          <label>Disponibilità</label>
-          <div class="goods-buttons">
-            <button type="button" class="btn-goods active" data-goods="in_cella">Pronto</button>
-            <button type="button" class="btn-goods" data-goods="da_ordinare">Da ordinare</button>
-          </div>
-        </div>
+        <!-- Campo disponibilità (default: da ordinare) -->
+        <input type="hidden" id="goods-type" value="da_ordinare">
         
         <!-- ROW 6: Foto -->
         <div class="form-group">

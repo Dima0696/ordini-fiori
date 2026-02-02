@@ -265,10 +265,6 @@ app.post('/api/orders', authenticate, async (req, res) => {
       date,
       customer,
       description,
-      order_type,
-      delivery_type,
-      delivery_time,
-      delivery_address,
       goods_type,
       photos
     } = req.body;
@@ -281,11 +277,7 @@ app.post('/api/orders', authenticate, async (req, res) => {
       date,
       customer,
       description,
-      order_type: order_type || 'cliente',
-      delivery_type: delivery_type || 'ritiro',
-      delivery_time: delivery_time || null,
-      delivery_address: delivery_address || null,
-      goods_type: goods_type || 'in_cella',
+      goods_type: goods_type || 'da_ordinare',
       photos: photos || []
     };
     
@@ -351,10 +343,6 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       customer,
       description,
       status,
-      order_type,
-      delivery_type,
-      delivery_time,
-      delivery_address,
       goods_type,
       photos
     } = req.body;
@@ -369,15 +357,11 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
     }
     
     const orderData = {
-      date: date || null, // AGGIUNGI: permetti modifica data
+      date: date || null,
       customer,
       description,
       status,
-      order_type: order_type || 'cliente',
-      delivery_type: delivery_type || 'ritiro',
-      delivery_time: delivery_time || null,
-      delivery_address: delivery_address || null,
-      goods_type: goods_type || 'in_cella',
+      goods_type: goods_type || 'da_ordinare',
       photos: photos || []
     };
     
