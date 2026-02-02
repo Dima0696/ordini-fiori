@@ -1215,7 +1215,18 @@ function renderOrders(orders) {
   
   emptyMessage.style.display = 'none';
   
-  orders.forEach((order, index) => {
+  // ORDINA: Prima "da_preparare", poi "pronto", poi "ritirato"
+  const statusOrder = {
+    'da_preparare': 1,
+    'pronto': 2,
+    'ritirato': 3
+  };
+  
+  const sortedOrders = [...orders].sort((a, b) => {
+    return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+  });
+  
+  sortedOrders.forEach((order, index) => {
     const orderCard = document.createElement('div');
     orderCard.className = `order-card status-${order.status}`;
     

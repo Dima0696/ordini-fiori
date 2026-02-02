@@ -901,6 +901,17 @@ body {
   cursor: pointer;
 }
 
+/* EVIDENZIAZIONE: Ordini "Da preparare" con sfondo arancione chiaro */
+.order-card.status-da_preparare {
+  background: rgba(255, 152, 0, 0.08); /* Arancione molto chiaro */
+  border: 1px solid rgba(255, 152, 0, 0.15);
+}
+
+.order-card.status-da_preparare::before {
+  background: var(--color-da-preparare); /* Bordo sinistro arancione */
+  width: 4px;
+}
+
 .order-card::before {
   content: '';
   position: absolute;
