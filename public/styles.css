@@ -3761,6 +3761,173 @@ button {
 }
 
 /* ============================================
+   MODAL FABBISOGNO - Design Premium (ARANCIONE)
+   ============================================ */
+
+.modal-fabbisogno-premium {
+  max-width: 900px !important;
+}
+
+.modal-header-fabbisogno {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
+  color: white;
+  padding: 2rem;
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-icon-fabbisogno {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Controlli Range Date Premium */
+.fabbisogno-controls-premium {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(234, 88, 12, 0.04) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  align-items: flex-end;
+}
+
+.date-range-premium {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex: 1;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.date-input-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #F97316;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-input-premium {
+  padding: 0.9rem 1.1rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+  font-weight: 600;
+}
+
+.date-input-premium:focus {
+  outline: none;
+  border-color: #F97316;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+}
+
+.arrow-icon {
+  color: #F97316;
+  margin-bottom: 0.9rem;
+  flex-shrink: 0;
+}
+
+.action-buttons-premium-fab {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-load-premium,
+.btn-print-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-load-premium {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.btn-load-premium:hover {
+  background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+}
+
+.btn-print-premium {
+  background: white;
+  color: #F97316;
+  border: 2px solid #F97316;
+}
+
+.btn-print-premium:hover {
+  background: rgba(249, 115, 22, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Container Premium */
+.fabbisogno-container-premium {
+  padding: 2rem;
+  min-height: 400px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.empty-message-premium {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--color-text-light);
+}
+
+.empty-message-premium svg {
+  color: #F97316;
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.empty-message-premium p {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0.5rem 0;
+}
+
+.empty-message-premium .empty-subtitle {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--color-text-light);
+}
+
+/* ============================================
    MODAL ORDINE FISSO - Design Moderno Professionale (VERDE)
    ============================================ */
 
@@ -4182,6 +4349,108 @@ button {
 .btn-primary-fisso:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(139, 193, 135, 0.3);
+}
+
+/* ============================================
+   MODAL DETTAGLIO ORDINE - Design Premium (VIOLA/SLATE)
+   ============================================ */
+
+.modal-detail-premium {
+  max-width: 700px !important;
+}
+
+.modal-header-detail {
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
+  color: white;
+  padding: 2rem;
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-icon-detail {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Print Header (solo stampa) */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .print-header-detail {
+    text-align: center;
+    padding: 2rem;
+    border-bottom: 3px solid #6366F1;
+    margin-bottom: 2rem;
+  }
+  
+  .print-logo {
+    max-width: 180px;
+    margin-bottom: 1rem;
+  }
+  
+  .print-header-detail h2 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #6366F1;
+  }
+}
+
+.detail-content-premium {
+  padding: 2rem;
+  min-height: 300px;
+}
+
+.detail-actions-premium {
+  padding: 1.5rem 2rem;
+  background: #f8f9fa;
+  border-radius: 0 0 28px 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-edit-detail-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-edit-detail-premium:hover {
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+
+.btn-edit-detail-premium:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 /* ============================================
