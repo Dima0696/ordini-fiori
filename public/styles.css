@@ -945,9 +945,9 @@ body {
 
 /* Hover più evidente per ordini da preparare */
 .order-card.status-da_preparare:hover {
-  background: rgba(255, 152, 0, 0.03); /* Sfondo arancione leggerissimo */
-  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.25);
-  border-color: #FF6B00;
+  background: rgba(255, 152, 0, 0.03) !important; /* Sfondo arancione leggerissimo */
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.25) !important;
+  border-color: #FF6B00 !important; /* Mantieni arancione, non verde! */
 }
 
 .order-header {
