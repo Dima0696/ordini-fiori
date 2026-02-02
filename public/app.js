@@ -71,7 +71,14 @@ async function initializeApp() {
     }
   }
   
-  setupEventListeners();
+  console.log('🚀 Chiamo setupEventListeners()...');
+  try {
+    setupEventListeners();
+    console.log('✅ setupEventListeners() completato');
+  } catch (error) {
+    console.error('❌ ERRORE in setupEventListeners():', error);
+    console.error('Stack:', error.stack);
+  }
   // Pull-to-refresh disabilitato (dava problemi)
   // setupPullToRefresh();
   
