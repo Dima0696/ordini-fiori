@@ -740,8 +740,14 @@ async function loadCalendar(forceRefresh = false) {
       return;
     }
     
-    // Carica statistiche ordini
-    const response = await authenticatedFetch(`${API_URL}/stats/dates`);
+    // Carica statistiche ordini - DISABILITA CACHE
+    const response = await authenticatedFetch(`${API_URL}/stats/dates`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     const stats = await response.json();
     
     // Crea mappa per accesso veloce e salva in cache
@@ -2157,7 +2163,14 @@ async function loadFabbisognoChecks(orderId) {
     await waitForPendingSaves(5000);
     
     console.log('🔵 LOAD CHECKS per orderId:', orderId);
-    const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`);
+    // DISABILITA CACHE per avere sempre dati freschi
+    const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     const checks = await response.json();
     console.log('🟢 CHECKS RICEVUTE:', checks);
     
