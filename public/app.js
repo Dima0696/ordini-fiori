@@ -249,6 +249,10 @@ async function logout(isSessionExpired = false) {
     console.log('[LOGOUT] Auto-refresh fermato');
   }
   
+  // RESET flag inizializzazione per permettere re-login
+  isAppInitialized = false;
+  console.log('[LOGOUT] Flag isAppInitialized resettato');
+  
   // Chiama API logout solo se NON è una sessione scaduta (evita 401)
   if (authToken && !isSessionExpired) {
     try {
