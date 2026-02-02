@@ -3512,7 +3512,256 @@ button {
 
 
 /* ============================================
-   MODAL ORDINE FISSO - Design Moderno Professionale
+   MODAL ORDINE - Design Premium (BLU)
+   ============================================ */
+
+.modal-order-premium {
+  max-width: 700px !important;
+}
+
+.modal-header-order {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  color: white;
+  padding: 2rem;
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-icon-order {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.section-header-order {
+  border-bottom-color: #3B82F6 !important;
+}
+
+.section-header-order svg {
+  color: #3B82F6 !important;
+}
+
+.form-order {
+  padding: 0;
+}
+
+.form-row-premium {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-group-premium {
+  margin-bottom: 1.5rem;
+}
+
+.form-group-premium:last-child {
+  margin-bottom: 0;
+}
+
+.form-group-premium label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-group-premium label svg {
+  color: #3B82F6;
+}
+
+.form-group-premium input,
+.form-group-premium textarea {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+}
+
+.form-group-premium input:focus,
+.form-group-premium textarea:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  background: white;
+}
+
+.form-group-premium textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+/* Goods Buttons Premium */
+.goods-buttons-premium {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.btn-goods-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border: 2px solid #e8e8e8;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-goods-order:hover {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.btn-goods-order.active {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border-color: #2563EB;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Status Buttons Premium */
+.status-buttons-premium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.btn-status-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  background: white;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-status-order:hover {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.btn-status-order.active {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border-color: #2563EB;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Add Photo Button */
+.btn-add-photo-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.5rem;
+  background: white;
+  border: 2px dashed #d0d0d0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.btn-add-photo-premium:hover {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.05);
+  color: #3B82F6;
+}
+
+/* Form Actions Premium */
+.form-actions-premium {
+  display: flex;
+  gap: 1rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 0 0 28px 28px;
+}
+
+.btn-delete-premium {
+  flex: 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgb(239, 68, 68);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete-premium:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgb(239, 68, 68);
+  transform: translateY(-1px);
+}
+
+.btn-save-order {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-save-order:hover {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-save-order:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* ============================================
+   MODAL ORDINE FISSO - Design Moderno Professionale (VERDE)
    ============================================ */
 
 .modal-fisso {

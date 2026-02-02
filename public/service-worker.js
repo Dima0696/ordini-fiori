@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v49 - ORDINI FISSI PREMIUM: Form ridisegnato completamente, UI/UX professionale
-const CACHE_NAME = 'lombardaflor-orders-v49-fissi-premium';
-const STATIC_CACHE = 'lombardaflor-static-v49-fissi-premium';
-const API_CACHE = 'lombardaflor-api-v49-fissi-premium';
+// v50 - TUTTI I MODAL PREMIUM: Ordine (blu), Fissi (verde), design unificato
+const CACHE_NAME = 'lombardaflor-orders-v50-all-premium';
+const STATIC_CACHE = 'lombardaflor-static-v50-all-premium';
+const API_CACHE = 'lombardaflor-api-v50-all-premium';
 
 const urlsToCache = [
   '/',

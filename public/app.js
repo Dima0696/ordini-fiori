@@ -686,6 +686,26 @@ function setupEventListeners() {
     });
   });
   
+  // Gestione bottoni disponibilità merce PREMIUM
+  document.querySelectorAll('.btn-goods-premium').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodsType = e.currentTarget.getAttribute('data-goods');
+      document.getElementById('goods-type').value = goodsType;
+      document.querySelectorAll('.btn-goods-premium').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+  });
+  
+  // Gestione bottoni stato PREMIUM
+  document.querySelectorAll('.btn-status-premium').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const status = e.currentTarget.getAttribute('data-status');
+      document.getElementById('order-status').value = status;
+      document.querySelectorAll('.btn-status-premium').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+  });
+  
   // Modal dettaglio ordine
   const modalDetail = document.getElementById('modal-detail');
   document.getElementById('btn-close-detail').addEventListener('click', () => {
