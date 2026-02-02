@@ -940,14 +940,11 @@ body {
 .order-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: var(--color-primary-light);
 }
 
-/* Hover più evidente per ordini da preparare */
-.order-card.status-da_preparare:hover {
-  background: rgba(255, 152, 0, 0.03) !important; /* Sfondo arancione leggerissimo */
-  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.25) !important;
-  border-color: #FF6B00 !important; /* Mantieni arancione, non verde! */
+/* NON applicare bordo verde a ordini da preparare */
+.order-card:hover:not(.status-da_preparare) {
+  border-color: var(--color-primary-light);
 }
 
 .order-header {
@@ -2673,6 +2670,14 @@ button {
 .order-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(11, 93, 82, 0.2);
+}
+
+/* Hover arancione per ordini da preparare (deve venire DOPO gli hover generici) */
+.order-card.status-da_preparare:hover {
+  background: rgba(255, 152, 0, 0.03) !important;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.25) !important;
+  border-color: #FF6B00 !important;
+  transform: translateY(-2px);
 }
 
 .order-card:active {
