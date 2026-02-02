@@ -3512,18 +3512,182 @@ button {
 
 
 /* ============================================
-   MODAL ORDINE FISSO - Calendario Multi-Selezione
+   MODAL ORDINE FISSO - Design Moderno Professionale
    ============================================ */
 
-.modal-large {
-  max-width: 700px !important;
+.modal-fisso {
+  max-width: 750px !important;
 }
 
-.form-hint {
-  font-size: 0.85rem;
-  color: var(--color-text-light);
-  margin: 0.5rem 0 1rem 0;
-  font-style: italic;
+.modal-header-fisso {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-title-group {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.modal-icon {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.modal-header-fisso h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: white;
+}
+
+.modal-subtitle {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.modal-header-fisso .btn-close {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal-header-fisso .btn-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Form Sections */
+.form-fisso {
+  padding: 0;
+}
+
+.form-section {
+  padding: 2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.section-header svg {
+  color: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
+}
+
+/* Form Groups */
+.form-group-fisso {
+  margin-bottom: 1.5rem;
+}
+
+.form-group-fisso:last-child {
+  margin-bottom: 0;
+}
+
+.form-group-fisso label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-group-fisso label svg {
+  color: var(--color-primary);
+}
+
+.form-group-fisso input,
+.form-group-fisso textarea {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+}
+
+.form-group-fisso input:focus,
+.form-group-fisso textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(139, 193, 135, 0.1);
+  background: white;
+}
+
+.form-group-fisso textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+/* Info Box */
+.form-info-box {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(139, 193, 135, 0.08) 0%, rgba(139, 193, 135, 0.04) 100%);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.form-info-box svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.form-info-box strong {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+/* Calendar Container */
+.calendar-container {
+  background: #f8f9fa;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Header calendario con navigazione mese */
@@ -3573,28 +3737,48 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0;
-  padding: 0.75rem 1.5rem;
-  background: rgba(139, 193, 135, 0.1);
-  border-bottom: 1px solid rgba(139, 193, 135, 0.2);
+  padding: 1rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 0.95rem;
   color: var(--color-text);
 }
 
-.btn-text {
-  background: transparent;
-  border: none;
+.dates-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+.dates-count svg {
   color: var(--color-primary);
-  font-size: 0.9rem;
+}
+
+.btn-text-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid #e8e8e8;
+  color: var(--color-text-light);
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
-.btn-text:hover {
-  background: rgba(139, 193, 135, 0.2);
-  color: var(--color-primary-dark);
+.btn-text-clear:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(239, 68, 68);
+}
+
+.btn-text-clear svg {
+  stroke-width: 2.5;
 }
 
 /* Calendario per selezione multipla date */
@@ -3687,6 +3871,68 @@ button {
 .fisso-day-num {
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+/* Form Actions */
+.form-actions-fisso {
+  display: flex;
+  gap: 1rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 0 0 28px 28px;
+}
+
+.btn-secondary-fisso {
+  flex: 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border: 2px solid #e8e8e8;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary-fisso:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.btn-primary-fisso {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(139, 193, 135, 0.3);
+}
+
+.btn-primary-fisso:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #5a8a57 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 193, 135, 0.4);
+}
+
+.btn-primary-fisso:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(139, 193, 135, 0.3);
 }
 
 /* ============================================

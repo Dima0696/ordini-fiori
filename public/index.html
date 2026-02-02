@@ -415,59 +415,140 @@
 
   <!-- MODAL ORDINI FISSI -->
   <div id="modal-ordine-fisso" class="modal">
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h2>📅 Crea Ordini Ricorrenti</h2>
+    <div class="modal-content modal-large modal-fisso">
+      <div class="modal-header modal-header-fisso">
+        <div class="modal-title-group">
+          <div class="modal-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path>
+            </svg>
+          </div>
+          <div>
+            <h2>Crea Ordini Ricorrenti</h2>
+            <p class="modal-subtitle">Seleziona più date e crea ordini automaticamente</p>
+          </div>
+        </div>
         <button id="btn-close-ordine-fisso" class="btn-close">✕</button>
       </div>
       
-      <form id="ordine-fisso-form">
-        <!-- ROW 1: Cliente e Merce -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="fisso-customer">Cliente</label>
-            <input type="text" id="fisso-customer" placeholder="Fioreria Rossi" required>
+      <form id="ordine-fisso-form" class="form-fisso">
+        <!-- SEZIONE DETTAGLI ORDINE -->
+        <div class="form-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <h3>Dettagli Ordine</h3>
+          </div>
+          
+          <div class="form-group-fisso">
+            <label for="fisso-customer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Cliente
+            </label>
+            <input type="text" id="fisso-customer" placeholder="es. Fioreria Rossi, Mario Bianchi..." required>
+          </div>
+          
+          <div class="form-group-fisso">
+            <label for="fisso-description">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              Merce
+            </label>
+            <textarea id="fisso-description" rows="3" placeholder="es. 3 casse rose rosse, 5 mazzi eucalyptus, 2 casse gerbere..." required></textarea>
+          </div>
+          
+          <div class="form-info-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Tutti gli ordini verranno creati con stato <strong>"Da ordinare"</strong>. Potrai modificare ogni ordine singolarmente dal calendario.</span>
           </div>
         </div>
         
-        <div class="form-group">
-          <label for="fisso-description">Merce</label>
-          <textarea id="fisso-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
-        </div>
-        
-        <!-- Selezione Date Multiple -->
-        <div class="form-group">
-          <label>📅 Seleziona Date</label>
-          <p class="form-hint">Gli ordini saranno creati con stato "Da ordinare"</p>
-          
-          <!-- Header calendario con navigazione -->
-          <div class="fisso-calendar-header">
-            <button type="button" id="fisso-prev-month" class="btn-calendar-nav">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-            <div class="fisso-month-year" id="fisso-month-year">Gennaio 2026</div>
-            <button type="button" id="fisso-next-month" class="btn-calendar-nav">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
+        <!-- SEZIONE CALENDARIO -->
+        <div class="form-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <h3>Seleziona Date</h3>
           </div>
           
-          <div class="date-selector-info">
-            <span id="selected-dates-count">0 date selezionate</span>
-            <button type="button" id="btn-clear-dates" class="btn-text">Cancella tutte</button>
-          </div>
-          
-          <div id="fisso-calendar" class="fisso-calendar">
-            <!-- Calendario generato dinamicamente -->
+          <div class="calendar-container">
+            <!-- Header calendario con navigazione -->
+            <div class="fisso-calendar-header">
+              <button type="button" id="fisso-prev-month" class="btn-calendar-nav">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="fisso-month-year" id="fisso-month-year">Gennaio 2026</div>
+              <button type="button" id="fisso-next-month" class="btn-calendar-nav">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="date-selector-info">
+              <div class="dates-count">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <span id="selected-dates-count">0 date selezionate</span>
+              </div>
+              <button type="button" id="btn-clear-dates" class="btn-text-clear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Cancella tutte
+              </button>
+            </div>
+            
+            <div id="fisso-calendar" class="fisso-calendar">
+              <!-- Calendario generato dinamicamente -->
+            </div>
           </div>
         </div>
         
         <!-- AZIONI -->
-        <div class="form-actions">
-          <button type="submit" class="btn-primary btn-large">💾 Crea Ordini per Date Selezionate</button>
+        <div class="form-actions-fisso">
+          <button type="button" id="btn-cancel-fisso" class="btn-secondary-fisso">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            Annulla
+          </button>
+          <button type="submit" class="btn-primary-fisso">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Crea Ordini Ricorrenti
+          </button>
         </div>
       </form>
     </div>

@@ -557,6 +557,7 @@ function setupEventListeners() {
   
   // Modal ordine fisso
   document.getElementById('btn-close-ordine-fisso').addEventListener('click', closeOrdineFissoModal);
+  document.getElementById('btn-cancel-fisso').addEventListener('click', closeOrdineFissoModal);
   
   // Navigazione mesi calendario ordini fissi
   document.getElementById('fisso-prev-month').addEventListener('click', () => {
