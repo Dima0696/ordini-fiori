@@ -3431,7 +3431,7 @@ button {
 @media (min-width: 768px) {
 .calendar-container,
 .orders-container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1rem 2rem;
 }
@@ -3598,7 +3598,7 @@ button {
    ============================================ */
 
 .modal-order-premium {
-  max-width: 700px !important;
+  max-width: 900px !important;
 }
 
 .modal-header-order {
@@ -3664,7 +3664,7 @@ button {
 .form-group-premium input,
 .form-group-premium textarea {
   width: 100%;
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.4rem;
   border: 2px solid #e8e8e8;
   border-radius: 14px;
   font-size: 1rem;
@@ -3885,6 +3885,7 @@ button {
   align-items: flex-end;
   gap: 1rem;
   flex: 1;
+  min-width: 0;
 }
 
 .date-input-group {
@@ -3892,6 +3893,7 @@ button {
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
+  min-width: 180px;
 }
 
 .date-input-group label {
@@ -3906,7 +3908,7 @@ button {
 }
 
 .date-input-premium {
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 1.3rem;
   border: 2px solid #e8e8e8;
   border-radius: 12px;
   font-size: 0.95rem;
@@ -4014,7 +4016,7 @@ button {
    ============================================ */
 
 .modal-fisso {
-  max-width: 750px !important;
+  max-width: 900px !important;
 }
 
 .modal-header-fisso {
@@ -4130,7 +4132,7 @@ button {
 .form-group-fisso input,
 .form-group-fisso textarea {
   width: 100%;
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.4rem;
   border: 2px solid #e8e8e8;
   border-radius: 14px;
   font-size: 1rem;
@@ -4438,7 +4440,7 @@ button {
    ============================================ */
 
 .modal-detail-premium {
-  max-width: 700px !important;
+  max-width: 900px !important;
 }
 
 .modal-header-detail {

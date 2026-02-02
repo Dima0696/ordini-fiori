@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v58 - FIX CALENDARIO: Nomi orizzontali con GAP aumentato
-const CACHE_NAME = 'lombardaflor-orders-v58-horizontal-spacing';
-const STATIC_CACHE = 'lombardaflor-static-v58-horizontal-spacing';
-const API_CACHE = 'lombardaflor-api-v58-horizontal-spacing';
+// v59 - UNIFORMITÀ LARGHEZZE: Tutti modal e container 900px
+const CACHE_NAME = 'lombardaflor-orders-v59-uniform-widths';
+const STATIC_CACHE = 'lombardaflor-static-v59-uniform-widths';
+const API_CACHE = 'lombardaflor-api-v59-uniform-widths';
 
 const urlsToCache = [
   '/',
