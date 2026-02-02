@@ -218,6 +218,19 @@ async function authenticatedFetch(url, options = {}) {
   return response;
 }
 
+// Helper: Fetch senza cache (per GET che devono essere sempre freschi)
+async function fetchNoCache(url, options = {}) {
+  return authenticatedFetch(url, {
+    ...options,
+    cache: 'no-store',
+    headers: {
+      ...options.headers,
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  });
+}
+
 // Login
 async function login(username, password) {
   try {
@@ -740,14 +753,8 @@ async function loadCalendar(forceRefresh = false) {
       return;
     }
     
-    // Carica statistiche ordini - DISABILITA CACHE
-    const response = await authenticatedFetch(`${API_URL}/stats/dates`, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    // Carica statistiche ordini - sempre freschi
+    const response = await fetchNoCache(`${API_URL}/stats/dates`);
     const stats = await response.json();
     
     // Crea mappa per accesso veloce e salva in cache
@@ -1119,11 +1126,8 @@ async function openOrderByCustomerAndDate(customer, date) {
   try {
     console.log(`[QUICK-OPEN] Apertura ordine: ${customer} - ${date}`);
     
-    // Carica ordini del giorno - DISABILITA CACHE
-    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-    });
+    // Carica ordini del giorno - sempre freschi
+    const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
     const orders = await response.json();
     
     // Trova ordine del cliente (case-insensitive)
@@ -1190,14 +1194,8 @@ async function loadOrders(date) {
   try {
     console.log('📥 Carico ordini per data:', date);
     
-    // DISABILITA CACHE - Forza fetch dal server!
-    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`, {
-      cache: 'no-store',  // ← NON usare cache!
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    // Fetch senza cache - sempre dati freschi dal server
+    const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
     
     console.log('🔍 Response status:', response.status);
     console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
@@ -1948,18 +1946,12 @@ async function openFabbisognoModal(date, dateTo = null) {
     
     let allOrders;
     if (dateFrom === dateToUse) {
-      // Singolo giorno - DISABILITA CACHE
-      const response = await authenticatedFetch(`${API_URL}/orders/date/${dateFrom}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      });
+      // Singolo giorno - sempre dati freschi
+      const response = await fetchNoCache(`${API_URL}/orders/date/${dateFrom}`);
       allOrders = await response.json();
     } else {
-      // Range di date - DISABILITA CACHE
-      const response = await authenticatedFetch(`${API_URL}/orders/date-range?from=${dateFrom}&to=${dateToUse}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      });
+      // Range di date - sempre dati freschi
+      const response = await fetchNoCache(`${API_URL}/orders/date-range?from=${dateFrom}&to=${dateToUse}`);
       allOrders = await response.json();
     }
     
@@ -2177,14 +2169,8 @@ async function loadFabbisognoChecks(orderId) {
     await waitForPendingSaves(5000);
     
     console.log('🔵 LOAD CHECKS per orderId:', orderId);
-    // DISABILITA CACHE per avere sempre dati freschi
-    const response = await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}`, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    // Fetch senza cache - sempre dati freschi
+    const response = await fetchNoCache(`${API_URL}/fabbisogno-checks/${orderId}`);
     const checks = await response.json();
     console.log('🟢 CHECKS RICEVUTE:', checks);
     
@@ -2662,11 +2648,8 @@ function renderOrderDetail(order) {
         
         try {
           await updateOrderStatus(order.id, newStatus);
-          // Ricarica l'ordine aggiornato - DISABILITA CACHE
-          const response = await authenticatedFetch(`${API_URL}/orders/${order.id}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-          });
+          // Ricarica l'ordine aggiornato - sempre dati freschi
+          const response = await fetchNoCache(`${API_URL}/orders/${order.id}`);
           const updatedOrder = await response.json();
           currentDetailOrder = updatedOrder;
           renderOrderDetail(updatedOrder);
