@@ -498,6 +498,10 @@ function setupEventListeners() {
     showPage('calendar');
   });
   
+  document.getElementById('btn-home').addEventListener('click', () => {
+    showPage('calendar');
+  });
+  
   document.getElementById('btn-new-order').addEventListener('click', () => {
     openNewOrderModal();
   });
