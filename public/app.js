@@ -19,7 +19,7 @@ let currentFabbisognoDateTo = null; // Data fine del fabbisogno aperto (null = s
 // Cache in-memory per performance
 let calendarCache = null;
 let calendarCacheTime = 0;
-const CALENDAR_CACHE_TTL = 30000; // 30 secondi
+const CALENDAR_CACHE_TTL = 5000; // 5 secondi (ridotto per aggiornamenti più rapidi)
 
 // Festività italiane (formato MM-DD)
 const holidays = [
@@ -728,12 +728,25 @@ async function loadCalendar(forceRefresh = false) {
     renderCalendar();
   } catch (error) {
     console.error('Errore caricamento calendario:', error);
-    // Usa cache vecchia se disponibile
-    if (calendarCache) {
-      orderStats = calendarCache;
+    // Invalida cache in caso di errore
+    calendarCache = null;
+    calendarCacheTime = 0;
+    
+    // Usa cache vecchia se disponibile (ultima resort)
+    if (orderStats && Object.keys(orderStats).length > 0) {
+      console.log('📦 Usando dati calendario precedenti (modalità offline)');
       renderCalendar();
     } else {
-      alert('Errore nel caricamento del calendario');
+      // Mostra calendario vuoto invece che errore
+      orderStats = {};
+      renderCalendar();
+      // Mostra messaggio temporaneo
+      const daysList = document.getElementById('days-list');
+      if (daysList) {
+        daysList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #999;">⚠️ Errore caricamento calendario. Riprovo automaticamente...</div>';
+      }
+      // Riprova dopo 2 secondi
+      setTimeout(() => loadCalendar(true), 2000);
     }
   }
 }
@@ -1460,6 +1473,11 @@ async function handleOrderSubmit(e) {
     
     closeOrderModal();
     uploadedPhotos = [];
+    
+    // Invalida cache per aggiornamento immediato
+    calendarCache = null;
+    calendarCacheTime = 0;
+    
     await loadOrders(currentDate);
     await loadCalendar(true);
   } catch (error) {
@@ -1476,6 +1494,10 @@ async function updateOrderStatus(orderId, status) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
+    
+    // Invalida cache per aggiornamento immediato
+    calendarCache = null;
+    calendarCacheTime = 0;
     
     await loadOrders(currentDate);
     await loadCalendar(true);
@@ -1495,8 +1517,13 @@ async function handleOrderDelete() {
     });
     
     modalConfirm.classList.remove('active');
+    
+    // Invalida cache per aggiornamento immediato
+    calendarCache = null;
+    calendarCacheTime = 0;
+    
     await loadOrders(currentDate);
-    await loadCalendar();
+    await loadCalendar(true);
   } catch (error) {
     console.error('Errore eliminazione ordine:', error);
     alert('Errore nell\'eliminazione dell\'ordine');
@@ -2187,8 +2214,12 @@ async function markAsOrdered(orderId) {
     
     if (!response.ok) throw new Error('Errore aggiornamento');
     
+    // Invalida cache per aggiornamento immediato
+    calendarCache = null;
+    calendarCacheTime = 0;
+    
     // Ricarica il fabbisogno con la data salvata
-    await openFabbisognoModal(currentFabbisognoDate);
+    await openFabbisognoModal(currentFabbisognoDate, currentFabbisognoDateTo);
     
     // Aggiorna anche l'elenco ordini se è aperto
     if (currentDate) {
