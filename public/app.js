@@ -1464,62 +1464,58 @@ async function handleOrderSubmit(e) {
   calendarCache = null;
   calendarCacheTime = 0;
   
-  // Ricarica UI SUBITO (prima della risposta server)
-  Promise.all([
-    loadOrders(currentDate),
-    loadCalendar(true)
-  ]).catch(err => console.error('Errore refresh UI:', err));
-  
-  // Salva sul server in BACKGROUND (non blocca l'UI!)
+  // Salva sul server, POI ricarica UI (garantisce consistenza)
   try {
     if (orderId) {
       // Aggiorna ordine esistente
-      authenticatedFetch(`${API_URL}/orders/${orderId}`, {
+      await authenticatedFetch(`${API_URL}/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
-      }).catch(error => {
-        console.error('Errore salvataggio ordine:', error);
-        alert('Errore nel salvataggio dell\'ordine. Ricarica la pagina.');
       });
     } else {
       // Crea nuovo ordine
-      authenticatedFetch(`${API_URL}/orders`, {
+      await authenticatedFetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
-      }).catch(error => {
-        console.error('Errore creazione ordine:', error);
-        alert('Errore nella creazione dell\'ordine. Ricarica la pagina.');
       });
     }
+    
+    // Ricarica UI DOPO che server ha risposto
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
   } catch (error) {
-    console.error('Errore:', error);
+    console.error('Errore salvataggio ordine:', error);
+    alert('Errore nel salvataggio dell\'ordine. Ricarica la pagina.');
   }
 }
 
 // Aggiorna solo stato ordine
 async function updateOrderStatus(orderId, status) {
-  // ✨ OPTIMISTIC UI UPDATE ✨
-  // Invalida cache e ricarica UI IMMEDIATAMENTE
+  // Invalida cache
   calendarCache = null;
   calendarCacheTime = 0;
   
-  // Ricarica UI SUBITO (non aspettare il server!)
-  Promise.all([
-    loadOrders(currentDate),
-    loadCalendar(true)
-  ]).catch(err => console.error('Errore refresh UI:', err));
-  
-  // Aggiorna sul server in BACKGROUND (non blocca!)
-  authenticatedFetch(`${API_URL}/orders/${orderId}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
-  }).catch(error => {
+  try {
+    // Aggiorna sul server, POI ricarica UI
+    await authenticatedFetch(`${API_URL}/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    
+    // Ricarica UI DOPO che server ha confermato
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
+  } catch (error) {
     console.error('Errore aggiornamento stato:', error);
     alert('Errore nell\'aggiornamento dello stato. Ricarica la pagina.');
-  });
+  }
 }
 
 // Elimina ordine
@@ -1530,22 +1526,26 @@ async function handleOrderDelete() {
   // Chiudi modal IMMEDIATAMENTE
   modalConfirm.classList.remove('active');
   
-  // Invalida cache e ricarica UI SUBITO
+  // Invalida cache
   calendarCache = null;
   calendarCacheTime = 0;
   
-  Promise.all([
-    loadOrders(currentDate),
-    loadCalendar(true)
-  ]).catch(err => console.error('Errore refresh UI:', err));
-  
-  // Elimina sul server in BACKGROUND (non blocca!)
-  authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
-    method: 'DELETE'
-  }).catch(error => {
+  // Elimina sul server, POI ricarica UI
+  // (garantisce consistenza dati)
+  try {
+    await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
+      method: 'DELETE'
+    });
+    
+    // Ricarica DOPO che il server ha confermato
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
+  } catch (error) {
     console.error('Errore eliminazione ordine:', error);
     alert('Errore nell\'eliminazione dell\'ordine. Ricarica la pagina.');
-  });
+  }
 }
 
 // Cambia pagina
@@ -2216,43 +2216,48 @@ function updateSaveIndicator() {
 async function markAsOrdered(orderId) {
   if (!confirm('Segnare questa merce come ordinata?')) return;
   
-  // ✨ OPTIMISTIC UI UPDATE ✨
   // Feedback visivo IMMEDIATO
   const button = event.target.closest('.btn-goods-action');
   if (button) {
     button.disabled = true;
-    button.innerHTML = '✓ Ordinata';
+    button.innerHTML = '⏳ Salvataggio...';
   }
   
-  // Rimuovi l'ordine dal DOM IMMEDIATAMENTE
+  // Rimuovi l'ordine dal DOM con animazione
   const orderCard = button ? button.closest('.fabbisogno-order-item') : null;
   if (orderCard) {
     orderCard.style.transition = 'opacity 0.3s, transform 0.3s';
     orderCard.style.opacity = '0';
     orderCard.style.transform = 'translateX(-20px)';
-    setTimeout(() => orderCard.remove(), 300);
   }
   
   // Invalida cache
   calendarCache = null;
   calendarCacheTime = 0;
   
-  // Aggiorna UI SUBITO (non aspettare server!)
-  const updates = [loadCalendar(true)];
-  if (currentDate) {
-    updates.push(loadOrders(currentDate));
-  }
-  Promise.all(updates).catch(err => console.error('Errore refresh UI:', err));
-  
-  // Salva sul server in BACKGROUND (non blocca!)
-  authenticatedFetch(`${API_URL}/orders/${orderId}/goods-type`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ goods_type: 'ordinata' })
-  }).catch(error => {
+  try {
+    // Salva sul server, POI ricarica
+    await authenticatedFetch(`${API_URL}/orders/${orderId}/goods-type`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goods_type: 'ordinata' })
+    });
+    
+    // Ricarica UI DOPO che server ha confermato
+    const updates = [loadCalendar(true)];
+    if (currentDate) {
+      updates.push(loadOrders(currentDate));
+    }
+    await Promise.all(updates);
+    
+    // Ricarica fabbisogno per aggiornare la lista
+    if (currentFabbisognoDate) {
+      await openFabbisognoModal(currentFabbisognoDate, currentFabbisognoDateTo);
+    }
+  } catch (error) {
     console.error('Errore aggiornamento:', error);
     alert('Errore nell\'aggiornamento. Ricarica la pagina.');
-  });
+  }
   } catch (error) {
     console.error('Errore:', error);
     alert('Errore nell\'aggiornamento dello stato della merce');
