@@ -1478,8 +1478,11 @@ async function handleOrderSubmit(e) {
     calendarCache = null;
     calendarCacheTime = 0;
     
-    await loadOrders(currentDate);
-    await loadCalendar(true);
+    // Aggiorna ordini e calendario IN PARALLELO (non sequenziale!)
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
   } catch (error) {
     console.error('Errore salvataggio ordine:', error);
     alert('Errore nel salvataggio dell\'ordine');
@@ -1499,8 +1502,11 @@ async function updateOrderStatus(orderId, status) {
     calendarCache = null;
     calendarCacheTime = 0;
     
-    await loadOrders(currentDate);
-    await loadCalendar(true);
+    // Aggiorna ordini e calendario IN PARALLELO (non sequenziale!)
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
   } catch (error) {
     console.error('Errore aggiornamento stato:', error);
     alert('Errore nell\'aggiornamento dello stato');
@@ -1522,8 +1528,11 @@ async function handleOrderDelete() {
     calendarCache = null;
     calendarCacheTime = 0;
     
-    await loadOrders(currentDate);
-    await loadCalendar(true);
+    // Aggiorna ordini e calendario IN PARALLELO (non sequenziale!)
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
   } catch (error) {
     console.error('Errore eliminazione ordine:', error);
     alert('Errore nell\'eliminazione dell\'ordine');
@@ -2218,15 +2227,26 @@ async function markAsOrdered(orderId) {
     calendarCache = null;
     calendarCacheTime = 0;
     
-    // Ricarica il fabbisogno con la data salvata
-    await openFabbisognoModal(currentFabbisognoDate, currentFabbisognoDateTo);
-    
-    // Aggiorna anche l'elenco ordini se è aperto
-    if (currentDate) {
-      await loadOrders(currentDate);
+    // Rimuovi l'ordine dal DOM immediatamente (feedback visivo istantaneo)
+    const orderCard = button.closest('.fabbisogno-day-orders').querySelector(`[data-order-id="${orderId}"]`);
+    if (orderCard) {
+      orderCard.style.opacity = '0.3';
+      orderCard.style.pointerEvents = 'none';
     }
-    // Aggiorna calendario
-    await loadCalendar(true);
+    
+    // Aggiorna calendar e ordini IN PARALLELO (non sequenziale!)
+    const updates = [loadCalendar(true)];
+    if (currentDate) {
+      updates.push(loadOrders(currentDate));
+    }
+    await Promise.all(updates);
+    
+    // Ricarica fabbisogno DOPO (in background, non blocca)
+    setTimeout(() => {
+      if (currentFabbisognoDate) {
+        openFabbisognoModal(currentFabbisognoDate, currentFabbisognoDateTo);
+      }
+    }, 100);
   } catch (error) {
     console.error('Errore:', error);
     alert('Errore nell\'aggiornamento dello stato della merce');
