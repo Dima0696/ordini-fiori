@@ -3512,6 +3512,112 @@ button {
 
 
 /* ============================================
+   MODAL ORDINE FISSO - Calendario Multi-Selezione
+   ============================================ */
+
+.modal-large {
+  max-width: 700px !important;
+}
+
+.date-selector-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(139, 193, 135, 0.1);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-text:hover {
+  background: rgba(139, 193, 135, 0.15);
+  color: var(--color-primary-dark);
+}
+
+/* Calendario per selezione multipla date */
+.fisso-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(250, 250, 250, 0.5);
+  border-radius: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.fisso-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: white;
+  border: 2px solid #f0f0f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.fisso-day:hover {
+  border-color: var(--color-primary-light);
+  background: rgba(139, 193, 135, 0.05);
+  transform: scale(1.05);
+}
+
+.fisso-day.selected {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: var(--color-primary-dark);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(139, 193, 135, 0.4);
+}
+
+.fisso-day.selected:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #5a8a57 100%);
+}
+
+.fisso-day.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: #fafafa;
+}
+
+.fisso-day.disabled:hover {
+  transform: none;
+  border-color: #f0f0f0;
+}
+
+.fisso-day-num {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.fisso-day-name {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 0.2rem;
+}
+
+/* ============================================
    INDICATORE SALVATAGGIO
    ============================================ */
 

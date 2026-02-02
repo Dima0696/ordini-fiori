@@ -413,6 +413,58 @@
     </div>
   </div>
 
+  <!-- MODAL ORDINI FISSI -->
+  <div id="modal-ordine-fisso" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>📅 Crea Ordini Ricorrenti</h2>
+        <button id="btn-close-ordine-fisso" class="btn-close">✕</button>
+      </div>
+      
+      <form id="ordine-fisso-form">
+        <!-- ROW 1: Cliente e Merce -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fisso-customer">Cliente</label>
+            <input type="text" id="fisso-customer" placeholder="Fioreria Rossi" required>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="fisso-description">Merce</label>
+          <textarea id="fisso-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
+        </div>
+        
+        <!-- Disponibilità -->
+        <div class="form-group">
+          <label>Disponibilità</label>
+          <div class="goods-buttons">
+            <button type="button" class="btn-goods-fisso" data-goods="in_cella">Pronto</button>
+            <button type="button" class="btn-goods-fisso active" data-goods="da_ordinare">Da ordinare</button>
+          </div>
+          <input type="hidden" id="fisso-goods-type" value="da_ordinare">
+        </div>
+        
+        <!-- Selezione Date Multiple -->
+        <div class="form-group">
+          <label>📅 Seleziona Date (clicca più date)</label>
+          <div class="date-selector-info">
+            <span id="selected-dates-count">0 date selezionate</span>
+            <button type="button" id="btn-clear-dates" class="btn-text">Cancella tutte</button>
+          </div>
+          <div id="fisso-calendar" class="fisso-calendar">
+            <!-- Calendario generato dinamicamente -->
+          </div>
+        </div>
+        
+        <!-- AZIONI -->
+        <div class="form-actions">
+          <button type="submit" class="btn-primary btn-large">💾 Crea Ordini per Date Selezionate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="pull-to-refresh.js"></script>
   <script src="app.js"></script>
 </body>

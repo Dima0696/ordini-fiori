@@ -68,6 +68,10 @@ function getPrintedOrders() {
   }
 }
 
+// Ordini Fissi - Date selezionate
+const fissoSelectedDates = new Set();
+let fissoCurrentMonth = new Date();
+
 // Cache in-memory per performance
 let calendarCache = null;
 let calendarCacheTime = 0;
@@ -545,11 +549,33 @@ function setupEventListeners() {
     openNewOrderModal();
   });
   
-  // Ordine fisso (TODO)
+  // Ordine fisso
   document.getElementById('fab-ordine-fisso').addEventListener('click', () => {
     closeFabMenu();
-    alert('🔄 Ordine fisso - In arrivo! Potrai creare ordini ricorrenti per più giorni.');
+    openOrdineFissoModal();
   });
+  
+  // Modal ordine fisso
+  document.getElementById('btn-close-ordine-fisso').addEventListener('click', closeOrdineFissoModal);
+  
+  // Gestione bottoni disponibilità ordine fisso
+  document.querySelectorAll('.btn-goods-fisso').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodsType = e.currentTarget.getAttribute('data-goods');
+      document.getElementById('fisso-goods-type').value = goodsType;
+      document.querySelectorAll('.btn-goods-fisso').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+  });
+  
+  // Clear dates
+  document.getElementById('btn-clear-dates').addEventListener('click', () => {
+    fissoSelectedDates.clear();
+    updateFissoCalendar();
+  });
+  
+  // Form submit
+  document.getElementById('ordine-fisso-form').addEventListener('submit', handleOrdineFissoSubmit);
   
   // Merce in arrivo (TODO)
   document.getElementById('fab-arrivi').addEventListener('click', () => {
@@ -2617,6 +2643,172 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSwipeGestures);
 } else {
   initSwipeGestures();
+}
+
+// ===========================
+// ORDINI FISSI (Ricorrenti)
+// ===========================
+
+function openOrdineFissoModal() {
+  fissoSelectedDates.clear();
+  fissoCurrentMonth = new Date();
+  
+  document.getElementById('fisso-customer').value = '';
+  document.getElementById('fisso-description').value = '';
+  document.getElementById('fisso-goods-type').value = GOODS_TYPE.DA_ORDINARE;
+  
+  // Reset bottoni disponibilità
+  document.querySelectorAll('.btn-goods-fisso').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-goods') === GOODS_TYPE.DA_ORDINARE);
+  });
+  
+  renderFissoCalendar();
+  document.getElementById('modal-ordine-fisso').classList.add('active');
+}
+
+function closeOrdineFissoModal() {
+  document.getElementById('modal-ordine-fisso').classList.remove('active');
+  fissoSelectedDates.clear();
+}
+
+function renderFissoCalendar() {
+  const year = fissoCurrentMonth.getFullYear();
+  const month = fissoCurrentMonth.getMonth();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  
+  const calendar = document.getElementById('fisso-calendar');
+  calendar.innerHTML = '';
+  
+  // Header giorni della settimana
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+  dayNames.forEach(name => {
+    const header = document.createElement('div');
+    header.style.textAlign = 'center';
+    header.style.fontWeight = '700';
+    header.style.fontSize = '0.8rem';
+    header.style.color = 'var(--color-text-light)';
+    header.style.padding = '0.5rem 0';
+    header.textContent = name;
+    calendar.appendChild(header);
+  });
+  
+  // Padding giorni iniziali
+  const firstDayOfWeek = firstDay.getDay();
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const empty = document.createElement('div');
+    calendar.appendChild(empty);
+  }
+  
+  // Giorni del mese
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(year, month, day);
+    const dateStr = formatDate(date);
+    const isPast = date < today;
+    
+    const dayEl = document.createElement('div');
+    dayEl.className = 'fisso-day';
+    if (isPast) dayEl.classList.add('disabled');
+    if (fissoSelectedDates.has(dateStr)) dayEl.classList.add('selected');
+    
+    dayEl.innerHTML = `
+      <div class="fisso-day-num">${day}</div>
+    `;
+    
+    if (!isPast) {
+      dayEl.addEventListener('click', () => {
+        if (fissoSelectedDates.has(dateStr)) {
+          fissoSelectedDates.delete(dateStr);
+        } else {
+          fissoSelectedDates.add(dateStr);
+        }
+        updateFissoCalendar();
+      });
+    }
+    
+    calendar.appendChild(dayEl);
+  }
+  
+  updateFissoCalendar();
+}
+
+function updateFissoCalendar() {
+  // Aggiorna contatore
+  document.getElementById('selected-dates-count').textContent = 
+    `${fissoSelectedDates.size} date selezionate`;
+  
+  // Aggiorna classi selected
+  const allDays = document.querySelectorAll('.fisso-day:not(.disabled)');
+  allDays.forEach(dayEl => {
+    const dayNum = parseInt(dayEl.querySelector('.fisso-day-num').textContent);
+    const date = new Date(fissoCurrentMonth.getFullYear(), fissoCurrentMonth.getMonth(), dayNum);
+    const dateStr = formatDate(date);
+    dayEl.classList.toggle('selected', fissoSelectedDates.has(dateStr));
+  });
+}
+
+async function handleOrdineFissoSubmit(e) {
+  e.preventDefault();
+  
+  const customer = document.getElementById('fisso-customer').value.trim();
+  const description = document.getElementById('fisso-description').value.trim();
+  const goodsType = document.getElementById('fisso-goods-type').value;
+  
+  if (!customer || !description) {
+    alert('Compila i campi obbligatori: Cliente e Merce');
+    return;
+  }
+  
+  if (fissoSelectedDates.size === 0) {
+    alert('Seleziona almeno una data dal calendario');
+    return;
+  }
+  
+  // Conferma
+  const datesCount = fissoSelectedDates.size;
+  if (!confirm(`Confermi la creazione di ${datesCount} ordini per le date selezionate?`)) {
+    return;
+  }
+  
+  closeOrdineFissoModal();
+  
+  // Determina stato in base a goods_type
+  const status = (goodsType === GOODS_TYPE.IN_CELLA) 
+    ? ORDER_STATUS.PRONTO 
+    : ORDER_STATUS.DA_PREPARARE;
+  
+  try {
+    // Crea ordini per ogni data selezionata
+    const promises = Array.from(fissoSelectedDates).map(date => {
+      return authenticatedFetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date,
+          customer,
+          description,
+          status,
+          goods_type: goodsType,
+          photos: []
+        })
+      });
+    });
+    
+    await Promise.all(promises);
+    
+    // Invalida cache e ricarica
+    calendarCache = null;
+    calendarCacheTime = 0;
+    await loadCalendar(true);
+    
+    alert(`✅ Creati ${datesCount} ordini con successo!`);
+  } catch (error) {
+    console.error('❌ Errore creazione ordini fissi:', error);
+    alert('Errore nella creazione degli ordini: ' + error.message);
+  }
 }
 
 // DEBUG: Funzione per verificare schema DB (usa da console browser)
