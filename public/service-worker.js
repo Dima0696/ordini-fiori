@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v51 - TUTTI I MODAL PREMIUM COMPLETO: Ordine (blu), Fabbisogno (arancio), Dettaglio (viola), Fissi (verde)
-const CACHE_NAME = 'lombardaflor-orders-v51-premium-complete';
-const STATIC_CACHE = 'lombardaflor-static-v51-premium-complete';
-const API_CACHE = 'lombardaflor-api-v51-premium-complete';
+// v52 - CARD ORDINI PREMIUM: Stili premium per card, badge e bottoni
+const CACHE_NAME = 'lombardaflor-orders-v52-cards-premium';
+const STATIC_CACHE = 'lombardaflor-static-v52-cards-premium';
+const API_CACHE = 'lombardaflor-api-v52-cards-premium';
 
 const urlsToCache = [
   '/',
