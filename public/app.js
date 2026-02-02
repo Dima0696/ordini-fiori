@@ -41,6 +41,33 @@ let lastUpdateTime = new Date();
 let currentFabbisognoDate = null; // Data inizio del fabbisogno aperto
 let currentFabbisognoDateTo = null; // Data fine del fabbisogno aperto (null = singolo giorno)
 
+// Tracking ordini stampati (localStorage)
+const PRINTED_ORDERS_KEY = 'lombardaflor_printed_orders';
+
+function markOrderAsPrinted(orderId) {
+  const printed = getPrintedOrders();
+  const now = new Date().toISOString();
+  printed[orderId] = now;
+  localStorage.setItem(PRINTED_ORDERS_KEY, JSON.stringify(printed));
+  // Ricarica la lista per aggiornare il colore del bottone
+  if (currentDate) {
+    loadOrders(currentDate);
+  }
+}
+
+function isOrderPrinted(orderId) {
+  const printed = getPrintedOrders();
+  return !!printed[orderId];
+}
+
+function getPrintedOrders() {
+  try {
+    return JSON.parse(localStorage.getItem(PRINTED_ORDERS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
 // Cache in-memory per performance
 let calendarCache = null;
 let calendarCacheTime = 0;
@@ -1293,7 +1320,9 @@ function renderOrders(orders) {
         ${userInfoHtml}
       </div>
       <div class="order-actions">
-        <button class="btn-small btn-share" data-id="${order.id}">Condividi</button>
+        <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
+          ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
+        </button>
         ${order.status === 'da_preparare' ? 
           `<button class="btn-small btn-ready" data-id="${order.id}">✓ Pronto</button>` : ''}
         ${order.status === 'pronto' ? 
@@ -1310,9 +1339,16 @@ function renderOrders(orders) {
     });
     
     // Event listeners pulsanti
-    orderCard.querySelector('.btn-share').addEventListener('click', (e) => {
+    orderCard.querySelector('.btn-print-quick').addEventListener('click', (e) => {
       e.stopPropagation();
-      openShareModal(order);
+      // Apri dettaglio ordine e stampa
+      openOrderDetail(order);
+      // Attendi che il modal si apra e poi stampa
+      setTimeout(() => {
+        window.print();
+        // Segna come stampato
+        markOrderAsPrinted(order.id);
+      }, 300);
     });
     
     const btnReady = orderCard.querySelector('.btn-ready');

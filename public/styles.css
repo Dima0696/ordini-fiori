@@ -1041,6 +1041,18 @@ body {
   font-weight: 500;
 }
 
+/* Bottone stampa già stampato */
+.btn-small.btn-print-quick.printed {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  color: #2E7D32;
+  border: 1px solid #81C784;
+}
+
+.btn-small.btn-print-quick.printed:hover {
+  background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+  border-color: #66BB6A;
+}
+
 .btn-small:active {
   transform: scale(0.95);
 }
