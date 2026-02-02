@@ -277,7 +277,7 @@ app.post('/api/orders', authenticate, async (req, res) => {
       date,
       customer,
       description,
-      goods_type: goods_type || 'da_ordinare',
+      goods_type: goods_type || 'in_cella', // Default: pronto (in cella)
       photos: photos || []
     };
     
@@ -361,7 +361,7 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       customer,
       description,
       status,
-      goods_type: goods_type || 'da_ordinare',
+      goods_type: goods_type || 'in_cella',
       photos: photos || []
     };
     

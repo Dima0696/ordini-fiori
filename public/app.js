@@ -15,11 +15,13 @@ const ORDER_STATUS_LABELS = {
 };
 
 const GOODS_TYPE = {
+  IN_CELLA: 'in_cella',
   DA_ORDINARE: 'da_ordinare',
   ORDINATA: 'ordinata'
 };
 
 const GOODS_TYPE_LABELS = {
+  [GOODS_TYPE.IN_CELLA]: 'Pronto',
   [GOODS_TYPE.DA_ORDINARE]: 'Da ordinare',
   [GOODS_TYPE.ORDINATA]: 'Ordinata'
 };
@@ -613,7 +615,17 @@ function setupEventListeners() {
     });
   });
 
-  // Goods type è sempre "da_ordinare" di default (nessun bottone da gestire)
+  // Gestione bottoni disponibilità merce
+  document.querySelectorAll('.btn-goods').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodsType = e.currentTarget.getAttribute('data-goods');
+      // Aggiorna input hidden
+      document.getElementById('goods-type').value = goodsType;
+      // Aggiorna bottoni attivi
+      document.querySelectorAll('.btn-goods').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+  });
   
   // Modal dettaglio ordine
   const modalDetail = document.getElementById('modal-detail');
@@ -1342,7 +1354,12 @@ function openNewOrderModal() {
   document.getElementById('order-id').value = '';
   document.getElementById('order-date').value = currentDate;
   document.getElementById('order-status').value = 'da_preparare';
-  document.getElementById('goods-type').value = GOODS_TYPE.DA_ORDINARE; // Sempre "da ordinare" per nuovi ordini
+  document.getElementById('goods-type').value = GOODS_TYPE.DA_ORDINARE; // Default: "da ordinare"
+  
+  // Imposta bottoni disponibilità (default: da ordinare)
+  document.querySelectorAll('.btn-goods').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-goods') === GOODS_TYPE.DA_ORDINARE);
+  });
   
   document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'none';
@@ -1363,7 +1380,17 @@ function openEditOrderModal(order) {
   document.getElementById('order-customer').value = order.customer;
   document.getElementById('order-description').value = order.description;
   document.getElementById('order-status').value = order.status;
-  document.getElementById('goods-type').value = order.goods_type || GOODS_TYPE.DA_ORDINARE;
+  
+  const goodsType = order.goods_type || GOODS_TYPE.DA_ORDINARE;
+  document.getElementById('goods-type').value = goodsType;
+  
+  // Imposta bottoni disponibilità
+  document.querySelectorAll('.btn-goods').forEach(btn => {
+    const btnValue = btn.getAttribute('data-goods');
+    // Se l'ordine è "ordinata", mostra come "in_cella" (pronto)
+    const displayValue = (goodsType === GOODS_TYPE.ORDINATA) ? GOODS_TYPE.IN_CELLA : goodsType;
+    btn.classList.toggle('active', btnValue === displayValue);
+  });
   
   // Nascondo gruppo stato (lo stato si cambia solo dalla visualizzazione)
   document.getElementById('status-group').style.display = 'none';
