@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v52 - CARD ORDINI PREMIUM: Stili premium per card, badge e bottoni
-const CACHE_NAME = 'lombardaflor-orders-v52-cards-premium';
-const STATIC_CACHE = 'lombardaflor-static-v52-cards-premium';
-const API_CACHE = 'lombardaflor-api-v52-cards-premium';
+// v53 - FIX: Background bianco per card ordini PRONTO (no verde)
+const CACHE_NAME = 'lombardaflor-orders-v53-white-bg-fix';
+const STATIC_CACHE = 'lombardaflor-static-v53-white-bg-fix';
+const API_CACHE = 'lombardaflor-api-v53-white-bg-fix';
 
 const urlsToCache = [
   '/',

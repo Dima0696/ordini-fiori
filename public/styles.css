@@ -955,10 +955,11 @@ body {
   width: 5px;
 }
 
-/* Ordini "Pronto" - Stile VERDE */
+/* Ordini "Pronto" - Stile VERDE (SUBTILE) */
 .order-card.status-pronto {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.03) 0%, rgba(56, 142, 60, 0.02) 100%);
-  border-color: rgba(76, 175, 80, 0.4);
+  background: white; /* Background BIANCO */
+  border-color: rgba(76, 175, 80, 0.25); /* Bordo verde molto chiaro */
+  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.08); /* Ombra verde subtile */
 }
 
 .order-card.status-pronto::before {
@@ -996,8 +997,9 @@ body {
 }
 
 .order-card.status-pronto:hover {
-  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.25);
-  border-color: #4CAF50;
+  background: white; /* Background SEMPRE bianco */
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
 }
 
 .order-card.status-ritirato:hover {
