@@ -1343,11 +1343,26 @@ function renderOrders(orders) {
       e.stopPropagation();
       // Apri dettaglio ordine e stampa
       openOrderDetail(order);
-      // Attendi che il modal si apra e poi stampa
-      setTimeout(() => {
-        window.print();
+      
+      // Listener per tornare alla lista dopo la stampa
+      const afterPrintHandler = () => {
+        // Rimuovi il listener
+        window.removeEventListener('afterprint', afterPrintHandler);
+        // Chiudi il modal dettaglio
+        const modalDetail = document.getElementById('modal-detail');
+        if (modalDetail) {
+          modalDetail.classList.remove('active');
+        }
         // Segna come stampato
         markOrderAsPrinted(order.id);
+      };
+      
+      // Attendi che il modal si apra e poi stampa
+      setTimeout(() => {
+        // Aggiungi listener per quando termina la stampa
+        window.addEventListener('afterprint', afterPrintHandler);
+        // Apri dialog stampa
+        window.print();
       }, 300);
     });
     
