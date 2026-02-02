@@ -1066,23 +1066,6 @@ function renderSearchResults(query, orders) {
   
   // Renderizza ogni ordine (stesso stile delle order cards)
   orders.forEach(order => {
-    const statusLabels = {
-      'da_preparare': 'Da preparare',
-      'pronto': 'Pronto',
-      'ritirato': 'Ritirato'
-    };
-    
-    const deliveryTypeLabels = {
-      'ritiro': '📦 Ritiro',
-      'consegna': '🚚 Consegna'
-    };
-    
-    const goodsTypeLabels = {
-      'in_cella': '✅ Pronto',
-      'da_ordinare': '📝 Da ordinare',
-      'ordinata': '📦 Ordinata'
-    };
-    
     // Formatta data
     const dateObj = new Date(order.date + 'T00:00:00');
     const dateFormatted = dateObj.toLocaleDateString('it-IT', {
@@ -1093,12 +1076,16 @@ function renderSearchResults(query, orders) {
     
     let infoBadges = '';
     if (order.goods_type) {
-      const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : '';
-      infoBadges += `<span class="info-badge ${goodsClass}">${goodsTypeLabels[order.goods_type]}</span>`;
+      const goodsClass = order.goods_type === GOODS_TYPE.DA_ORDINARE ? 'da_ordinare' : '';
+      const label = order.goods_type === GOODS_TYPE.IN_CELLA ? '✅ Pronto' : 
+                    order.goods_type === GOODS_TYPE.DA_ORDINARE ? '📝 Da ordinare' : 
+                    order.goods_type === GOODS_TYPE.ORDINATA ? '📦 Ordinata' : '';
+      infoBadges += `<span class="info-badge ${goodsClass}">${label}</span>`;
     }
     if (order.delivery_type) {
-      const deliveryClass = order.delivery_type === 'consegna' ? 'consegna' : '';
-      infoBadges += `<span class="info-badge ${deliveryClass}">${deliveryTypeLabels[order.delivery_type]}</span>`;
+      const deliveryClass = order.delivery_type === DELIVERY_TYPE.CONSEGNA ? 'consegna' : '';
+      const label = order.delivery_type === DELIVERY_TYPE.RITIRO ? '📦 Ritiro' : '🚚 Consegna';
+      infoBadges += `<span class="info-badge ${deliveryClass}">${label}</span>`;
     }
     if (order.delivery_time) {
       infoBadges += `<span class="info-badge">${order.delivery_time}</span>`;
@@ -1109,7 +1096,7 @@ function renderSearchResults(query, orders) {
         <div class="order-content">
           <div class="order-header">
             <div class="order-customer">${escapeHtml(order.customer)}</div>
-            <span class="order-status-badge ${order.status}">${statusLabels[order.status]}</span>
+            <span class="order-status-badge ${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>
           </div>
           
           <div class="order-description">${escapeHtml(order.description)}</div>
@@ -1312,7 +1299,7 @@ function renderOrders(orders) {
             ${escapeHtml(order.customer)}
             ${indicators ? `<span class="order-indicators">${indicators}</span>` : ''}
           </div>
-          <span class="order-status-badge ${order.status}">${statusLabels[order.status]}</span>
+          <span class="order-status-badge ${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>
         </div>
         ${infoBadges ? `<div class="order-info">${infoBadges}</div>` : ''}
         <div class="order-description">${escapeHtml(order.description)}</div>
@@ -2327,30 +2314,6 @@ function openShareModal(order) {
 
 // Renderizza dettaglio ordine
 function renderOrderDetail(order) {
-  const statusLabels = {
-    'da_preparare': 'Da preparare',
-    'pronto': 'Pronto',
-    'ritirato': 'Ritirato'
-  };
-  
-  const orderTypeLabels = {
-    'cliente': 'Cliente',
-    'whatsapp': 'WhatsApp',
-    'mail': 'Email',
-    'telefono': 'Telefono'
-  };
-  
-  const deliveryTypeLabels = {
-    'ritiro': 'Ritiro',
-    'consegna': 'Consegna'
-  };
-  
-  const goodsTypeLabels = {
-    'in_cella': 'Pronto',
-    'da_ordinare': 'Da ordinare',
-    'ordinata': 'Ordinata'
-  };
-  
   // Formatta data in italiano (versione lunga)
   const dateObj = new Date(order.date + 'T00:00:00');
   const dateFormatted = dateObj.toLocaleDateString('it-IT', {
@@ -2459,7 +2422,7 @@ function renderOrderDetail(order) {
       html += `
         <div class="detail-info-item">
           <span class="detail-info-label">Modalità</span>
-          <span class="detail-info-value">${deliveryTypeLabels[order.delivery_type] || order.delivery_type}</span>
+          <span class="detail-info-value">${DELIVERY_TYPE_LABELS[order.delivery_type] || order.delivery_type}</span>
         </div>
       `;
     }
@@ -2489,7 +2452,7 @@ function renderOrderDetail(order) {
       html += `
         <div class="detail-info-item">
           <span class="detail-info-label">Disponibilità</span>
-          <span class="detail-info-value">${goodsTypeLabels[order.goods_type] || order.goods_type}</span>
+          <span class="detail-info-value">${GOODS_TYPE_LABELS[order.goods_type] || order.goods_type}</span>
         </div>
       `;
     }
@@ -2499,7 +2462,7 @@ function renderOrderDetail(order) {
       html += `
         <div class="detail-info-item">
           <span class="detail-info-label">Ricevuto via</span>
-          <span class="detail-info-value">${orderTypeLabels[order.order_type] || order.order_type}</span>
+          <span class="detail-info-value">${ORDER_TYPE_LABELS[order.order_type] || order.order_type}</span>
         </div>
       `;
     }
