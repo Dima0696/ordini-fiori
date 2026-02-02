@@ -1486,6 +1486,10 @@ async function handleOrderSubmit(e) {
     // IMPORTANTE: Carica gli ordini per la data dell'ordine appena salvato
     // (non currentDate, che potrebbe essere diversa!)
     currentDate = date; // Switcha alla data dell'ordine salvato
+    
+    // Piccolo delay per garantire che il database abbia completato la scrittura
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
     await Promise.all([
       loadOrders(date), // ← Carica la data CORRETTA!
       loadCalendar(true)
@@ -1509,6 +1513,9 @@ async function updateOrderStatus(orderId, status) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
+    
+    // Piccolo delay per garantire scrittura database
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     // Ricarica UI DOPO che server ha confermato
     await Promise.all([
@@ -1539,6 +1546,9 @@ async function handleOrderDelete() {
     await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
       method: 'DELETE'
     });
+    
+    // Piccolo delay per garantire scrittura database
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     // Ricarica DOPO che il server ha confermato
     await Promise.all([
@@ -2245,6 +2255,9 @@ async function markAsOrdered(orderId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ goods_type: 'ordinata' })
     });
+    
+    // Piccolo delay per garantire scrittura database
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     // Ricarica UI DOPO che server ha confermato
     const updates = [loadCalendar(true)];
