@@ -1119,8 +1119,11 @@ async function openOrderByCustomerAndDate(customer, date) {
   try {
     console.log(`[QUICK-OPEN] Apertura ordine: ${customer} - ${date}`);
     
-    // Carica ordini del giorno
-    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`);
+    // Carica ordini del giorno - DISABILITA CACHE
+    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+    });
     const orders = await response.json();
     
     // Trova ordine del cliente (case-insensitive)
@@ -1940,12 +1943,18 @@ async function openFabbisognoModal(date, dateTo = null) {
     
     let allOrders;
     if (dateFrom === dateToUse) {
-      // Singolo giorno
-      const response = await authenticatedFetch(`${API_URL}/orders/date/${dateFrom}`);
+      // Singolo giorno - DISABILITA CACHE
+      const response = await authenticatedFetch(`${API_URL}/orders/date/${dateFrom}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       allOrders = await response.json();
     } else {
-      // Range di date
-      const response = await authenticatedFetch(`${API_URL}/orders/date-range?from=${dateFrom}&to=${dateToUse}`);
+      // Range di date - DISABILITA CACHE
+      const response = await authenticatedFetch(`${API_URL}/orders/date-range?from=${dateFrom}&to=${dateToUse}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       allOrders = await response.json();
     }
     
@@ -2648,8 +2657,11 @@ function renderOrderDetail(order) {
         
         try {
           await updateOrderStatus(order.id, newStatus);
-          // Ricarica l'ordine aggiornato
-          const response = await authenticatedFetch(`${API_URL}/orders/${order.id}`);
+          // Ricarica l'ordine aggiornato - DISABILITA CACHE
+          const response = await authenticatedFetch(`${API_URL}/orders/${order.id}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+          });
           const updatedOrder = await response.json();
           currentDetailOrder = updatedOrder;
           renderOrderDetail(updatedOrder);
