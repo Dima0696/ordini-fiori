@@ -1182,7 +1182,12 @@ async function loadOrders(date) {
     console.log('📥 Carico ordini per data:', date);
     const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`);
     const orders = await response.json();
-    console.log('✅ Ricevuti', orders.length, 'ordini:', orders);
+    console.log('✅ Ricevuti', orders.length, 'ordini');
+    
+    // Log dettagliato di OGNI ordine
+    orders.forEach((order, index) => {
+      console.log(`  [${index}] ID: ${order.id}, Cliente: ${order.customer}, Data: ${order.date}, Status: ${order.status}, Goods: ${order.goods_type}`);
+    });
     
     renderOrders(orders);
   } catch (error) {
