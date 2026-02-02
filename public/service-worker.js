@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v45 - FIX CACHE HTTP: Disabilitata cache browser per tutte le GET API
-const CACHE_NAME = 'lombardaflor-orders-v45-cache-fix';
-const STATIC_CACHE = 'lombardaflor-static-v45-cache-fix';
-const API_CACHE = 'lombardaflor-api-v45-cache-fix';
+// v46 - FIX DEFINITIVO: Service Worker NON fa cache API (solo network)
+const CACHE_NAME = 'lombardaflor-orders-v46-no-api-cache';
+const STATIC_CACHE = 'lombardaflor-static-v46-no-api-cache';
+const API_CACHE = 'lombardaflor-api-v46-no-api-cache';
 
 const urlsToCache = [
   '/',
@@ -72,41 +72,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // API: Stale-While-Revalidate (max 30s)
+  // API: Network Only (NO CACHE!) - Sempre dati freschi dal server
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      caches.open(API_CACHE).then((cache) => {
-        return cache.match(request).then((cached) => {
-          const fetchPromise = fetch(request).then((response) => {
-            // Salva solo risposte OK
-            if (response.ok) {
-              cache.put(request, response.clone());
-            }
-            return response;
+      fetch(request)
+        .catch((error) => {
+          console.error('API network error:', error);
+          return new Response('{"error": "Network error"}', {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
           });
-          
-          // Se cache esiste e recente (< 30s), usala subito
-          if (cached) {
-            const cachedDate = new Date(cached.headers.get('date'));
-            const now = new Date();
-            const age = (now - cachedDate) / 1000;
-            
-            if (age < 30) {
-              // Cache fresca: ritorna subito, aggiorna in background
-              fetchPromise.catch(() => {}); // Ignora errori background
-              return cached;
-            }
-          }
-          
-          // Altrimenti aspetta il network (con fallback su cache)
-          return fetchPromise.catch(() => {
-            return cached || new Response('{"error": "Offline"}', {
-              status: 503,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          });
-        });
-      })
+        })
     );
     return;
   }
