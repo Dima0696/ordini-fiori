@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v57 - FIX CALENDARIO: Nomi clienti verticali con spacing perfetto
-const CACHE_NAME = 'lombardaflor-orders-v57-calendar-names-fix';
-const STATIC_CACHE = 'lombardaflor-static-v57-calendar-names-fix';
-const API_CACHE = 'lombardaflor-api-v57-calendar-names-fix';
+// v58 - FIX CALENDARIO: Nomi orizzontali con GAP aumentato
+const CACHE_NAME = 'lombardaflor-orders-v58-horizontal-spacing';
+const STATIC_CACHE = 'lombardaflor-static-v58-horizontal-spacing';
+const API_CACHE = 'lombardaflor-api-v58-horizontal-spacing';
 
 const urlsToCache = [
   '/',
