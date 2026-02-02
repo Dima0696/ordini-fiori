@@ -1180,9 +1180,18 @@ async function openDayOrders(date) {
 async function loadOrders(date) {
   try {
     console.log('📥 Carico ordini per data:', date);
-    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`);
+    
+    // DISABILITA CACHE - Forza fetch dal server!
+    const response = await authenticatedFetch(`${API_URL}/orders/date/${date}`, {
+      cache: 'no-store',  // ← NON usare cache!
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
     const orders = await response.json();
-    console.log('✅ Ricevuti', orders.length, 'ordini');
+    console.log('✅ Ricevuti', orders.length, 'ordini dalla risposta server');
     
     // Log dettagliato di OGNI ordine
     orders.forEach((order, index) => {
