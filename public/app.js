@@ -551,9 +551,18 @@ function setupEventListeners() {
   
   // Modal ordine
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
-  console.log('🔧 Aggiungo listener submit al form ordine...');
-  document.getElementById('order-form').addEventListener('submit', handleOrderSubmit);
-  console.log('✅ Listener submit aggiunto!');
+  
+  console.log('🔧 Cerco form ordine...');
+  const orderForm = document.getElementById('order-form');
+  console.log('🔍 Form ordine trovato?', orderForm);
+  
+  if (orderForm) {
+    orderForm.addEventListener('submit', handleOrderSubmit);
+    console.log('✅ Listener submit aggiunto a form!');
+    console.log('🧪 Verifica: orderForm.onsubmit =', orderForm.onsubmit);
+  } else {
+    console.error('❌ ERRORE CRITICO: Form ordine NON TROVATO nel DOM!');
+  }
   
   // Gestione bottoni stato (FIX: mancava!)
   document.querySelectorAll('.btn-status').forEach(btn => {
