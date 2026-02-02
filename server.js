@@ -173,17 +173,7 @@ app.get('/api/orders', authenticate, (req, res) => {
 // GET /api/orders/date/:date - Ottieni ordini per data
 app.get('/api/orders/date/:date', authenticate, (req, res) => {
   try {
-    const requestedDate = req.params.date;
-    console.log('📥 GET /api/orders/date/:date - Richiesta per data:', requestedDate);
-    
-    const orders = db.getOrdersByDate(requestedDate);
-    console.log('✅ Trovati', orders.length, 'ordini per data', requestedDate);
-    
-    // Log dettagliato di ogni ordine
-    orders.forEach((order, index) => {
-      console.log(`  [${index}] ID: ${order.id}, Cliente: ${order.customer}, Data: "${order.date}", Goods: ${order.goods_type}`);
-    });
-    
+    const orders = db.getOrdersByDate(req.params.date);
     res.json(orders);
   } catch (error) {
     console.error('❌ Errore GET orders/date:', error);
@@ -283,8 +273,6 @@ app.post('/api/orders', authenticate, async (req, res) => {
       photos
     } = req.body;
     
-    console.log('📝 POST /api/orders - Ricevuto:', { date, customer, description, goods_type });
-    
     if (!date || !customer || !description) {
       return res.status(400).json({ error: 'Dati mancanti: date, customer, description sono obbligatori' });
     }
@@ -302,7 +290,6 @@ app.post('/api/orders', authenticate, async (req, res) => {
     };
     
     const order = db.createOrder(orderData, req.user.username);
-    console.log('✅ Ordine creato - ID:', order.id, 'Data salvata nel DB: "' + order.date + '"');
     
     // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
     // const deliveryInfo = delivery_type === 'consegna' && delivery_time 
@@ -510,29 +497,21 @@ app.patch('/api/orders/:id/goods-type', authenticate, (req, res) => {
 // DELETE /api/orders/:id - Elimina ordine
 app.delete('/api/orders/:id', authenticate, (req, res) => {
   try {
-    console.log('🗑️ DELETE /api/orders/:id - Elimino ordine ID:', req.params.id);
-    
     // Prima ottieni l'ordine per eliminare le foto
     const order = db.getOrderById(req.params.id);
-    console.log('📦 Ordine da eliminare:', order ? `ID ${order.id}, Foto: ${order.photos?.length || 0}` : 'NON TROVATO');
     
     if (order && order.photos && order.photos.length > 0) {
-      console.log('🖼️ Elimino', order.photos.length, 'foto associate...');
       // Elimina le foto associate
       order.photos.forEach(photoUrl => {
         const filename = path.basename(photoUrl);
         const filePath = path.join(uploadsDir, filename);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
-          console.log('  ✅ Foto eliminata:', filename);
-        } else {
-          console.log('  ⚠️ Foto non trovata:', filename);
         }
       });
     }
     
     const deleted = db.deleteOrder(req.params.id);
-    console.log('✅ Ordine eliminato dal DB:', deleted ? 'SUCCESS' : 'FAILED');
     if (deleted) {
       res.json({ message: 'Ordine eliminato con successo' });
     } else {

@@ -2727,6 +2727,4 @@ async function debugSchema() {
 }
 
 // Rendi disponibile globalmente per debug
-window.debugSchema = debugSchema;
-
-console.log('💡 DEBUG: Usa debugSchema() nella console per verificare il database');
+window.debugSchema = debugSchema; // Usa debugSchema() nella console per verificare DB
