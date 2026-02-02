@@ -1,6 +1,55 @@
 // Configurazione API
 const API_URL = window.location.origin + '/api';
 
+// Constants - Status e Labels
+const ORDER_STATUS = {
+  DA_PREPARARE: 'da_preparare',
+  PRONTO: 'pronto',
+  RITIRATO: 'ritirato'
+};
+
+const ORDER_STATUS_LABELS = {
+  [ORDER_STATUS.DA_PREPARARE]: 'Da preparare',
+  [ORDER_STATUS.PRONTO]: 'Pronto',
+  [ORDER_STATUS.RITIRATO]: 'Ritirato'
+};
+
+const ORDER_TYPE = {
+  CLIENTE: 'cliente',
+  WHATSAPP: 'whatsapp',
+  MAIL: 'mail',
+  TELEFONO: 'telefono'
+};
+
+const ORDER_TYPE_LABELS = {
+  [ORDER_TYPE.CLIENTE]: 'Cliente',
+  [ORDER_TYPE.WHATSAPP]: 'WhatsApp',
+  [ORDER_TYPE.MAIL]: 'Email',
+  [ORDER_TYPE.TELEFONO]: 'Telefono'
+};
+
+const DELIVERY_TYPE = {
+  RITIRO: 'ritiro',
+  CONSEGNA: 'consegna'
+};
+
+const DELIVERY_TYPE_LABELS = {
+  [DELIVERY_TYPE.RITIRO]: 'Ritiro',
+  [DELIVERY_TYPE.CONSEGNA]: 'Consegna'
+};
+
+const GOODS_TYPE = {
+  IN_CELLA: 'in_cella',
+  DA_ORDINARE: 'da_ordinare',
+  ORDINATA: 'ordinata'
+};
+
+const GOODS_TYPE_LABELS = {
+  [GOODS_TYPE.IN_CELLA]: 'Pronto',
+  [GOODS_TYPE.DA_ORDINARE]: 'Da ordinare',
+  [GOODS_TYPE.ORDINATA]: 'Ordinata'
+};
+
 // Stato globale
 let currentDate = null;
 let currentMonth = new Date(); // Parte dal mese corrente
@@ -1244,40 +1293,16 @@ function renderOrders(orders) {
     const orderCard = document.createElement('div');
     orderCard.className = `order-card status-${order.status}`;
     
-    const statusLabels = {
-      'da_preparare': 'Da preparare',
-      'pronto': 'Pronto',
-      'ritirato': 'Ritirato'
-    };
-    
-    const orderTypeLabels = {
-      'cliente': 'Cliente',
-      'whatsapp': 'WhatsApp',
-      'mail': 'Email',
-      'telefono': 'Telefono'
-    };
-    
-    const deliveryTypeLabels = {
-      'ritiro': 'Ritiro',
-      'consegna': 'Consegna'
-    };
-    
-    const goodsTypeLabels = {
-      'in_cella': 'Pronto',
-      'da_ordinare': 'Da ordinare',
-      'ordinata': 'Ordinata'
-    };
-    
     // Mostra disponibilità: se ordine è pronto/ritirato, mostra solo quello
     let infoBadges = '';
-    if (order.status === 'pronto' || order.status === 'ritirato') {
+    if (order.status === ORDER_STATUS.PRONTO || order.status === ORDER_STATUS.RITIRATO) {
       // Ordine già pronto o ritirato → mostra solo questo
-      infoBadges += `<span class="info-badge status-${order.status}">${statusLabels[order.status]}</span>`;
+      infoBadges += `<span class="info-badge status-${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>`;
     } else if (order.goods_type) {
       // Ordine da preparare → mostra stato merce
-      const goodsClass = order.goods_type === 'da_ordinare' ? 'da_ordinare' : 
-                         order.goods_type === 'ordinata' ? 'ordinata' : '';
-      infoBadges += `<span class="info-badge ${goodsClass}">${goodsTypeLabels[order.goods_type] || order.goods_type}</span>`;
+      const goodsClass = order.goods_type === GOODS_TYPE.DA_ORDINARE ? 'da_ordinare' : 
+                         order.goods_type === GOODS_TYPE.ORDINATA ? 'ordinata' : '';
+      infoBadges += `<span class="info-badge ${goodsClass}">${GOODS_TYPE_LABELS[order.goods_type] || order.goods_type}</span>`;
     }
     
     // Costruisci foto
