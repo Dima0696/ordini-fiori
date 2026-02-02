@@ -2769,6 +2769,9 @@ async function handleOrdineFissoSubmit(e) {
   
   // Conferma
   const datesCount = fissoSelectedDates.size;
+  const datesArray = Array.from(fissoSelectedDates).sort();
+  console.log(`📅 ORDINI FISSI: Creazione di ${datesCount} ordini per le date:`, datesArray);
+  
   if (!confirm(`Confermi la creazione di ${datesCount} ordini per le date selezionate?`)) {
     return;
   }
@@ -2781,9 +2784,12 @@ async function handleOrdineFissoSubmit(e) {
     : ORDER_STATUS.DA_PREPARARE;
   
   try {
+    console.log('🔄 Inizio creazione ordini fissi...');
+    
     // Crea ordini per ogni data selezionata
-    const promises = Array.from(fissoSelectedDates).map(date => {
-      return authenticatedFetch(`${API_URL}/orders`, {
+    const promises = datesArray.map(async (date) => {
+      console.log(`📤 Invio ordine per data: ${date}`);
+      const response = await authenticatedFetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2795,14 +2801,25 @@ async function handleOrdineFissoSubmit(e) {
           photos: []
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`Errore HTTP ${response.status} per data ${date}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ Ordine creato per ${date}:`, result);
+      return result;
     });
     
-    await Promise.all(promises);
+    const results = await Promise.all(promises);
+    console.log(`✅ Tutti i ${results.length} ordini creati con successo!`, results);
     
-    // Invalida cache e ricarica
+    // Invalida cache e ricarica calendario
+    console.log('🔄 Ricarico calendario...');
     calendarCache = null;
     calendarCacheTime = 0;
     await loadCalendar(true);
+    console.log('✅ Calendario ricaricato!');
     
     alert(`✅ Creati ${datesCount} ordini con successo!`);
   } catch (error) {
