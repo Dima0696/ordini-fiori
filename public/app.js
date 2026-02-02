@@ -364,7 +364,10 @@ function setupPullToRefresh() {
 
 // Setup event listeners
 function setupEventListeners() {
+  console.log('🎬 setupEventListeners() INIZIATO');
+  
   // Notifiche
+  console.log('📍 Aggiungo listener notifiche...');
   document.getElementById('btn-notifications').addEventListener('click', async () => {
     await requestNotificationPermission(true); // true = mostra sempre prompt
   });
@@ -549,6 +552,8 @@ function setupEventListeners() {
   });
   
   
+  console.log('📍 Arrivo a sezione Modal ordine...');
+  
   // Modal ordine
   document.getElementById('btn-close-modal').addEventListener('click', closeOrderModal);
   
@@ -712,6 +717,8 @@ function setupEventListeners() {
   modalConfirm.addEventListener('click', (e) => {
     if (e.target === modalConfirm) modalConfirm.classList.remove('active');
   });
+  
+  console.log('🏁 setupEventListeners() COMPLETATO!');
 }
 
 // Carica calendario
