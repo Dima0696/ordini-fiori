@@ -901,15 +901,15 @@ body {
   cursor: pointer;
 }
 
-/* EVIDENZIAZIONE: Ordini "Da preparare" con sfondo arancione/pesca chiaro */
+/* EVIDENZIAZIONE: Ordini "Da preparare" con bordo arancione */
 .order-card.status-da_preparare {
-  background: linear-gradient(135deg, #FFF5E6 0%, #FFE8CC 100%); /* Pesca/arancione chiaro */
-  border: 1px solid #FFD9A6;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.12);
+  background: white; /* Sfondo normale */
+  border: 2px solid #FF9800; /* Bordo arancione */
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
 }
 
 .order-card.status-da_preparare::before {
-  background: linear-gradient(180deg, #FF9800 0%, #FF6B00 100%); /* Bordo arancione brillante */
+  background: linear-gradient(180deg, #FF9800 0%, #FF6B00 100%); /* Barra sinistra arancione */
   width: 5px;
 }
 
@@ -945,9 +945,9 @@ body {
 
 /* Hover più evidente per ordini da preparare */
 .order-card.status-da_preparare:hover {
-  background: linear-gradient(135deg, #FFEFD6 0%, #FFD9A6 100%);
+  background: rgba(255, 152, 0, 0.03); /* Sfondo arancione leggerissimo */
   box-shadow: 0 4px 16px rgba(255, 152, 0, 0.25);
-  border-color: #FFB366;
+  border-color: #FF6B00;
 }
 
 .order-header {
