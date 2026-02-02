@@ -1190,8 +1190,17 @@ async function loadOrders(date) {
       }
     });
     
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    // Clona response per poter leggere body due volte
+    const responseClone = response.clone();
+    const rawText = await responseClone.text();
+    console.log('🔍 RAW response body:', rawText);
+    
     const orders = await response.json();
     console.log('✅ Ricevuti', orders.length, 'ordini dalla risposta server');
+    console.log('✅ Array orders:', orders);
     
     // Log dettagliato di OGNI ordine
     orders.forEach((order, index) => {
