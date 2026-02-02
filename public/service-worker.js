@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v55 - MOBILE OPTIMIZED: Design premium completamente responsive
-const CACHE_NAME = 'lombardaflor-orders-v55-mobile-optimized';
-const STATIC_CACHE = 'lombardaflor-static-v55-mobile-optimized';
-const API_CACHE = 'lombardaflor-api-v55-mobile-optimized';
+// v56 - MOBILE PERFETTO: Fix testi, bottoni, layout completo
+const CACHE_NAME = 'lombardaflor-orders-v56-mobile-perfect';
+const STATIC_CACHE = 'lombardaflor-static-v56-mobile-perfect';
+const API_CACHE = 'lombardaflor-api-v56-mobile-perfect';
 
 const urlsToCache = [
   '/',
