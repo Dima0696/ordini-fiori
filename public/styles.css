@@ -4522,6 +4522,258 @@ button {
 }
 
 /* ============================================
+   RESPONSIVE MOBILE - Ottimizzazioni Touch
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* MODAL - Ottimizzazioni Mobile */
+  .modal-content {
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+  
+  .modal-order-premium,
+  .modal-fisso,
+  .modal-fabbisogno-premium,
+  .modal-detail-premium {
+    max-width: 100% !important;
+  }
+  
+  /* HEADER MODAL - Compatto Mobile */
+  .modal-header-order,
+  .modal-header-fisso,
+  .modal-header-fabbisogno,
+  .modal-header-detail {
+    padding: 1.25rem !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+  
+  .modal-title-group {
+    gap: 0.75rem !important;
+  }
+  
+  .modal-icon {
+    padding: 0.5rem !important;
+  }
+  
+  .modal-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.3rem !important;
+  }
+  
+  .modal-subtitle {
+    font-size: 0.85rem !important;
+  }
+  
+  /* SEZIONI FORM - Padding ridotto */
+  .form-section {
+    padding: 1.25rem !important;
+  }
+  
+  .section-header {
+    margin-bottom: 1rem !important;
+  }
+  
+  .section-header h3 {
+    font-size: 1rem !important;
+  }
+  
+  /* INPUT E TEXTAREA - Touch friendly */
+  .form-group-premium input,
+  .form-group-premium textarea,
+  .form-group-fisso input,
+  .form-group-fisso textarea {
+    padding: 0.9rem 1rem !important;
+    font-size: 16px !important; /* Previene zoom iOS */
+  }
+  
+  /* BOTTONI - Touch target 44px minimo */
+  .btn-goods-premium,
+  .btn-status-premium {
+    padding: 0.9rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .status-buttons-premium {
+    grid-template-columns: 1fr !important;
+    gap: 0.6rem !important;
+  }
+  
+  /* FORM ACTIONS - Stack su mobile */
+  .form-actions-premium,
+  .form-actions-fisso {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 1.25rem !important;
+  }
+  
+  .btn-delete-premium,
+  .btn-secondary-fisso {
+    flex: 1 !important;
+    width: 100% !important;
+  }
+  
+  .btn-save-premium,
+  .btn-save-order,
+  .btn-primary-fisso {
+    flex: 1 !important;
+    width: 100% !important;
+  }
+  
+  /* FORM ROW - Stack su mobile */
+  .form-row-premium {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* FABBISOGNO - Controlli Mobile */
+  .fabbisogno-controls-premium {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    padding: 1.25rem !important;
+  }
+  
+  .date-range-premium {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .arrow-icon {
+    display: none !important;
+  }
+  
+  .action-buttons-premium-fab {
+    width: 100% !important;
+    flex-direction: row !important;
+  }
+  
+  .btn-load-premium,
+  .btn-print-premium {
+    flex: 1 !important;
+  }
+  
+  /* CALENDARIO ORDINI FISSI - Mobile */
+  .fisso-calendar {
+    gap: 0.3rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  .fisso-day {
+    padding: 0.4rem 0.2rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .fisso-day-num {
+    font-size: 1rem !important;
+  }
+  
+  .fisso-calendar-header {
+    padding: 0.9rem 1rem !important;
+  }
+  
+  .fisso-month-year {
+    font-size: 1.1rem !important;
+  }
+  
+  /* CARD ORDINI - Ottimizzazioni Mobile */
+  .order-card {
+    padding: 1.25rem !important;
+  }
+  
+  .order-customer {
+    font-size: 0.95rem !important;
+  }
+  
+  .order-actions {
+    flex-wrap: wrap !important;
+    gap: 0.6rem !important;
+  }
+  
+  .btn-small {
+    flex: 1 !important;
+    min-width: calc(50% - 0.3rem) !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* STATUS BADGE - Leggibile su mobile */
+  .order-status-badge {
+    padding: 0.45rem 0.85rem !important;
+    font-size: 0.65rem !important;
+  }
+  
+  /* BTN CLOSE - Touch friendly */
+  .btn-close {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1.3rem !important;
+  }
+  
+  /* INFO BOX - Compatto */
+  .form-info-box {
+    padding: 1rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* DATE SELECTOR INFO */
+  .date-selector-info {
+    padding: 0.9rem 1.25rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* DETTAGLIO ORDINE */
+  .detail-content-premium {
+    padding: 1.25rem !important;
+  }
+  
+  .detail-actions-premium {
+    padding: 1.25rem !important;
+  }
+  
+  .btn-edit-detail-premium {
+    width: 100% !important;
+    padding: 1rem 1.5rem !important;
+  }
+}
+
+/* EXTRA SMALL - iPhone SE, small phones */
+@media (max-width: 375px) {
+  .modal-header h2 {
+    font-size: 1.1rem !important;
+  }
+  
+  .modal-subtitle {
+    font-size: 0.75rem !important;
+  }
+  
+  .form-section {
+    padding: 1rem !important;
+  }
+  
+  .btn-goods-premium,
+  .btn-status-premium {
+    padding: 0.8rem 0.75rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  .order-card {
+    padding: 1rem !important;
+  }
+  
+  .btn-small {
+    font-size: 0.8rem !important;
+    padding: 0.65rem 0.85rem !important;
+  }
+}
+
+/* ============================================
    INDICATORE SALVATAGGIO
    ============================================ */
 

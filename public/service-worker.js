@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v54 - FIX: Selettori JavaScript per fabbisogno premium
-const CACHE_NAME = 'lombardaflor-orders-v54-fabbisogno-fix';
-const STATIC_CACHE = 'lombardaflor-static-v54-fabbisogno-fix';
-const API_CACHE = 'lombardaflor-api-v54-fabbisogno-fix';
+// v55 - MOBILE OPTIMIZED: Design premium completamente responsive
+const CACHE_NAME = 'lombardaflor-orders-v55-mobile-optimized';
+const STATIC_CACHE = 'lombardaflor-static-v55-mobile-optimized';
+const API_CACHE = 'lombardaflor-api-v55-mobile-optimized';
 
 const urlsToCache = [
   '/',
