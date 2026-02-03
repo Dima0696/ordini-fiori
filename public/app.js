@@ -2019,10 +2019,12 @@ function renderFabbisogno(orders, totalOrders = 0, dateFrom, dateTo) {
   fabbisognoEmpty.style.display = 'none';
   fabbisognoList.style.display = 'flex';
   
+  // Determina se è multi-day (serve dopo)
+  const isMultiDay = dateFrom !== dateTo;
+  
   // Aggiorna titolo con conteggio (opzionale, il titolo è ora fisso nell'header)
   const title = document.getElementById('fabbisogno-title');
   if (title) {
-    const isMultiDay = dateFrom !== dateTo;
     if (isMultiDay) {
       const fromFormatted = formatDateItalian(dateFrom);
       const toFormatted = formatDateItalian(dateTo);

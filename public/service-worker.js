@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v59 - UNIFORMITÀ LARGHEZZE: Tutti modal e container 900px
-const CACHE_NAME = 'lombardaflor-orders-v59-uniform-widths';
-const STATIC_CACHE = 'lombardaflor-static-v59-uniform-widths';
-const API_CACHE = 'lombardaflor-api-v59-uniform-widths';
+// v60 - FIX FABBISOGNO: isMultiDay scope error risolto
+const CACHE_NAME = 'lombardaflor-orders-v60-fabbisogno-fix';
+const STATIC_CACHE = 'lombardaflor-static-v60-fabbisogno-fix';
+const API_CACHE = 'lombardaflor-api-v60-fabbisogno-fix';
 
 const urlsToCache = [
   '/',
