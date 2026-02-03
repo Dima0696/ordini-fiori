@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v63 - LARGHEZZA ALLINEATA: Container 1100px come bottoni
-const CACHE_NAME = 'lombardaflor-orders-v63-width-aligned';
-const STATIC_CACHE = 'lombardaflor-static-v63-width-aligned';
-const API_CACHE = 'lombardaflor-api-v63-width-aligned';
+// v64 - FORM ORDINE: Input più larghi, titoli più leggibili
+const CACHE_NAME = 'lombardaflor-orders-v64-form-improvements';
+const STATIC_CACHE = 'lombardaflor-static-v64-form-improvements';
+const API_CACHE = 'lombardaflor-api-v64-form-improvements';
 
 const urlsToCache = [
   '/',

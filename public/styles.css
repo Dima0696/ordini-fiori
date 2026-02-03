@@ -3653,9 +3653,9 @@ button {
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: #1f2937;
   margin-bottom: 0.75rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .form-group-premium label svg {
@@ -3665,10 +3665,10 @@ button {
 .form-group-premium input,
 .form-group-premium textarea {
   width: 100%;
-  padding: 1.1rem 1.4rem;
+  padding: 1.2rem 1.5rem;
   border: 2px solid #e8e8e8;
   border-radius: 14px;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-family: inherit;
   transition: all 0.2s;
   background: white;
@@ -4077,7 +4077,7 @@ button {
 }
 
 .form-section {
-  padding: 2rem;
+  padding: 2rem 2.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -4101,9 +4101,9 @@ button {
 
 .section-header h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #1f2937;
   letter-spacing: -0.3px;
 }
 
