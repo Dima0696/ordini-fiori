@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v60 - FIX FABBISOGNO: isMultiDay scope error risolto
-const CACHE_NAME = 'lombardaflor-orders-v60-fabbisogno-fix';
-const STATIC_CACHE = 'lombardaflor-static-v60-fabbisogno-fix';
-const API_CACHE = 'lombardaflor-api-v60-fabbisogno-fix';
+// v61 - CARD ORDINI: Più larghe, bordi sottili, NO hover verde
+const CACHE_NAME = 'lombardaflor-orders-v61-card-improvements';
+const STATIC_CACHE = 'lombardaflor-static-v61-card-improvements';
+const API_CACHE = 'lombardaflor-api-v61-card-improvements';
 
 const urlsToCache = [
   '/',

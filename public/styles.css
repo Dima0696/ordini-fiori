@@ -935,10 +935,10 @@ body {
 
 .order-card {
   background: white;
-  padding: 1.5rem;
+  padding: 1.8rem 2rem;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f0f0f0;
+  border: 1px solid #f0f0f0;
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -960,7 +960,7 @@ body {
 /* Ordini "Da preparare" - Stile ARANCIONE Premium */
 .order-card.status-da_preparare {
   background: linear-gradient(135deg, rgba(255, 152, 0, 0.03) 0%, rgba(255, 107, 0, 0.02) 100%);
-  border: 2px solid #FF9800;
+  border: 1px solid #FF9800;
   box-shadow: 0 4px 16px rgba(255, 152, 0, 0.2);
 }
 
@@ -2775,7 +2775,8 @@ button {
   transition: all 0.3s ease;
 }
 
-.order-card:hover {
+/* Hover generico SOLO per ordini che NON sono da_preparare */
+.order-card:not(.status-da_preparare):hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(11, 93, 82, 0.2);
 }
@@ -2785,7 +2786,7 @@ button {
   background: #FFFFFF !important; /* Sfondo BIANCO puro - NO verde! */
   box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4) !important; /* Ombra arancione marcata */
   border-color: #FF5722 !important; /* Bordo arancione scuro */
-  border-width: 3px !important; /* Bordo spesso */
+  border-width: 2px !important; /* Bordo leggermente più spesso */
   transform: translateY(-4px) scale(1.02); /* Effetto pop */
 }
 
