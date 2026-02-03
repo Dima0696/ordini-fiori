@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v65 - FIX: Cliente maiuscolo + badge da preparare no overflow
-const CACHE_NAME = 'lombardaflor-orders-v65-customer-uppercase-badge-fix';
-const STATIC_CACHE = 'lombardaflor-static-v65-customer-uppercase-badge-fix';
-const API_CACHE = 'lombardaflor-api-v65-customer-uppercase-badge-fix';
+// v66 - INPUT EXTRA LARGHI: Padding aumentato ancora
+const CACHE_NAME = 'lombardaflor-orders-v66-extra-large-inputs';
+const STATIC_CACHE = 'lombardaflor-static-v66-extra-large-inputs';
+const API_CACHE = 'lombardaflor-api-v66-extra-large-inputs';
 
 const urlsToCache = [
   '/',

@@ -3645,7 +3645,7 @@ button {
 .form-row-premium {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .form-group-premium {
@@ -3673,10 +3673,10 @@ button {
 .form-group-premium input,
 .form-group-premium textarea {
   width: 100%;
-  padding: 1.2rem 1.5rem;
+  padding: 1.4rem 1.8rem;
   border: 2px solid #e8e8e8;
   border-radius: 14px;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-family: inherit;
   transition: all 0.2s;
   background: white;
@@ -3692,7 +3692,7 @@ button {
 
 .form-group-premium textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
   line-height: 1.6;
 }
 
@@ -4085,7 +4085,7 @@ button {
 }
 
 .form-section {
-  padding: 2rem 2.5rem;
+  padding: 2.5rem 3rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
