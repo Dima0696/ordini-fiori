@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v67 - CALENDARIO: Card più visibili, testo distanziato
-const CACHE_NAME = 'lombardaflor-orders-v67-calendar-visibility';
-const STATIC_CACHE = 'lombardaflor-static-v67-calendar-visibility';
-const API_CACHE = 'lombardaflor-api-v67-calendar-visibility';
+// v68 - FIX: Calendario padding, Cliente uppercase, Form MEGA
+const CACHE_NAME = 'lombardaflor-orders-v68-final-fixes';
+const STATIC_CACHE = 'lombardaflor-static-v68-final-fixes';
+const API_CACHE = 'lombardaflor-api-v68-final-fixes';
 
 const urlsToCache = [
   '/',

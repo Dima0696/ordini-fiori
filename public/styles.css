@@ -550,7 +550,7 @@ body {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
-  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.8rem;
   border-radius: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   border: 1.5px solid rgba(139, 193, 135, 0.35);
@@ -1042,7 +1042,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  text-transform: uppercase;
+  text-transform: uppercase !important;
   letter-spacing: 0.3px;
 }
 
@@ -3674,10 +3674,10 @@ button {
 .form-group-premium input,
 .form-group-premium textarea {
   width: 100%;
-  padding: 1.4rem 1.8rem;
+  padding: 1.5rem 2rem;
   border: 2px solid #e8e8e8;
   border-radius: 14px;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-family: inherit;
   transition: all 0.2s;
   background: white;
@@ -4086,7 +4086,7 @@ button {
 }
 
 .form-section {
-  padding: 2.5rem 3rem;
+  padding: 3rem 3.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
