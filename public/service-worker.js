@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v66 - INPUT EXTRA LARGHI: Padding aumentato ancora
-const CACHE_NAME = 'lombardaflor-orders-v66-extra-large-inputs';
-const STATIC_CACHE = 'lombardaflor-static-v66-extra-large-inputs';
-const API_CACHE = 'lombardaflor-api-v66-extra-large-inputs';
+// v67 - CALENDARIO: Card più visibili, testo distanziato
+const CACHE_NAME = 'lombardaflor-orders-v67-calendar-visibility';
+const STATIC_CACHE = 'lombardaflor-static-v67-calendar-visibility';
+const API_CACHE = 'lombardaflor-api-v67-calendar-visibility';
 
 const urlsToCache = [
   '/',

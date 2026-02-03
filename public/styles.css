@@ -547,13 +547,13 @@ body {
 }
 
 .day-card {
-  background: var(--glass-bg);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
-  padding: 1.25rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
   border-radius: 20px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border: 1.5px solid rgba(139, 193, 135, 0.35);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -624,8 +624,9 @@ body {
 
 .day-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(139, 193, 135, 0.5);
 }
 
 .day-card.today:hover {
