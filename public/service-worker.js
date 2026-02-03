@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v62 - FIX BACKGROUND: Tutti ordini sfondo BIANCO SOLIDO
-const CACHE_NAME = 'lombardaflor-orders-v62-white-background';
-const STATIC_CACHE = 'lombardaflor-static-v62-white-background';
-const API_CACHE = 'lombardaflor-api-v62-white-background';
+// v63 - LARGHEZZA ALLINEATA: Container 1100px come bottoni
+const CACHE_NAME = 'lombardaflor-orders-v63-width-aligned';
+const STATIC_CACHE = 'lombardaflor-static-v63-width-aligned';
+const API_CACHE = 'lombardaflor-api-v63-width-aligned';
 
 const urlsToCache = [
   '/',

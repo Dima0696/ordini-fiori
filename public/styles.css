@@ -3432,9 +3432,9 @@ button {
 @media (min-width: 768px) {
 .calendar-container,
 .orders-container {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 1.5rem 1.5rem 2rem;
 }
   
   .days-list {
@@ -4926,7 +4926,7 @@ button {
   /* ORDERS LIST - Spacing */
   .orders-list {
     gap: 0.9rem !important;
-    padding: 1rem !important;
+    padding: 0 !important;
   }
   
   /* EMPTY STATE - Mobile */
