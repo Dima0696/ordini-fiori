@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v61 - CARD ORDINI: Più larghe, bordi sottili, NO hover verde
-const CACHE_NAME = 'lombardaflor-orders-v61-card-improvements';
-const STATIC_CACHE = 'lombardaflor-static-v61-card-improvements';
-const API_CACHE = 'lombardaflor-api-v61-card-improvements';
+// v62 - FIX BACKGROUND: Tutti ordini sfondo BIANCO SOLIDO
+const CACHE_NAME = 'lombardaflor-orders-v62-white-background';
+const STATIC_CACHE = 'lombardaflor-static-v62-white-background';
+const API_CACHE = 'lombardaflor-api-v62-white-background';
 
 const urlsToCache = [
   '/',
