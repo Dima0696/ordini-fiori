@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v71 - MOBILE: Modal padding ZERO per più spazio
-const CACHE_NAME = 'lombardaflor-orders-v71-mobile-no-modal-padding';
-const STATIC_CACHE = 'lombardaflor-static-v71-mobile-no-modal-padding';
-const API_CACHE = 'lombardaflor-api-v71-mobile-no-modal-padding';
+// v72 - MOBILE: Form-section padding ridotto, input più larghi
+const CACHE_NAME = 'lombardaflor-orders-v72-mobile-max-width';
+const STATIC_CACHE = 'lombardaflor-static-v72-mobile-max-width';
+const API_CACHE = 'lombardaflor-api-v72-mobile-max-width';
 
 const urlsToCache = [
   '/',
