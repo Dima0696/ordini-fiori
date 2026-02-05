@@ -555,7 +555,7 @@ body {
   background: white;
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
-  padding: 1rem 1rem 1rem 1.75rem;
+  padding: 1rem 1rem 1rem 2.5rem; /* Più spazio a sinistra per staccare dalla barra */
   border-radius: 20px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.06);

@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v81 - ORDINI: Sfondo bianco puro per ordini da preparare (no confusione con sfondo)
-const CACHE_NAME = 'lombardaflor-orders-v81-white-bg-da-preparare';
-const STATIC_CACHE = 'lombardaflor-static-v81-white-bg-da-preparare';
-const API_CACHE = 'lombardaflor-api-v81-white-bg-da-preparare';
+// v82 - CALENDARIO: Design pulito (rimossi badge/pallini/lucchetto, più spazio a sx)
+const CACHE_NAME = 'lombardaflor-orders-v82-clean-calendar';
+const STATIC_CACHE = 'lombardaflor-static-v82-clean-calendar';
+const API_CACHE = 'lombardaflor-api-v82-clean-calendar';
 
 const urlsToCache = [
   '/',

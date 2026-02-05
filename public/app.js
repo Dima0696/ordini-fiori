@@ -980,36 +980,13 @@ function renderCalendar() {
     
     let content = `
       <div class="day-number-bg">${day}</div>
-      <div class="day-date">${dateFormatted}`;
-    
-    // Badge OGGI
-    if (isToday) {
-      content += ` <span class="today-badge">⭐ OGGI</span>`;
-    }
-    
-    // Badge DOMENICA/CHIUSO/FESTIVITÀ
-    if (dayOfWeek === 0) {
-      content += ` <span class="closed-badge">🔒 Domenica</span>`;
-    } else if (isHoliday) {
-      content += ` <span class="closed-badge">🎉 Festività</span>`;
-    }
-    
-    content += `</div><div class="day-info">`;
+      <div class="day-date">${dateFormatted}</div>
+      <div class="day-info">`;
     
     if (stat && stat.total > 0) {
       content += `
         <div class="day-count">${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</div>
-        <div class="status-indicators">
       `;
-      
-      if (stat.da_preparare > 0) {
-        content += `<span class="status-dot da-preparare" title="Da preparare"></span>`;
-      }
-      if (stat.pronto > 0) {
-        content += `<span class="status-dot pronto" title="Pronto"></span>`;
-      }
-      
-      content += `</div>`;
       
       // Mostra nomi clienti (cliccabili!)
       if (stat.customers && stat.customers.length > 0) {
@@ -1265,9 +1242,6 @@ async function openDayOrders(date) {
   const isToday = formatDate(dateObj) === formatDate(today);
   
   let titleText = `${dayName} ${day} ${month}`;
-  if (isToday) {
-    titleText = `⭐ OGGI - ${dayName} ${day} ${month}`;
-  }
   
   // Controlla se è domenica o festività
   const monthDay = String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
