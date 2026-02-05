@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v82 - CALENDARIO: Design pulito (rimossi badge/pallini/lucchetto, più spazio a sx)
-const CACHE_NAME = 'lombardaflor-orders-v82-clean-calendar';
-const STATIC_CACHE = 'lombardaflor-static-v82-clean-calendar';
-const API_CACHE = 'lombardaflor-api-v82-clean-calendar';
+// v83 - PREMIUM: Login page + Orders page con design premium (glassmorphism + gradienti)
+const CACHE_NAME = 'lombardaflor-orders-v83-premium-pages';
+const STATIC_CACHE = 'lombardaflor-static-v83-premium-pages';
+const API_CACHE = 'lombardaflor-api-v83-premium-pages';
 
 const urlsToCache = [
   '/',
