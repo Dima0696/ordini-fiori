@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v76 - FABBISOGNO: Date MINI (spazio minimo)
-const CACHE_NAME = 'lombardaflor-orders-v76-fabbisogno-mini';
-const STATIC_CACHE = 'lombardaflor-static-v76-fabbisogno-mini';
-const API_CACHE = 'lombardaflor-api-v76-fabbisogno-mini';
+// v77 - CALENDARIO PREMIUM: Header, card, data visibile
+const CACHE_NAME = 'lombardaflor-orders-v77-calendar-premium';
+const STATIC_CACHE = 'lombardaflor-static-v77-calendar-premium';
+const API_CACHE = 'lombardaflor-api-v77-calendar-premium';
 
 const urlsToCache = [
   '/',
