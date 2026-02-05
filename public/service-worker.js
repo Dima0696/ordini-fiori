@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v88 - UX: Menu FAB rimosso, Quick Actions sotto header + Barra ricerca ridotta
-const CACHE_NAME = 'lombardaflor-orders-v88-quick-actions';
-const STATIC_CACHE = 'lombardaflor-static-v88-quick-actions';
-const API_CACHE = 'lombardaflor-api-v88-quick-actions';
+// v89 - QUICK ACTIONS: Bottoni verdi + Testo sotto in MAIUSCOLO piccolo
+const CACHE_NAME = 'lombardaflor-orders-v89-green-actions';
+const STATIC_CACHE = 'lombardaflor-static-v89-green-actions';
+const API_CACHE = 'lombardaflor-api-v89-green-actions';
 
 const urlsToCache = [
   '/',

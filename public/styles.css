@@ -519,38 +519,47 @@ body {
   flex: 1;
   min-width: fit-content;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.25rem;
-  background: white;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(11, 93, 82, 0.15);
-  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: white;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(11, 93, 82, 0.08);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.3);
   white-space: nowrap;
 }
 
 .quick-action-btn svg {
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.quick-action-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .quick-action-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  border-color: var(--color-primary);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(11, 93, 82, 0.25);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #084A42 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(11, 93, 82, 0.4);
 }
 
 .quick-action-btn:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(-1px) scale(0.98);
 }
 
 /* Barra di ricerca - RIDOTTA */
@@ -4818,20 +4827,25 @@ button {
    ============================================ */
 
 @media (max-width: 768px) {
-  /* QUICK ACTIONS - Mobile Scroll */
+  /* QUICK ACTIONS - Mobile Compatto */
   .quick-actions-premium {
     padding: 0.75rem 1rem !important;
     gap: 0.5rem !important;
   }
   
   .quick-action-btn {
-    padding: 0.6rem 1rem !important;
-    font-size: 0.85rem !important;
+    padding: 0.7rem 0.75rem !important;
     min-width: auto !important;
+    gap: 0.3rem !important;
   }
   
-  .quick-action-btn span {
-    display: none; /* Solo icone su mobile */
+  .quick-action-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  .quick-action-label {
+    font-size: 0.65rem !important;
   }
   
   /* APP HEADER - Compatto Mobile */
