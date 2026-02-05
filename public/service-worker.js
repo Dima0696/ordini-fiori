@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v75 - FABBISOGNO: Date compatte, ordini più visibili
-const CACHE_NAME = 'lombardaflor-orders-v75-fabbisogno-compact-visible';
-const STATIC_CACHE = 'lombardaflor-static-v75-fabbisogno-compact-visible';
-const API_CACHE = 'lombardaflor-api-v75-fabbisogno-compact-visible';
+// v76 - FABBISOGNO: Date MINI (spazio minimo)
+const CACHE_NAME = 'lombardaflor-orders-v76-fabbisogno-mini';
+const STATIC_CACHE = 'lombardaflor-static-v76-fabbisogno-mini';
+const API_CACHE = 'lombardaflor-api-v76-fabbisogno-mini';
 
 const urlsToCache = [
   '/',
