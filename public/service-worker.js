@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v80 - CALENDARIO: Rimosso hover verde, evidenziate DAY-CARD con ordini da preparare
-const CACHE_NAME = 'lombardaflor-orders-v80-calendar-da-preparare-fix';
-const STATIC_CACHE = 'lombardaflor-static-v80-calendar-da-preparare-fix';
-const API_CACHE = 'lombardaflor-api-v80-calendar-da-preparare-fix';
+// v81 - ORDINI: Sfondo bianco puro per ordini da preparare (no confusione con sfondo)
+const CACHE_NAME = 'lombardaflor-orders-v81-white-bg-da-preparare';
+const STATIC_CACHE = 'lombardaflor-static-v81-white-bg-da-preparare';
+const API_CACHE = 'lombardaflor-api-v81-white-bg-da-preparare';
 
 const urlsToCache = [
   '/',

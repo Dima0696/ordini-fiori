@@ -1027,9 +1027,9 @@ body {
   transition: all 0.3s;
 }
 
-/* Ordini "Da preparare" - EVIDENZIATO ARANCIONE Premium */
+/* Ordini "Da preparare" - EVIDENZIATO ARANCIONE Premium (sfondo BIANCO) */
 .order-card.status-da_preparare {
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(255, 152, 0, 0.02) 100%);
+  background: white;
   border: 2px solid #FF9800;
   box-shadow: 0 4px 16px rgba(255, 152, 0, 0.3), 0 0 0 1px rgba(255, 152, 0, 0.1);
 }
