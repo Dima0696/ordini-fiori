@@ -94,6 +94,7 @@ const holidays = [
 // Elementi DOM
 const pageCalendar = document.getElementById('page-calendar');
 const pageOrders = document.getElementById('page-orders');
+const pageListini = document.getElementById('page-listini');
 const modalOrder = document.getElementById('modal-order');
 const modalConfirm = document.getElementById('modal-confirm');
 const daysList = document.getElementById('days-list');
@@ -605,8 +606,25 @@ function setupEventListeners() {
   });
   
   document.getElementById('quick-listini').addEventListener('click', () => {
-    alert('📋 Listini - In arrivo! Carica PDF o foto dei listini per le festività.');
+    openListiniPage();
   });
+  
+  // Pulsanti pagina Listini
+  document.getElementById('btn-back-listini').addEventListener('click', () => {
+    showPage('calendar');
+  });
+  
+  document.getElementById('btn-home-listini').addEventListener('click', () => {
+    showPage('calendar');
+  });
+  
+  document.getElementById('btn-logout-listini').addEventListener('click', logout);
+  
+  document.getElementById('btn-select-file').addEventListener('click', () => {
+    document.getElementById('listino-file-input').click();
+  });
+  
+  document.getElementById('listino-file-input').addEventListener('change', handleListinoUpload);
   
   // Pulsante fabbisogno (solo Carlo e Dimitri)
   const btnFabbisogno = document.getElementById('btn-fabbisogno');
@@ -1651,11 +1669,14 @@ async function handleOrderDelete() {
 function showPage(page) {
   pageCalendar.classList.remove('active');
   pageOrders.classList.remove('active');
+  pageListini.classList.remove('active');
   
   if (page === 'calendar') {
     pageCalendar.classList.add('active');
   } else if (page === 'orders') {
     pageOrders.classList.add('active');
+  } else if (page === 'listini') {
+    pageListini.classList.add('active');
   }
   
   // Scroll in alto
@@ -2858,6 +2879,144 @@ async function handleOrdineFissoSubmit(e) {
   }
 }
 
+// ============================================
+// PAGINA LISTINI
+// ============================================
+
+function openListiniPage() {
+  showPage('listini');
+  loadListini();
+  
+  // Aggiorna username
+  const usernameEl = document.getElementById('username-display-listini');
+  if (usernameEl) {
+    usernameEl.textContent = currentUser;
+  }
+}
+
+async function loadListini() {
+  try {
+    const response = await authenticatedFetch(API_URL + '/listini');
+    const listini = await response.json();
+    
+    const listiniList = document.getElementById('listini-list');
+    const listiniEmpty = document.getElementById('listini-empty');
+    
+    if (listini.length === 0) {
+      listiniList.style.display = 'none';
+      listiniEmpty.style.display = 'block';
+      return;
+    }
+    
+    listiniList.style.display = 'flex';
+    listiniEmpty.style.display = 'none';
+    listiniList.innerHTML = '';
+    
+    listini.forEach(listino => {
+      const item = document.createElement('div');
+      item.className = 'listino-item';
+      item.innerHTML = `
+        <div class="listino-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+        </div>
+        <div class="listino-info">
+          <div class="listino-name">${listino.name}</div>
+          <div class="listino-meta">Caricato il ${formatDate(new Date(listino.uploaded_at))} da ${listino.uploaded_by}</div>
+        </div>
+        <div class="listino-actions">
+          <button class="btn-listino-action btn-view-listino" onclick="viewListino('${listino.filename}')" title="Visualizza PDF">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+          <button class="btn-listino-action btn-delete-listino" onclick="deleteListino(${listino.id}, '${listino.name}')" title="Elimina">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+      listiniList.appendChild(item);
+    });
+  } catch (error) {
+    console.error('Errore caricamento listini:', error);
+    showNotification('Errore nel caricamento dei listini', 'error');
+  }
+}
+
+async function handleListinoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (file.type !== 'application/pdf') {
+    showNotification('Solo file PDF sono permessi', 'error');
+    return;
+  }
+  
+  if (file.size > 10 * 1024 * 1024) { // 10MB max
+    showNotification('File troppo grande (max 10MB)', 'error');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('pdf', file);
+  formData.append('uploaded_by', currentUser);
+  
+  try {
+    const response = await fetch(API_URL + '/listini/upload', {
+      method: 'POST',
+      headers: {
+        'x-user': currentUser
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Errore upload');
+    }
+    
+    showNotification('Listino caricato con successo!', 'success');
+    loadListini();
+    
+    // Reset input
+    event.target.value = '';
+  } catch (error) {
+    console.error('Errore upload listino:', error);
+    showNotification('Errore nel caricamento del listino', 'error');
+  }
+}
+
+function viewListino(filename) {
+  window.open(API_URL + '/listini/view/' + filename, '_blank');
+}
+
+async function deleteListino(id, name) {
+  if (!confirm(`Eliminare il listino "${name}"?`)) {
+    return;
+  }
+  
+  try {
+    const response = await authenticatedFetch(API_URL + '/listini/' + id, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Errore eliminazione');
+    }
+    
+    showNotification('Listino eliminato', 'success');
+    loadListini();
+  } catch (error) {
+    console.error('Errore eliminazione listino:', error);
+    showNotification('Errore nell\'eliminazione del listino', 'error');
+  }
+}
+
 // DEBUG: Funzione per verificare schema DB (usa da console browser)
 async function debugSchema() {
   try {
@@ -2873,5 +3032,7 @@ async function debugSchema() {
   }
 }
 
-// Rendi disponibile globalmente per debug
+// Rendi disponibili globalmente
 window.debugSchema = debugSchema; // Usa debugSchema() nella console per verificare DB
+window.viewListino = viewListino;
+window.deleteListino = deleteListino;

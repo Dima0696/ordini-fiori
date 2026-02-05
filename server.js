@@ -47,6 +47,19 @@ const upload = multer({
   }
 });
 
+// Configurazione multer per upload PDF (listini)
+const uploadPdf = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      return cb(null, true);
+    } else {
+      cb(new Error('Solo file PDF sono permessi'));
+    }
+  }
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -763,6 +776,89 @@ function formatDateForDB(date) {
 // });
 
 console.log(`⏰ Notifiche TEMPORANEAMENTE DISATTIVATE per testing`);
+
+// ============================================
+// API LISTINI
+// ============================================
+
+// GET /api/listini - Ottieni tutti i listini
+app.get('/api/listini', authenticate, (req, res) => {
+  try {
+    const listini = db.getAllListini();
+    res.json(listini);
+  } catch (error) {
+    console.error('Errore recupero listini:', error);
+    res.status(500).json({ error: 'Errore nel recupero dei listini' });
+  }
+});
+
+// POST /api/listini/upload - Carica nuovo listino PDF
+app.post('/api/listini/upload', uploadPdf.single('pdf'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nessun file caricato' });
+    }
+    
+    const uploadedBy = req.headers['x-user'] || 'Anonimo';
+    const originalName = req.file.originalname;
+    const filename = req.file.filename;
+    
+    const listino = db.addListino({
+      name: originalName,
+      filename: filename,
+      uploaded_by: uploadedBy
+    });
+    
+    res.json(listino);
+  } catch (error) {
+    console.error('Errore upload listino:', error);
+    res.status(500).json({ error: 'Errore nel caricamento del listino' });
+  }
+});
+
+// GET /api/listini/view/:filename - Visualizza PDF
+app.get('/api/listini/view/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadsDir, filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File non trovato' });
+    }
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Errore visualizzazione listino:', error);
+    res.status(500).json({ error: 'Errore nella visualizzazione del listino' });
+  }
+});
+
+// DELETE /api/listini/:id - Elimina listino
+app.delete('/api/listini/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const listino = db.getListinoById(id);
+    
+    if (!listino) {
+      return res.status(404).json({ error: 'Listino non trovato' });
+    }
+    
+    // Elimina file fisico
+    const filePath = path.join(uploadsDir, listino.filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    // Elimina dal database
+    db.deleteListino(id);
+    
+    res.json({ message: 'Listino eliminato' });
+  } catch (error) {
+    console.error('Errore eliminazione listino:', error);
+    res.status(500).json({ error: 'Errore nell\'eliminazione del listino' });
+  }
+});
 
 // Serve l'app per tutte le altre route (deve essere l'ultima route)
 app.get('*', (req, res) => {

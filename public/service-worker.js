@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v89 - QUICK ACTIONS: Bottoni verdi + Testo sotto in MAIUSCOLO piccolo
-const CACHE_NAME = 'lombardaflor-orders-v89-green-actions';
-const STATIC_CACHE = 'lombardaflor-static-v89-green-actions';
-const API_CACHE = 'lombardaflor-api-v89-green-actions';
+// v90 - FEATURE: Pagina Listini per caricare PDF delle festività
+const CACHE_NAME = 'lombardaflor-orders-v90-listini-page';
+const STATIC_CACHE = 'lombardaflor-static-v90-listini-page';
+const API_CACHE = 'lombardaflor-api-v90-listini-page';
 
 const urlsToCache = [
   '/',

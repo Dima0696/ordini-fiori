@@ -82,10 +82,21 @@ const initDb = () => {
     )
   `;
   
+  const createListiniTableQuery = `
+    CREATE TABLE IF NOT EXISTS listini (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
   db.exec(createFabbisognoChecksTableQuery);
+  db.exec(createListiniTableQuery);
   
   // Crea indici per performance
   try {
@@ -541,6 +552,34 @@ const clearFabbisognoChecks = (orderId) => {
   stmt.run(orderId);
 };
 
+// ============================================
+// CRUD Listini
+// ============================================
+
+const getAllListini = () => {
+  const stmt = db.prepare('SELECT * FROM listini ORDER BY uploaded_at DESC');
+  return stmt.all();
+};
+
+const getListinoById = (id) => {
+  const stmt = db.prepare('SELECT * FROM listini WHERE id = ?');
+  return stmt.get(id);
+};
+
+const addListino = (listino) => {
+  const stmt = db.prepare(`
+    INSERT INTO listini (name, filename, uploaded_by)
+    VALUES (?, ?, ?)
+  `);
+  const info = stmt.run(listino.name, listino.filename, listino.uploaded_by);
+  return getListinoById(info.lastInsertRowid);
+};
+
+const deleteListino = (id) => {
+  const stmt = db.prepare('DELETE FROM listini WHERE id = ?');
+  return stmt.run(id);
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -561,6 +600,10 @@ module.exports = {
   getFabbisognoChecks,
   toggleFabbisognoCheck,
   setFabbisognoCheck,
-  clearFabbisognoChecks
+  clearFabbisognoChecks,
+  getAllListini,
+  getListinoById,
+  addListino,
+  deleteListino
 };
 
