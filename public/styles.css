@@ -347,15 +347,7 @@ body {
 /* ========== FAB MENU ESPANDIBILE ========== */
 
 .fab-container {
-  position: fixed;
-  bottom: 2rem;
-  right: 1.5rem;
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1rem;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  display: none !important; /* Nascosto - bottoni spostati sotto header */
 }
 
 /* FAB principale */
@@ -498,35 +490,112 @@ body {
 
 /* Calendario Premium */
 .calendar-container {
-  padding: 1.5rem;
+  padding: 0;
 }
 
-/* Barra di ricerca */
+/* ============================================
+   QUICK ACTIONS PREMIUM - Sotto Header
+   ============================================ */
+
+.quick-actions-premium {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, 
+    rgba(139, 193, 135, 0.08) 0%, 
+    rgba(168, 213, 164, 0.05) 100%
+  );
+  border-bottom: 1px solid rgba(11, 93, 82, 0.1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.quick-actions-premium::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-action-btn {
+  flex: 1;
+  min-width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  background: white;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(11, 93, 82, 0.15);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(11, 93, 82, 0.08);
+  white-space: nowrap;
+}
+
+.quick-action-btn svg {
+  flex-shrink: 0;
+}
+
+.quick-action-btn:hover {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: var(--color-primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(11, 93, 82, 0.25);
+}
+
+.quick-action-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Barra di ricerca - RIDOTTA */
 .search-container {
-  margin-bottom: 1.5rem;
+  margin: 1rem 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .search-box {
   position: relative;
   display: flex;
   align-items: center;
-  background: white;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
-  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(11, 93, 82, 0.12);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
   transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.15);
+  box-shadow: 0 3px 8px rgba(11, 93, 82, 0.12);
 }
 
 .search-icon {
-  font-size: 1.2rem;
-  margin-right: 0.75rem;
+  font-size: 1rem;
+  margin-right: 0.5rem;
   color: var(--color-text-light);
+}
+
+#search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  outline: none;
+  color: var(--color-text);
+}
+
+#search-input::placeholder {
+  color: var(--color-text-light);
+  font-size: 0.85rem;
 }
 
 .search-box input {
@@ -564,10 +633,7 @@ body {
 }
 
 .search-info {
-  font-size: 0.75rem;
-  color: var(--color-text-light);
-  margin-top: 0.5rem;
-  text-align: center;
+  display: none; /* Nascosto per risparmiare spazio */
 }
 
 /* Risultati ricerca */
@@ -617,7 +683,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin: 0 1.5rem 1.5rem 1.5rem;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
@@ -668,6 +734,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  padding: 0 1.5rem 1.5rem 1.5rem;
 }
 
 .day-card {
@@ -4751,6 +4818,22 @@ button {
    ============================================ */
 
 @media (max-width: 768px) {
+  /* QUICK ACTIONS - Mobile Scroll */
+  .quick-actions-premium {
+    padding: 0.75rem 1rem !important;
+    gap: 0.5rem !important;
+  }
+  
+  .quick-action-btn {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.85rem !important;
+    min-width: auto !important;
+  }
+  
+  .quick-action-btn span {
+    display: none; /* Solo icone su mobile */
+  }
+  
   /* APP HEADER - Compatto Mobile */
   .app-header {
     padding: 0.75rem 1rem !important;

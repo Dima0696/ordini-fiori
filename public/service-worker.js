@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v87 - HEADER: Titoli MAIUSCOLI + X moderna e ben visibile
-const CACHE_NAME = 'lombardaflor-orders-v87-header-uppercase-x';
-const STATIC_CACHE = 'lombardaflor-static-v87-header-uppercase-x';
-const API_CACHE = 'lombardaflor-api-v87-header-uppercase-x';
+// v88 - UX: Menu FAB rimosso, Quick Actions sotto header + Barra ricerca ridotta
+const CACHE_NAME = 'lombardaflor-orders-v88-quick-actions';
+const STATIC_CACHE = 'lombardaflor-static-v88-quick-actions';
+const API_CACHE = 'lombardaflor-api-v88-quick-actions';
 
 const urlsToCache = [
   '/',

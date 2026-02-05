@@ -591,6 +591,23 @@ function setupEventListeners() {
     alert('📋 Listini - In arrivo! Carica PDF o foto dei listini per le festività.');
   });
   
+  // Quick Actions Premium (sotto header)
+  document.getElementById('quick-nuovo-ordine').addEventListener('click', () => {
+    openNewOrderModal();
+  });
+  
+  document.getElementById('quick-ordine-fisso').addEventListener('click', () => {
+    openOrdineFissoModal();
+  });
+  
+  document.getElementById('quick-arrivi').addEventListener('click', () => {
+    alert('📦 Merce in arrivo - In arrivo! Calendario degli arrivi di merce.');
+  });
+  
+  document.getElementById('quick-listini').addEventListener('click', () => {
+    alert('📋 Listini - In arrivo! Carica PDF o foto dei listini per le festività.');
+  });
+  
   // Pulsante fabbisogno (solo Carlo e Dimitri)
   const btnFabbisogno = document.getElementById('btn-fabbisogno');
   
