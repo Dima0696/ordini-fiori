@@ -1336,7 +1336,7 @@ body {
 }
 
 .btn-print-quick:hover {
-  background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
 }
 
 /* Bottone Stampa - Già Stampato */
@@ -1361,8 +1361,8 @@ body {
 }
 
 .btn-share:hover {
-  background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
-  box-shadow: 0 4px 12px rgba(66, 165, 245, 0.35);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.35);
 }
 
 .btn-edit {
@@ -1463,7 +1463,7 @@ body {
 .modal-header h2 {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: white;
   letter-spacing: -0.5px;
 }
 
@@ -3811,11 +3811,11 @@ button {
 }
 
 .section-header-order {
-  border-bottom-color: #3B82F6 !important;
+  border-bottom-color: var(--color-primary) !important;
 }
 
 .section-header-order svg {
-  color: #3B82F6 !important;
+  color: var(--color-primary) !important;
 }
 
 .form-order {
@@ -3847,7 +3847,7 @@ button {
 }
 
 .form-group-premium label svg {
-  color: #3B82F6;
+  color: var(--color-primary);
 }
 
 .form-group-premium input,
@@ -3865,8 +3865,8 @@ button {
 .form-group-premium input:focus,
 .form-group-premium textarea:focus {
   outline: none;
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(11, 93, 82, 0.1);
   background: white;
 }
 
@@ -3900,15 +3900,15 @@ button {
 }
 
 .btn-goods-order:hover {
-  border-color: #3B82F6;
-  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--color-primary);
+  background: rgba(11, 93, 82, 0.05);
 }
 
 .btn-goods-order.active {
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  border-color: #2563EB;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: var(--color-primary-dark);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.3);
 }
 
 /* Status Buttons Premium */
@@ -3935,15 +3935,15 @@ button {
 }
 
 .btn-status-order:hover {
-  border-color: #3B82F6;
-  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--color-primary);
+  background: rgba(11, 93, 82, 0.05);
 }
 
 .btn-status-order.active {
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  border-color: #2563EB;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: var(--color-primary-dark);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.3);
 }
 
 /* Add Photo Button */
@@ -3965,9 +3965,9 @@ button {
 }
 
 .btn-add-photo-premium:hover {
-  border-color: #3B82F6;
-  background: rgba(59, 130, 246, 0.05);
-  color: #3B82F6;
+  border-color: var(--color-primary);
+  background: rgba(11, 93, 82, 0.05);
+  color: var(--color-primary);
 }
 
 /* Form Actions Premium */
@@ -4091,7 +4091,7 @@ button {
   gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #F97316;
+  color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -4109,12 +4109,12 @@ button {
 
 .date-input-premium:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(11, 93, 82, 0.1);
 }
 
 .arrow-icon {
-  color: #F97316;
+  color: var(--color-primary);
   margin-bottom: 0.9rem;
   flex-shrink: 0;
 }
@@ -4182,7 +4182,7 @@ button {
 }
 
 .empty-message-premium svg {
-  color: #F97316;
+  color: var(--color-primary);
   margin-bottom: 1.5rem;
   opacity: 0.5;
 }
@@ -4669,7 +4669,7 @@ button {
   .print-header-detail {
     text-align: center;
     padding: 2rem;
-    border-bottom: 3px solid #6366F1;
+    border-bottom: 3px solid var(--color-primary);
     margin-bottom: 2rem;
   }
   
@@ -4681,7 +4681,7 @@ button {
   .print-header-detail h2 {
     margin: 0;
     font-size: 1.8rem;
-    color: #6366F1;
+    color: var(--color-primary);
   }
 }
 

@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v85 - UNIFICAZIONE COLORI: Tutto VERDE come ordini fissi (via blu/arancione/viola)
-const CACHE_NAME = 'lombardaflor-orders-v85-all-green';
-const STATIC_CACHE = 'lombardaflor-static-v85-all-green';
-const API_CACHE = 'lombardaflor-api-v85-all-green';
+// v86 - FIX COLORI: Rimossi ultimi blu/arancioni + Titoli header bianchi
+const CACHE_NAME = 'lombardaflor-orders-v86-final-colors';
+const STATIC_CACHE = 'lombardaflor-static-v86-final-colors';
+const API_CACHE = 'lombardaflor-api-v86-final-colors';
 
 const urlsToCache = [
   '/',
