@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v72 - MOBILE: Form-section padding ridotto, input più larghi
-const CACHE_NAME = 'lombardaflor-orders-v72-mobile-max-width';
-const STATIC_CACHE = 'lombardaflor-static-v72-mobile-max-width';
-const API_CACHE = 'lombardaflor-api-v72-mobile-max-width';
+// v73 - FIX: Rimosso padding doppio #order-form
+const CACHE_NAME = 'lombardaflor-orders-v73-remove-double-padding';
+const STATIC_CACHE = 'lombardaflor-static-v73-remove-double-padding';
+const API_CACHE = 'lombardaflor-api-v73-remove-double-padding';
 
 const urlsToCache = [
   '/',
