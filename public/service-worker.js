@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v74 - FABBISOGNO MOBILE: Date larghe, bottoni grandi
-const CACHE_NAME = 'lombardaflor-orders-v74-fabbisogno-mobile-wide';
-const STATIC_CACHE = 'lombardaflor-static-v74-fabbisogno-mobile-wide';
-const API_CACHE = 'lombardaflor-api-v74-fabbisogno-mobile-wide';
+// v75 - FABBISOGNO: Date compatte, ordini più visibili
+const CACHE_NAME = 'lombardaflor-orders-v75-fabbisogno-compact-visible';
+const STATIC_CACHE = 'lombardaflor-static-v75-fabbisogno-compact-visible';
+const API_CACHE = 'lombardaflor-api-v75-fabbisogno-compact-visible';
 
 const urlsToCache = [
   '/',

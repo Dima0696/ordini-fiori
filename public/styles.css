@@ -4727,26 +4727,32 @@ button {
     gap: 1rem !important;
   }
   
-  /* FABBISOGNO - Controlli Mobile LARGHI */
+  /* FABBISOGNO - Controlli Mobile COMPATTI */
   .fabbisogno-controls-premium {
     flex-direction: column !important;
-    gap: 1rem !important;
-    padding: 1.5rem 1rem !important;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
   }
   
   .date-range-premium {
     flex-direction: column !important;
-    gap: 1rem !important;
+    gap: 0.5rem !important;
     width: 100%;
   }
   
   .date-input-group {
     min-width: 0 !important;
     width: 100%;
+    gap: 0.25rem !important;
+  }
+  
+  .date-input-group label {
+    font-size: 0.75rem !important;
+    margin-bottom: 0 !important;
   }
   
   .date-input-premium {
-    padding: 1.2rem 1.4rem !important;
+    padding: 0.85rem 1rem !important;
     font-size: 16px !important;
     width: 100%;
   }
@@ -4758,13 +4764,27 @@ button {
   .action-buttons-premium-fab {
     width: 100% !important;
     flex-direction: row !important;
+    gap: 0.5rem !important;
   }
   
   .btn-load-premium,
   .btn-print-premium {
-    padding: 1.1rem 1.5rem !important;
-    font-size: 1rem !important;
-    min-height: 48px !important;
+    padding: 0.85rem 1.25rem !important;
+    font-size: 0.95rem !important;
+    min-height: 44px !important;
+  }
+  
+  /* FABBISOGNO - Ordini più visibili */
+  .fabbisogno-container-premium {
+    padding: 1rem !important;
+  }
+  
+  .fabbisogno-item {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1.5px solid rgba(0, 0, 0, 0.15) !important;
+    padding: 1rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
     flex: 1 !important;
   }
   
