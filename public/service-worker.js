@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v84 - FIX: Header bianco (logo visibile) + Rimossa animazione spostamento
-const CACHE_NAME = 'lombardaflor-orders-v84-header-fix';
-const STATIC_CACHE = 'lombardaflor-static-v84-header-fix';
-const API_CACHE = 'lombardaflor-api-v84-header-fix';
+// v85 - UNIFICAZIONE COLORI: Tutto VERDE come ordini fissi (via blu/arancione/viola)
+const CACHE_NAME = 'lombardaflor-orders-v85-all-green';
+const STATIC_CACHE = 'lombardaflor-static-v85-all-green';
+const API_CACHE = 'lombardaflor-api-v85-all-green';
 
 const urlsToCache = [
   '/',
