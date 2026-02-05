@@ -949,6 +949,11 @@ function renderCalendar() {
     // Classe per ordini
     if (stat && stat.total > 0) {
       dayCard.classList.add('has-orders');
+      
+      // Classe per ordini DA PREPARARE (per evidenziare nel calendario)
+      if (stat.da_preparare > 0) {
+        dayCard.classList.add('has-da-preparare');
+      }
     }
     
     // Classe OGGI

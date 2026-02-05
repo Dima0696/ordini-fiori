@@ -607,6 +607,19 @@ body {
   opacity: 1;
 }
 
+/* DAY-CARD con ordini DA PREPARARE: Evidenziata ARANCIONE nel calendario */
+.day-card.has-da-preparare {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, rgba(255, 152, 0, 0.04) 100%);
+  border: 2px solid rgba(255, 152, 0, 0.4);
+  box-shadow: 0 6px 24px rgba(255, 152, 0, 0.15), 0 2px 8px rgba(255, 152, 0, 0.08);
+}
+
+.day-card.has-da-preparare::before {
+  background: linear-gradient(180deg, #FF9800 0%, #FF6B00 100%);
+  width: 6px;
+  opacity: 1;
+}
+
 /* OGGI - Evidenziato PREMIUM */
 .day-card.today {
   background: linear-gradient(135deg, rgba(139, 193, 135, 0.15) 0%, rgba(11, 93, 82, 0.08) 100%);
@@ -1053,28 +1066,12 @@ body {
 /* Hover States */
 .order-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
-.order-card.status-da_preparare:hover {
-  background: white;
-  box-shadow: 0 8px 28px rgba(255, 107, 0, 0.35);
-  border-color: #FF5722;
-  transform: translateY(-4px) scale(1.01);
-}
-
-.order-card.status-da_preparare:hover::before {
+.order-card:hover::before {
   width: 6px;
-}
-
-.order-card.status-pronto:hover {
-  background: white; /* Background SEMPRE bianco */
-  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
-  border-color: rgba(76, 175, 80, 0.5);
-}
-
-.order-card.status-ritirato:hover {
-  box-shadow: 0 6px 20px rgba(158, 158, 158, 0.2);
 }
 
 .order-header {
@@ -2834,20 +2831,7 @@ button {
   transition: all 0.3s ease;
 }
 
-/* Hover generico SOLO per ordini che NON sono da_preparare */
-.order-card:not(.status-da_preparare):hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(11, 93, 82, 0.2);
-}
-
-/* Hover arancione per ordini da preparare (deve venire DOPO gli hover generici) */
-.order-card.status-da_preparare:hover {
-  background: #FFFFFF !important; /* Sfondo BIANCO puro - NO verde! */
-  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4) !important; /* Ombra arancione marcata */
-  border-color: #FF5722 !important; /* Bordo arancione scuro */
-  border-width: 2px !important; /* Bordo leggermente più spesso */
-  transform: translateY(-4px) scale(1.02); /* Effetto pop */
-}
+/* Hover generico per TUTTI gli ordini (neutro, senza colori specifici) */
 
 .order-card:active {
   transform: translateY(-2px);

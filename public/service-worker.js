@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v79 - CALENDARIO: Numero sfumato + testo spostato + da preparare evidenziato
-const CACHE_NAME = 'lombardaflor-orders-v79-calendar-number-bg';
-const STATIC_CACHE = 'lombardaflor-static-v79-calendar-number-bg';
-const API_CACHE = 'lombardaflor-api-v79-calendar-number-bg';
+// v80 - CALENDARIO: Rimosso hover verde, evidenziate DAY-CARD con ordini da preparare
+const CACHE_NAME = 'lombardaflor-orders-v80-calendar-da-preparare-fix';
+const STATIC_CACHE = 'lombardaflor-static-v80-calendar-da-preparare-fix';
+const API_CACHE = 'lombardaflor-api-v80-calendar-da-preparare-fix';
 
 const urlsToCache = [
   '/',
