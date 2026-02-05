@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v73 - FIX: Rimosso padding doppio #order-form
-const CACHE_NAME = 'lombardaflor-orders-v73-remove-double-padding';
-const STATIC_CACHE = 'lombardaflor-static-v73-remove-double-padding';
-const API_CACHE = 'lombardaflor-api-v73-remove-double-padding';
+// v74 - FABBISOGNO MOBILE: Date larghe, bottoni grandi
+const CACHE_NAME = 'lombardaflor-orders-v74-fabbisogno-mobile-wide';
+const STATIC_CACHE = 'lombardaflor-static-v74-fabbisogno-mobile-wide';
+const API_CACHE = 'lombardaflor-api-v74-fabbisogno-mobile-wide';
 
 const urlsToCache = [
   '/',

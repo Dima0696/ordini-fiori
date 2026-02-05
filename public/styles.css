@@ -4727,16 +4727,28 @@ button {
     gap: 1rem !important;
   }
   
-  /* FABBISOGNO - Controlli Mobile */
+  /* FABBISOGNO - Controlli Mobile LARGHI */
   .fabbisogno-controls-premium {
     flex-direction: column !important;
     gap: 1rem !important;
-    padding: 1.25rem !important;
+    padding: 1.5rem 1rem !important;
   }
   
   .date-range-premium {
     flex-direction: column !important;
-    gap: 0.75rem !important;
+    gap: 1rem !important;
+    width: 100%;
+  }
+  
+  .date-input-group {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  
+  .date-input-premium {
+    padding: 1.2rem 1.4rem !important;
+    font-size: 16px !important;
+    width: 100%;
   }
   
   .arrow-icon {
@@ -4750,6 +4762,9 @@ button {
   
   .btn-load-premium,
   .btn-print-premium {
+    padding: 1.1rem 1.5rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
     flex: 1 !important;
   }
   
