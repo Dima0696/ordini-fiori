@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v77 - CALENDARIO PREMIUM: Header, card, data visibile
-const CACHE_NAME = 'lombardaflor-orders-v77-calendar-premium';
-const STATIC_CACHE = 'lombardaflor-static-v77-calendar-premium';
-const API_CACHE = 'lombardaflor-api-v77-calendar-premium';
+// v78 - CALENDARIO: Rettangoli più compatti (ridotto padding)
+const CACHE_NAME = 'lombardaflor-orders-v78-calendar-compact';
+const STATIC_CACHE = 'lombardaflor-static-v78-calendar-compact';
+const API_CACHE = 'lombardaflor-api-v78-calendar-compact';
 
 const urlsToCache = [
   '/',
