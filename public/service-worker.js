@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v68 - FIX: Calendario padding, Cliente uppercase, Form MEGA
-const CACHE_NAME = 'lombardaflor-orders-v68-final-fixes';
-const STATIC_CACHE = 'lombardaflor-static-v68-final-fixes';
-const API_CACHE = 'lombardaflor-api-v68-final-fixes';
+// v69 - FORM ORDINI: 1 COLONNA come Fissi (AMPIO!)
+const CACHE_NAME = 'lombardaflor-orders-v69-single-column-form';
+const STATIC_CACHE = 'lombardaflor-static-v69-single-column-form';
+const API_CACHE = 'lombardaflor-api-v69-single-column-form';
 
 const urlsToCache = [
   '/',
