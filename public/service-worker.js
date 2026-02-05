@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v86 - FIX COLORI: Rimossi ultimi blu/arancioni + Titoli header bianchi
-const CACHE_NAME = 'lombardaflor-orders-v86-final-colors';
-const STATIC_CACHE = 'lombardaflor-static-v86-final-colors';
-const API_CACHE = 'lombardaflor-api-v86-final-colors';
+// v87 - HEADER: Titoli MAIUSCOLI + X moderna e ben visibile
+const CACHE_NAME = 'lombardaflor-orders-v87-header-uppercase-x';
+const STATIC_CACHE = 'lombardaflor-static-v87-header-uppercase-x';
+const API_CACHE = 'lombardaflor-api-v87-header-uppercase-x';
 
 const urlsToCache = [
   '/',
