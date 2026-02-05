@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v69 - FORM ORDINI: 1 COLONNA come Fissi (AMPIO!)
-const CACHE_NAME = 'lombardaflor-orders-v69-single-column-form';
-const STATIC_CACHE = 'lombardaflor-static-v69-single-column-form';
-const API_CACHE = 'lombardaflor-api-v69-single-column-form';
+// v70 - MOBILE: Input LARGHI + padding generoso
+const CACHE_NAME = 'lombardaflor-orders-v70-mobile-large-inputs';
+const STATIC_CACHE = 'lombardaflor-static-v70-mobile-large-inputs';
+const API_CACHE = 'lombardaflor-api-v70-mobile-large-inputs';
 
 const urlsToCache = [
   '/',

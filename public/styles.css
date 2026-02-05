@@ -4660,9 +4660,9 @@ button {
     font-size: 0.85rem !important;
   }
   
-  /* SEZIONI FORM - Padding ridotto */
+  /* SEZIONI FORM - Padding generoso mobile */
   .form-section {
-    padding: 1.25rem !important;
+    padding: 1.5rem 1.75rem !important;
   }
   
   .section-header {
@@ -4678,7 +4678,7 @@ button {
   .form-group-premium textarea,
   .form-group-fisso input,
   .form-group-fisso textarea {
-    padding: 0.9rem 1rem !important;
+    padding: 1.2rem 1.5rem !important;
     font-size: 16px !important; /* Previene zoom iOS */
   }
   
