@@ -555,7 +555,7 @@ body {
   background: white;
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
-  padding: 1rem 1rem 1rem 1.5rem;
+  padding: 1rem 1rem 1rem 1.75rem;
   border-radius: 20px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -563,6 +563,31 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+/* Numero giorno grande sfumato a destra */
+.day-number-bg {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  font-size: 5rem;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.025);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* Numero su card OGGI: sfumato verde */
+.day-card.today .day-number-bg {
+  color: rgba(11, 93, 82, 0.08);
+}
+
+/* Numero su card con hover: più visibile */
+.day-card:hover .day-number-bg {
+  color: rgba(0, 0, 0, 0.04);
 }
 
 .day-card::before {
@@ -663,6 +688,8 @@ body {
   gap: 0.5rem;
   flex-wrap: wrap;
   letter-spacing: -0.3px;
+  position: relative;
+  z-index: 1;
 }
 
 .today-badge {
@@ -706,6 +733,8 @@ body {
   font-size: 0.95rem;
   color: #6b7280;
   font-weight: 500;
+  position: relative;
+  z-index: 1;
 }
 
 .day-count {
@@ -730,6 +759,8 @@ body {
   gap: 0.5rem;
   row-gap: 0.4rem;
   margin-top: 0.4rem;
+  position: relative;
+  z-index: 1;
 }
 
 .customer-name {
@@ -983,11 +1014,11 @@ body {
   transition: all 0.3s;
 }
 
-/* Ordini "Da preparare" - Stile ARANCIONE Premium */
+/* Ordini "Da preparare" - EVIDENZIATO ARANCIONE Premium */
 .order-card.status-da_preparare {
-  background: white;
-  border: 1px solid #FF9800;
-  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(255, 152, 0, 0.02) 100%);
+  border: 2px solid #FF9800;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.3), 0 0 0 1px rgba(255, 152, 0, 0.1);
 }
 
 .order-card.status-da_preparare::before {

@@ -973,7 +973,9 @@ function renderCalendar() {
     const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][dayOfWeek];
     let dateFormatted = `${dayName} ${day} ${monthNames[dateMonth]}`;
     
-    let content = `<div class="day-date">${dateFormatted}`;
+    let content = `
+      <div class="day-number-bg">${day}</div>
+      <div class="day-date">${dateFormatted}`;
     
     // Badge OGGI
     if (isToday) {

@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v78 - CALENDARIO: Rettangoli più compatti (ridotto padding)
-const CACHE_NAME = 'lombardaflor-orders-v78-calendar-compact';
-const STATIC_CACHE = 'lombardaflor-static-v78-calendar-compact';
-const API_CACHE = 'lombardaflor-api-v78-calendar-compact';
+// v79 - CALENDARIO: Numero sfumato + testo spostato + da preparare evidenziato
+const CACHE_NAME = 'lombardaflor-orders-v79-calendar-number-bg';
+const STATIC_CACHE = 'lombardaflor-static-v79-calendar-number-bg';
+const API_CACHE = 'lombardaflor-api-v79-calendar-number-bg';
 
 const urlsToCache = [
   '/',
