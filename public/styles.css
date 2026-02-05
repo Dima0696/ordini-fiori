@@ -253,18 +253,15 @@ body {
 
 /* Header Professionale */
 .app-header {
-  background: linear-gradient(135deg, 
-    var(--color-primary) 0%, 
-    var(--color-primary-dark) 100%
-  );
-  color: white;
+  background: white;
+  color: var(--color-text);
   padding: 1rem 1.5rem;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 20px rgba(11, 93, 82, 0.25),
-              0 2px 8px rgba(11, 93, 82, 0.15);
-  border-bottom: none;
+  box-shadow: 0 4px 20px rgba(11, 93, 82, 0.12),
+              0 2px 8px rgba(11, 93, 82, 0.08);
+  border-bottom: 1px solid rgba(11, 93, 82, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -295,13 +292,12 @@ body {
 .orders-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: white;
+  color: var(--color-primary);
   margin: 0;
   letter-spacing: -0.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .app-subtitle {
@@ -1028,11 +1024,11 @@ body {
 
 /* Bottoni Header Moderni */
 .btn-icon {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(11, 93, 82, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  border: 1px solid rgba(11, 93, 82, 0.15);
+  color: var(--color-primary);
   padding: 0.6rem;
   cursor: pointer;
   border-radius: 10px;
@@ -1043,10 +1039,10 @@ body {
 }
 
 .btn-icon:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(11, 93, 82, 0.15);
+  border-color: var(--color-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.2);
 }
 
 .btn-icon:active {
@@ -1055,11 +1051,11 @@ body {
 
 /* Bottoni navigazione moderni e grandi */
 .btn-nav {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(11, 93, 82, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: white;
+  border: 1px solid rgba(11, 93, 82, 0.15);
+  color: var(--color-primary);
   padding: 0.75rem;
   cursor: pointer;
   border-radius: 12px;
@@ -1076,11 +1072,11 @@ body {
 }
 
 .btn-nav:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(11, 93, 82, 0.3);
 }
 
 .btn-nav:active {
@@ -1089,7 +1085,7 @@ body {
 
 /* Bottone Home con colore speciale */
 .btn-nav.btn-home {
-  background: rgba(168, 213, 164, 0.25);
+  background: rgba(168, 213, 164, 0.15);
   border-color: rgba(168, 213, 164, 0.4);
 }
 
@@ -1104,11 +1100,11 @@ body {
 }
 
 .btn-logout {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(232, 93, 74, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: white;
+  border: 1px solid rgba(232, 93, 74, 0.2);
+  color: var(--color-danger);
   padding: 0.5rem 1rem;
   cursor: pointer;
   border-radius: 10px;
@@ -1136,7 +1132,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  animation: fadeIn 0.5s ease-out;
 }
 
 /* ============================================

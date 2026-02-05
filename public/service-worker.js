@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v83 - PREMIUM: Login page + Orders page con design premium (glassmorphism + gradienti)
-const CACHE_NAME = 'lombardaflor-orders-v83-premium-pages';
-const STATIC_CACHE = 'lombardaflor-static-v83-premium-pages';
-const API_CACHE = 'lombardaflor-api-v83-premium-pages';
+// v84 - FIX: Header bianco (logo visibile) + Rimossa animazione spostamento
+const CACHE_NAME = 'lombardaflor-orders-v84-header-fix';
+const STATIC_CACHE = 'lombardaflor-static-v84-header-fix';
+const API_CACHE = 'lombardaflor-api-v84-header-fix';
 
 const urlsToCache = [
   '/',
