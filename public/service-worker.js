@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v91 - FIX: Notifiche riattivate + Debug tool checkNotifications()
-const CACHE_NAME = 'lombardaflor-orders-v91-notifications-fix';
-const STATIC_CACHE = 'lombardaflor-static-v91-notifications-fix';
-const API_CACHE = 'lombardaflor-api-v91-notifications-fix';
+// v92 - NOTIFICHE: Ripristinate notifiche istantanee (creazione/modifica/cambio stato/ordinata)
+const CACHE_NAME = 'lombardaflor-orders-v92-instant-notifications';
+const STATIC_CACHE = 'lombardaflor-static-v92-instant-notifications';
+const API_CACHE = 'lombardaflor-api-v92-instant-notifications';
 
 const urlsToCache = [
   '/',

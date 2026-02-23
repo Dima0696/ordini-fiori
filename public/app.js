@@ -1604,6 +1604,16 @@ async function handleOrderSubmit(e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
       });
+      
+      // Notifica modifica
+      if (Notification.permission === 'granted') {
+        new Notification('✏️ Ordine Modificato', {
+          body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
+          icon: '/icon-192.png',
+          tag: 'order-updated-' + orderId,
+          vibrate: [200]
+        });
+      }
     } else {
       // Crea nuovo ordine
       await authenticatedFetch(`${API_URL}/orders`, {
@@ -1611,6 +1621,16 @@ async function handleOrderSubmit(e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
       });
+      
+      // Notifica creazione
+      if (Notification.permission === 'granted') {
+        new Notification('✅ Nuovo Ordine Creato', {
+          body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
+          icon: '/icon-192.png',
+          tag: 'order-created',
+          vibrate: [200, 100, 200]
+        });
+      }
     }
     
     // Switcha alla data dell'ordine salvato e ricarica
@@ -1635,6 +1655,21 @@ async function updateOrderStatus(orderId, status) {
       body: JSON.stringify({ status })
     });
     
+    // Notifica cambio stato
+    if (Notification.permission === 'granted') {
+      const statusLabels = {
+        'da_preparare': '🟠 Da Preparare',
+        'pronto': '✅ Pronto',
+        'ritirato': '📦 Ritirato'
+      };
+      new Notification('🔄 Stato Ordine Aggiornato', {
+        body: `Nuovo stato: ${statusLabels[status] || status}`,
+        icon: '/icon-192.png',
+        tag: 'status-changed-' + orderId,
+        vibrate: [100]
+      });
+    }
+    
     await loadOrders(currentDate);
     await loadCalendar(true);
   } catch (error) {
@@ -1646,17 +1681,27 @@ async function updateOrderStatus(orderId, status) {
 // Elimina ordine
 async function handleOrderDelete() {
   if (!currentOrderId) return;
-  
+
   modalConfirm.classList.remove('active');
-  
+
   calendarCache = null;
   calendarCacheTime = 0;
-  
+
   try {
     await authenticatedFetch(`${API_URL}/orders/${currentOrderId}`, {
       method: 'DELETE'
     });
     
+    // Notifica eliminazione
+    if (Notification.permission === 'granted') {
+      new Notification('🗑️ Ordine Eliminato', {
+        body: 'L\'ordine è stato eliminato con successo',
+        icon: '/icon-192.png',
+        tag: 'order-deleted-' + currentOrderId,
+        vibrate: [100, 50, 100]
+      });
+    }
+
     await loadOrders(currentDate);
     await loadCalendar(true);
   } catch (error) {
@@ -2352,11 +2397,31 @@ async function markAsOrdered(orderId) {
   calendarCacheTime = 0;
   
   try {
+    // Ottieni dati ordine per notifica (dal DOM o API)
+    let customerName = 'Ordine';
+    const orderElement = button ? button.closest('.fabbisogno-item') : null;
+    if (orderElement) {
+      const customerEl = orderElement.querySelector('.fabbisogno-customer');
+      if (customerEl) {
+        customerName = customerEl.textContent.trim();
+      }
+    }
+    
     await authenticatedFetch(`${API_URL}/orders/${orderId}/goods-type`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ goods_type: GOODS_TYPE.ORDINATA })
     });
+    
+    // Notifica merce ordinata
+    if (Notification.permission === 'granted') {
+      new Notification('📦 Merce Ordinata', {
+        body: `${customerName} - Segnata come ordinata`,
+        icon: '/icon-192.png',
+        tag: 'order-marked-' + orderId,
+        vibrate: [200, 100, 200]
+      });
+    }
     
     await loadCalendar(true);
     if (currentDate) {
