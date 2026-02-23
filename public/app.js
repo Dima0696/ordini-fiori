@@ -3032,7 +3032,66 @@ async function debugSchema() {
   }
 }
 
+// Funzione di debug per verificare stato notifiche
+async function checkNotifications() {
+  try {
+    console.log('🔔 Verifica stato notifiche...\n');
+    
+    // 1. Verifica permesso browser
+    console.log('1️⃣ PERMESSO BROWSER:');
+    console.log(`   Permission: ${Notification.permission}`);
+    
+    if (Notification.permission !== 'granted') {
+      console.log('   ❌ PROBLEMA: Devi attivare le notifiche!');
+      console.log('   💡 Clicca sul bottone 🔔 in alto a destra per attivarle.');
+      return;
+    }
+    console.log('   ✅ Permesso concesso\n');
+    
+    // 2. Verifica Service Worker
+    console.log('2️⃣ SERVICE WORKER:');
+    const registration = await navigator.serviceWorker.ready;
+    console.log(`   ✅ Registrato: ${registration.active ? 'SI' : 'NO'}\n`);
+    
+    // 3. Verifica Subscription
+    console.log('3️⃣ PUSH SUBSCRIPTION:');
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      console.log('   ❌ PROBLEMA: Nessuna subscription attiva!');
+      console.log('   💡 Ricarica la pagina o clicca sul bottone 🔔');
+      return;
+    }
+    console.log('   ✅ Subscription attiva');
+    console.log(`   Endpoint: ${subscription.endpoint.substring(0, 50)}...\n`);
+    
+    // 4. Verifica Server
+    console.log('4️⃣ SERVER STATUS:');
+    const response = await authenticatedFetch(`${API_URL}/push/status`);
+    const status = await response.json();
+    console.log(`   Notifiche attive: ${status.enabled ? '✅ SI' : '❌ NO'}`);
+    console.log(`   Orario programmato: ${status.scheduledTime} (${status.timezone})`);
+    console.log(`   Subscription totali: ${status.totalSubscriptions}\n`);
+    
+    // 5. Test notifica
+    console.log('5️⃣ TEST NOTIFICA:');
+    console.log('   Invio notifica di test...');
+    const testResponse = await authenticatedFetch(`${API_URL}/push/test`, {
+      method: 'POST'
+    });
+    const testResult = await testResponse.json();
+    console.log(`   ✅ ${testResult.message}\n`);
+    
+    console.log('🎯 RISULTATO: Le notifiche sono configurate correttamente!');
+    console.log('📅 Riceverai una notifica ogni giorno alle 6:30 se ci sono ordini.');
+    
+  } catch (error) {
+    console.error('❌ Errore verifica notifiche:', error);
+    console.log('\n💡 SOLUZIONE: Clicca sul bottone 🔔 in alto a destra per riattivare.');
+  }
+}
+
 // Rendi disponibili globalmente
 window.debugSchema = debugSchema; // Usa debugSchema() nella console per verificare DB
+window.checkNotifications = checkNotifications; // Usa checkNotifications() per verificare notifiche
 window.viewListino = viewListino;
 window.deleteListino = deleteListino;

@@ -767,19 +767,37 @@ function formatDateForDB(date) {
   return `${year}-${month}-${day}`;
 }
 
-// Scheduler: ogni giorno alle 6:30 - TEMPORANEAMENTE DISATTIVATO
-// cron.schedule(`${pushConfig.notificationTime.minute} ${pushConfig.notificationTime.hour} * * *`, () => {
-//   console.log('⏰ Invio notifiche giornaliere...');
-//   sendDailyNotifications();
-// }, {
-//   timezone: "Europe/Rome"
-// });
+// Scheduler: ogni giorno alle 6:30 - ATTIVATO
+cron.schedule(`${pushConfig.notificationTime.minute} ${pushConfig.notificationTime.hour} * * *`, () => {
+  console.log('⏰ Invio notifiche giornaliere...');
+  sendDailyNotifications();
+}, {
+  timezone: "Europe/Rome"
+});
 
-console.log(`⏰ Notifiche TEMPORANEAMENTE DISATTIVATE per testing`);
+console.log(`⏰ Notifiche push ATTIVE: ogni giorno alle ${pushConfig.notificationTime.hour}:${String(pushConfig.notificationTime.minute).padStart(2, '0')}`);
 
 // ============================================
 // API LISTINI
 // ============================================
+
+// GET /api/push/status - Verifica stato notifiche
+app.get('/api/push/status', authenticate, (req, res) => {
+  try {
+    const allSubs = db.getAllSubscriptions();
+    const userSub = allSubs.find(s => s.username === req.user.username);
+    
+    res.json({
+      enabled: !!userSub,
+      totalSubscriptions: allSubs.length,
+      scheduledTime: `${pushConfig.notificationTime.hour}:${String(pushConfig.notificationTime.minute).padStart(2, '0')}`,
+      timezone: 'Europe/Rome'
+    });
+  } catch (error) {
+    console.error('Errore verifica stato notifiche:', error);
+    res.status(500).json({ error: 'Errore verifica stato' });
+  }
+});
 
 // GET /api/listini - Ottieni tutti i listini
 app.get('/api/listini', authenticate, (req, res) => {

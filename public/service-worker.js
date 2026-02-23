@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v90 - FEATURE: Pagina Listini per caricare PDF delle festività
-const CACHE_NAME = 'lombardaflor-orders-v90-listini-page';
-const STATIC_CACHE = 'lombardaflor-static-v90-listini-page';
-const API_CACHE = 'lombardaflor-api-v90-listini-page';
+// v91 - FIX: Notifiche riattivate + Debug tool checkNotifications()
+const CACHE_NAME = 'lombardaflor-orders-v91-notifications-fix';
+const STATIC_CACHE = 'lombardaflor-static-v91-notifications-fix';
+const API_CACHE = 'lombardaflor-api-v91-notifications-fix';
 
 const urlsToCache = [
   '/',
