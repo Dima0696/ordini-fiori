@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v92 - NOTIFICHE: Ripristinate notifiche istantanee (creazione/modifica/cambio stato/ordinata)
-const CACHE_NAME = 'lombardaflor-orders-v92-instant-notifications';
-const STATIC_CACHE = 'lombardaflor-static-v92-instant-notifications';
-const API_CACHE = 'lombardaflor-api-v92-instant-notifications';
+// v93 - FIX CALENDARIO: Mese completo + Fix navigazione mesi (no più salti/blocchi)
+const CACHE_NAME = 'lombardaflor-orders-v93-calendar-month-fix';
+const STATIC_CACHE = 'lombardaflor-static-v93-calendar-month-fix';
+const API_CACHE = 'lombardaflor-api-v93-calendar-month-fix';
 
 const urlsToCache = [
   '/',

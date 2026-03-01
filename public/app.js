@@ -562,12 +562,14 @@ function setupEventListeners() {
   
   // Navigazione mesi calendario ordini fissi
   document.getElementById('fisso-prev-month').addEventListener('click', () => {
-    fissoCurrentMonth.setMonth(fissoCurrentMonth.getMonth() - 1);
+    // Crea nuova data per evitare problemi con setMonth
+    fissoCurrentMonth = new Date(fissoCurrentMonth.getFullYear(), fissoCurrentMonth.getMonth() - 1, 1);
     renderFissoCalendar();
   });
-  
+
   document.getElementById('fisso-next-month').addEventListener('click', () => {
-    fissoCurrentMonth.setMonth(fissoCurrentMonth.getMonth() + 1);
+    // Crea nuova data per evitare problemi con setMonth
+    fissoCurrentMonth = new Date(fissoCurrentMonth.getFullYear(), fissoCurrentMonth.getMonth() + 1, 1);
     renderFissoCalendar();
   });
   
@@ -942,24 +944,17 @@ function renderCalendar() {
   daysList.innerHTML = '';
   let todayCard = null;
   
-  // Trova il giorno corrente
-  const todayDay = (today.getMonth() === month && today.getFullYear() === year) 
-    ? today.getDate() 
-    : 1;
-  
-  // Crea array di date partendo da oggi
+  // Crea array di date - SEMPRE MESE COMPLETO + primi giorni del mese successivo
   const dates = [];
   
-  // Prima: giorni da oggi alla fine del mese corrente
-  for (let day = todayDay; day <= lastDay.getDate(); day++) {
+  // Prima: TUTTI i giorni del mese corrente (dal 1 all'ultimo giorno)
+  for (let day = 1; day <= lastDay.getDate(); day++) {
     dates.push(new Date(year, month, day));
   }
   
-  // Poi: giorni dall'inizio del mese SUCCESSIVO (non stesso mese)
-  // Aggiungi giorni dal mese prossimo fino ad arrivare a 'todayDay-1' giorni mostrati
-  const daysToShowFromNextMonth = todayDay - 1;
-  for (let day = 1; day <= daysToShowFromNextMonth; day++) {
-    dates.push(new Date(year, month + 1, day)); // mese + 1 = mese successivo
+  // Poi: primi 7 giorni del mese successivo (per continuità)
+  for (let day = 1; day <= 7; day++) {
+    dates.push(new Date(year, month + 1, day));
   }
   
   // Renderizza giorni nell'ordine corretto
