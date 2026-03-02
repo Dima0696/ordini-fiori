@@ -114,9 +114,13 @@ window.addEventListener('load', () => {
   if (splashScreen) {
     setTimeout(() => {
       splashScreen.classList.add('fade-out');
-      // Rimuovi dal DOM dopo la transizione
+      // Rimuovi dal DOM dopo la transizione e ripristina scroll
       setTimeout(() => {
         splashScreen.remove();
+        // Assicura che il body possa scrollare
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
       }, 500);
     }, 800);
   }

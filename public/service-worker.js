@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v100 - SPLASH DARK: Sfondo scuro per abbinare logo
-const CACHE_NAME = 'lombardaflor-orders-v100-splash-dark';
-const STATIC_CACHE = 'lombardaflor-static-v100-splash-dark';
-const API_CACHE = 'lombardaflor-api-v100-splash-dark';
+// v101 - SPLASH LIGHT + FIX SCROLL: Sfondo più chiaro + scroll ripristinato
+const CACHE_NAME = 'lombardaflor-orders-v101-splash-light-scroll';
+const STATIC_CACHE = 'lombardaflor-static-v101-splash-light-scroll';
+const API_CACHE = 'lombardaflor-api-v101-splash-light-scroll';
 
 const urlsToCache = [
   '/',
