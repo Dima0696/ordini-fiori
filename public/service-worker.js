@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v94 - FIX CRITICO: Notifiche PWA con ServiceWorkerRegistration.showNotification()
-const CACHE_NAME = 'lombardaflor-orders-v94-notifications-pwa-fix';
-const STATIC_CACHE = 'lombardaflor-static-v94-notifications-pwa-fix';
-const API_CACHE = 'lombardaflor-api-v94-notifications-pwa-fix';
+// v95 - AUTO-RIREGISTRAZIONE + Rimosso bottone notifiche
+const CACHE_NAME = 'lombardaflor-orders-v95-auto-register';
+const STATIC_CACHE = 'lombardaflor-static-v95-auto-register';
+const API_CACHE = 'lombardaflor-api-v95-auto-register';
 
 const urlsToCache = [
   '/',

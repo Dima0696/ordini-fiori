@@ -439,13 +439,6 @@ function setupPullToRefresh() {
 // Setup event listeners
 function setupEventListeners() {
   // Notifiche
-  document.getElementById('btn-notifications').addEventListener('click', async () => {
-    await requestNotificationPermission(true); // true = mostra sempre prompt
-  });
-  document.getElementById('btn-notifications-orders').addEventListener('click', async () => {
-    await requestNotificationPermission(true);
-  });
-  
   // Logout
   document.getElementById('btn-logout').addEventListener('click', logout);
   document.getElementById('btn-logout-orders').addEventListener('click', logout);
@@ -1774,79 +1767,48 @@ function escapeHtml(text) {
 // ==========================================
 
 async function requestNotificationPermission(manualRequest = false) {
-  const notifBtn = document.getElementById('btn-notifications');
-  
   // Verifica supporto notifiche
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('Notifiche push non supportate');
-    if (manualRequest) {
-      alert('⚠️ Il tuo browser non supporta le notifiche push.\n\nProva con Chrome o Firefox!');
-    }
+    console.log('⚠️ Notifiche push non supportate su questo browser');
     return;
   }
-  
+
   try {
-    // Se già autorizzato, registra e aggiorna UI
+    // AUTO-RIREGISTRAZIONE: Se già autorizzato, rinnova subscription (anche se scaduta)
     if (Notification.permission === 'granted') {
       await registerPushSubscription();
-      if (notifBtn) {
-        notifBtn.classList.add('active');
-        notifBtn.title = 'Notifiche attive ✓';
-      }
-      if (manualRequest) {
-        alert('✅ Notifiche già attive!\n\nRiceverai un avviso ogni mattina alle 7:00.');
-      }
+      console.log('✓ Notifiche push auto-registrate');
       return;
     }
-    
-    // Se rifiutato
+
+    // Se rifiutato, non fare nulla
     if (Notification.permission === 'denied') {
-      if (manualRequest) {
-        alert('⚠️ Permessi notifiche negati!\n\nPer attivarle:\n1. Clicca sul lucchetto nella barra indirizzi\n2. Vai a Impostazioni sito\n3. Notifiche → Consenti');
-      }
+      console.log('⚠️ Notifiche negate dall\'utente');
       return;
     }
-    
-    // Richiedi permesso
-    if (manualRequest) {
-      // Richiesta immediata se manuale
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        await registerPushSubscription();
-        if (notifBtn) {
-          notifBtn.classList.add('active');
-          notifBtn.title = 'Notifiche attive ✓';
-        }
-        // Mostra notifica di conferma
-        new Notification('🔔 Notifiche Attivate', {
-          body: 'Riceverai un avviso ogni mattina alle 7:00 per gli ordini del giorno!',
-          icon: '/icon-192.png',
-          vibrate: [200, 100, 200]
-        });
-      }
-    } else {
-      // Richiesta automatica dopo 5 secondi
+
+    // Se non ancora richiesto (default), chiedi automaticamente dopo 10 secondi
+    if (!manualRequest) {
       setTimeout(async () => {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          await registerPushSubscription();
-          if (notifBtn) {
-            notifBtn.classList.add('active');
-            notifBtn.title = 'Notifiche attive ✓';
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            await registerPushSubscription();
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification('🔔 Notifiche Attivate', {
+              body: 'Riceverai un avviso ogni mattina alle 6:30 per gli ordini del giorno',
+              icon: '/icon-192.png',
+              vibrate: [200, 100, 200]
+            });
+            console.log('✓ Notifiche attivate automaticamente');
           }
-          new Notification('🔔 Notifiche Attivate', {
-            body: 'Riceverai un avviso ogni mattina alle 7:00 per gli ordini del giorno!',
-            icon: '/icon-192.png',
-            vibrate: [200, 100, 200]
-          });
+        } catch (e) {
+          console.log('Richiesta notifiche annullata o errore:', e);
         }
-      }, 5000);
+      }, 10000); // 10 secondi dopo l'avvio
     }
   } catch (error) {
     console.error('Errore permessi notifiche:', error);
-    if (manualRequest) {
-      alert('❌ Errore attivazione notifiche:\n' + error.message);
-    }
   }
 }
 
@@ -3127,8 +3089,9 @@ async function checkNotifications() {
     console.log(`   Permission: ${Notification.permission}`);
     
     if (Notification.permission !== 'granted') {
-      console.log('   ❌ PROBLEMA: Devi attivare le notifiche!');
-      console.log('   💡 Clicca sul bottone 🔔 in alto a destra per attivarle.');
+      console.log('   ❌ PROBLEMA: Permesso non concesso!');
+      console.log('   💡 Le notifiche verranno richieste automaticamente dopo 10 secondi dall\'avvio.');
+      console.log('   💡 Oppure ricarica la pagina e accetta quando richiesto.');
       return;
     }
     console.log('   ✅ Permesso concesso\n');
@@ -3143,7 +3106,8 @@ async function checkNotifications() {
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
       console.log('   ❌ PROBLEMA: Nessuna subscription attiva!');
-      console.log('   💡 Ricarica la pagina o clicca sul bottone 🔔');
+      console.log('   💡 Ricarica la pagina per auto-registrare.');
+      console.log('   💡 Oppure chiama: await registerPushSubscription()');
       return;
     }
     console.log('   ✅ Subscription attiva');
