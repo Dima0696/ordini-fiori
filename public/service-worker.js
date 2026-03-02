@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v97 - Splash screen premium animata
-const CACHE_NAME = 'lombardaflor-orders-v97-splash-screen';
-const STATIC_CACHE = 'lombardaflor-static-v97-splash-screen';
-const API_CACHE = 'lombardaflor-api-v97-splash-screen';
+// v98 - FIX Android: Disabilitata splash nativa + CSS critico inline
+const CACHE_NAME = 'lombardaflor-orders-v98-splash-fix-android';
+const STATIC_CACHE = 'lombardaflor-static-v98-splash-fix-android';
+const API_CACHE = 'lombardaflor-api-v98-splash-fix-android';
 
 const urlsToCache = [
   '/',
