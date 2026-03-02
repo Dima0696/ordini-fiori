@@ -4,7 +4,7 @@
   "description": "Gestione ordini LombardaFlor",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#1B7B6F",
+  "background_color": "#1a332e",
   "theme_color": "#0B5D52",
   "orientation": "portrait",
   "prefer_related_applications": false,

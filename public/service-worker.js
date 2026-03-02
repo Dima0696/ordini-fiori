@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v99 - INSTANT SPLASH: Carica splash custom SUBITO, animazioni veloci
-const CACHE_NAME = 'lombardaflor-orders-v99-instant-splash';
-const STATIC_CACHE = 'lombardaflor-static-v99-instant-splash';
-const API_CACHE = 'lombardaflor-api-v99-instant-splash';
+// v100 - SPLASH DARK: Sfondo scuro per abbinare logo
+const CACHE_NAME = 'lombardaflor-orders-v100-splash-dark';
+const STATIC_CACHE = 'lombardaflor-static-v100-splash-dark';
+const API_CACHE = 'lombardaflor-api-v100-splash-dark';
 
 const urlsToCache = [
   '/',

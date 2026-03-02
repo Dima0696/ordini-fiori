@@ -51,7 +51,7 @@
   left: 0;
   width: 100%;
   height: 100vh;
-  background: linear-gradient(135deg, #0B5D52 0%, #1B7B6F 50%, #2A9D8F 100%);
+  background: linear-gradient(135deg, #1a332e 0%, #0B5D52 50%, #1B7B6F 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,9 +74,9 @@
 }
 
 .splash-logo {
-  width: 180px;
+  width: 200px;
   height: auto;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.5));
   animation: logoFloat 0.5s ease-out;
 }
 
@@ -137,11 +137,11 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
   .splash-logo {
-    width: 140px;
+    width: 160px;
   }
   
   .splash-loader {
-    width: 160px;
+    width: 180px;
   }
 }
 
