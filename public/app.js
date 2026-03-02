@@ -102,9 +102,15 @@ const ordersList = document.getElementById('orders-list');
 const emptyMessage = document.getElementById('empty-message');
 
 // Splash Screen Management
+// Mostra splash SUBITO per sovrascrivere quella nativa Android
+const splashScreen = document.getElementById('splash-screen');
+if (splashScreen) {
+  // Assicura che sia visibile immediatamente
+  splashScreen.style.display = 'flex';
+}
+
 window.addEventListener('load', () => {
-  // Rimuovi splash screen dopo il caricamento completo (minimo 1.2s per vedere l'animazione)
-  const splashScreen = document.getElementById('splash-screen');
+  // Rimuovi splash screen dopo il caricamento completo (ridotto a 800ms per velocità)
   if (splashScreen) {
     setTimeout(() => {
       splashScreen.classList.add('fade-out');
@@ -112,7 +118,7 @@ window.addEventListener('load', () => {
       setTimeout(() => {
         splashScreen.remove();
       }, 500);
-    }, 1200);
+    }, 800);
   }
 });
 

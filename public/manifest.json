@@ -2,12 +2,19 @@
   "name": "LombardaFlor Orders",
   "short_name": "LombardaFlor",
   "description": "Gestione ordini LombardaFlor",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#0B5D52",
+  "background_color": "#1B7B6F",
   "theme_color": "#0B5D52",
   "orientation": "portrait",
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
