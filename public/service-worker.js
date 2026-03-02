@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v96 - Bottoni refresh con animazione
-const CACHE_NAME = 'lombardaflor-orders-v96-refresh-buttons';
-const STATIC_CACHE = 'lombardaflor-static-v96-refresh-buttons';
-const API_CACHE = 'lombardaflor-api-v96-refresh-buttons';
+// v97 - Splash screen premium animata
+const CACHE_NAME = 'lombardaflor-orders-v97-splash-screen';
+const STATIC_CACHE = 'lombardaflor-static-v97-splash-screen';
+const API_CACHE = 'lombardaflor-api-v97-splash-screen';
 
 const urlsToCache = [
   '/',

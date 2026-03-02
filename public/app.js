@@ -101,6 +101,21 @@ const daysList = document.getElementById('days-list');
 const ordersList = document.getElementById('orders-list');
 const emptyMessage = document.getElementById('empty-message');
 
+// Splash Screen Management
+window.addEventListener('load', () => {
+  // Rimuovi splash screen dopo il caricamento completo (minimo 1.2s per vedere l'animazione)
+  const splashScreen = document.getElementById('splash-screen');
+  if (splashScreen) {
+    setTimeout(() => {
+      splashScreen.classList.add('fade-out');
+      // Rimuovi dal DOM dopo la transizione
+      setTimeout(() => {
+        splashScreen.remove();
+      }, 500);
+    }, 1200);
+  }
+});
+
 // Inizializzazione app
 document.addEventListener('DOMContentLoaded', () => {
   setupLoginListeners();
