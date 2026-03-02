@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v93 - FIX CALENDARIO: Mese completo + Fix navigazione mesi (no più salti/blocchi)
-const CACHE_NAME = 'lombardaflor-orders-v93-calendar-month-fix';
-const STATIC_CACHE = 'lombardaflor-static-v93-calendar-month-fix';
-const API_CACHE = 'lombardaflor-api-v93-calendar-month-fix';
+// v94 - FIX CRITICO: Notifiche PWA con ServiceWorkerRegistration.showNotification()
+const CACHE_NAME = 'lombardaflor-orders-v94-notifications-pwa-fix';
+const STATIC_CACHE = 'lombardaflor-static-v94-notifications-pwa-fix';
+const API_CACHE = 'lombardaflor-api-v94-notifications-pwa-fix';
 
 const urlsToCache = [
   '/',

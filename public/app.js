@@ -1602,12 +1602,17 @@ async function handleOrderSubmit(e) {
       
       // Notifica modifica
       if (Notification.permission === 'granted') {
-        new Notification('✏️ Ordine Modificato', {
-          body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
-          icon: '/icon-192.png',
-          tag: 'order-updated-' + orderId,
-          vibrate: [200]
-        });
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          registration.showNotification('✏️ Ordine Modificato', {
+            body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
+            icon: '/icon-192.png',
+            tag: 'order-updated-' + orderId,
+            vibrate: [200]
+          });
+        } catch (e) {
+          console.log('Notifica non inviata:', e);
+        }
       }
     } else {
       // Crea nuovo ordine
@@ -1619,12 +1624,17 @@ async function handleOrderSubmit(e) {
       
       // Notifica creazione
       if (Notification.permission === 'granted') {
-        new Notification('✅ Nuovo Ordine Creato', {
-          body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
-          icon: '/icon-192.png',
-          tag: 'order-created',
-          vibrate: [200, 100, 200]
-        });
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          registration.showNotification('✅ Nuovo Ordine Creato', {
+            body: `${customer} - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
+            icon: '/icon-192.png',
+            tag: 'order-created',
+            vibrate: [200, 100, 200]
+          });
+        } catch (e) {
+          console.log('Notifica non inviata:', e);
+        }
       }
     }
     
@@ -1652,17 +1662,22 @@ async function updateOrderStatus(orderId, status) {
     
     // Notifica cambio stato
     if (Notification.permission === 'granted') {
-      const statusLabels = {
-        'da_preparare': '🟠 Da Preparare',
-        'pronto': '✅ Pronto',
-        'ritirato': '📦 Ritirato'
-      };
-      new Notification('🔄 Stato Ordine Aggiornato', {
-        body: `Nuovo stato: ${statusLabels[status] || status}`,
-        icon: '/icon-192.png',
-        tag: 'status-changed-' + orderId,
-        vibrate: [100]
-      });
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const statusLabels = {
+          'da_preparare': '🟠 Da Preparare',
+          'pronto': '✅ Pronto',
+          'ritirato': '📦 Ritirato'
+        };
+        registration.showNotification('🔄 Stato Ordine Aggiornato', {
+          body: `Nuovo stato: ${statusLabels[status] || status}`,
+          icon: '/icon-192.png',
+          tag: 'status-changed-' + orderId,
+          vibrate: [100]
+        });
+      } catch (e) {
+        console.log('Notifica non inviata:', e);
+      }
     }
     
     await loadOrders(currentDate);
@@ -1689,12 +1704,17 @@ async function handleOrderDelete() {
     
     // Notifica eliminazione
     if (Notification.permission === 'granted') {
-      new Notification('🗑️ Ordine Eliminato', {
-        body: 'L\'ordine è stato eliminato con successo',
-        icon: '/icon-192.png',
-        tag: 'order-deleted-' + currentOrderId,
-        vibrate: [100, 50, 100]
-      });
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('🗑️ Ordine Eliminato', {
+          body: 'L\'ordine è stato eliminato con successo',
+          icon: '/icon-192.png',
+          tag: 'order-deleted-' + currentOrderId,
+          vibrate: [100, 50, 100]
+        });
+      } catch (e) {
+        console.log('Notifica non inviata:', e);
+      }
     }
 
     await loadOrders(currentDate);
@@ -2410,12 +2430,17 @@ async function markAsOrdered(orderId) {
     
     // Notifica merce ordinata
     if (Notification.permission === 'granted') {
-      new Notification('📦 Merce Ordinata', {
-        body: `${customerName} - Segnata come ordinata`,
-        icon: '/icon-192.png',
-        tag: 'order-marked-' + orderId,
-        vibrate: [200, 100, 200]
-      });
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('📦 Merce Ordinata', {
+          body: `${customerName} - Segnata come ordinata`,
+          icon: '/icon-192.png',
+          tag: 'order-marked-' + orderId,
+          vibrate: [200, 100, 200]
+        });
+      } catch (e) {
+        console.log('Notifica non inviata:', e);
+      }
     }
     
     await loadCalendar(true);
