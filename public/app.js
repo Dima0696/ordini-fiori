@@ -221,6 +221,47 @@ async function autoRefreshOrders() {
   }
 }
 
+// Funzioni refresh manuali con animazione
+async function refreshCalendar() {
+  const btn = document.getElementById('btn-refresh-calendar');
+  if (!btn) return;
+  
+  // Aggiungi classe spinning
+  btn.classList.add('spinning');
+  
+  try {
+    await loadCalendar();
+  } catch (error) {
+    console.error('Errore refresh calendario:', error);
+    alert('Errore durante il caricamento del calendario');
+  } finally {
+    // Rimuovi animazione dopo 500ms
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+    }, 500);
+  }
+}
+
+async function refreshOrdersList() {
+  const btn = document.getElementById('btn-refresh-orders');
+  if (!btn) return;
+  
+  // Aggiungi classe spinning
+  btn.classList.add('spinning');
+  
+  try {
+    await loadOrders(currentDate);
+  } catch (error) {
+    console.error('Errore refresh ordini:', error);
+    alert('Errore durante il caricamento degli ordini');
+  } finally {
+    // Rimuovi animazione dopo 500ms
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+    }, 500);
+  }
+}
+
 // Vecchie funzioni di indicatore rimosse - ora usiamo pull-to-refresh
 
 // Login listeners
@@ -442,6 +483,10 @@ function setupEventListeners() {
   // Logout
   document.getElementById('btn-logout').addEventListener('click', logout);
   document.getElementById('btn-logout-orders').addEventListener('click', logout);
+
+  // Refresh
+  document.getElementById('btn-refresh-calendar').addEventListener('click', refreshCalendar);
+  document.getElementById('btn-refresh-orders').addEventListener('click', refreshOrdersList);
   
   // Barra di ricerca
   let searchDebounceTimer;

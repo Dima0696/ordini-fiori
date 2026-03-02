@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v95 - AUTO-RIREGISTRAZIONE + Rimosso bottone notifiche
-const CACHE_NAME = 'lombardaflor-orders-v95-auto-register';
-const STATIC_CACHE = 'lombardaflor-static-v95-auto-register';
-const API_CACHE = 'lombardaflor-api-v95-auto-register';
+// v96 - Bottoni refresh con animazione
+const CACHE_NAME = 'lombardaflor-orders-v96-refresh-buttons';
+const STATIC_CACHE = 'lombardaflor-static-v96-refresh-buttons';
+const API_CACHE = 'lombardaflor-api-v96-refresh-buttons';
 
 const urlsToCache = [
   '/',
