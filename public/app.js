@@ -1007,17 +1007,34 @@ function renderCalendar() {
   daysList.innerHTML = '';
   let todayCard = null;
   
-  // Crea array di date - SEMPRE MESE COMPLETO + primi giorni del mese successivo
+  // Crea array di date - SOLO DA OGGI IN POI + prossimi 30 giorni
   const dates = [];
   
-  // Prima: TUTTI i giorni del mese corrente (dal 1 all'ultimo giorno)
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    dates.push(new Date(year, month, day));
+  // Determina il giorno di partenza: oggi o primo del mese se siamo nel futuro
+  const startDate = new Date(today);
+  
+  // Se stiamo guardando un mese futuro, parti dal primo giorno
+  if (year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth())) {
+    startDate.setFullYear(year);
+    startDate.setMonth(month);
+    startDate.setDate(1);
+  }
+  // Se stiamo guardando il mese corrente, parti da oggi
+  else if (year === today.getFullYear() && month === today.getMonth()) {
+    // startDate è già oggi
+  }
+  // Se stiamo guardando un mese passato, non mostrare nulla (o parti dal primo)
+  else {
+    startDate.setFullYear(year);
+    startDate.setMonth(month);
+    startDate.setDate(1);
   }
   
-  // Poi: primi 7 giorni del mese successivo (per continuità)
-  for (let day = 1; day <= 7; day++) {
-    dates.push(new Date(year, month + 1, day));
+  // Genera i prossimi 30 giorni a partire dalla data di inizio
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    dates.push(date);
   }
   
   // Renderizza giorni nell'ordine corretto

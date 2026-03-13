@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v101 - SPLASH LIGHT + FIX SCROLL: Sfondo più chiaro + scroll ripristinato
-const CACHE_NAME = 'lombardaflor-orders-v101-splash-light-scroll';
-const STATIC_CACHE = 'lombardaflor-static-v101-splash-light-scroll';
-const API_CACHE = 'lombardaflor-api-v101-splash-light-scroll';
+// v102 - CALENDARIO FUTURO: Mostra solo oggi + prossimi 30 giorni
+const CACHE_NAME = 'lombardaflor-orders-v102-calendar-future';
+const STATIC_CACHE = 'lombardaflor-static-v102-calendar-future';
+const API_CACHE = 'lombardaflor-api-v102-calendar-future';
 
 const urlsToCache = [
   '/',
