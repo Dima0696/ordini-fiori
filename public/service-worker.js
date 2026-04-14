@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v105 - FAST CHECK: Endpoint batch per auto-check istantaneo
-const CACHE_NAME = 'lombardaflor-orders-v105-fast-check';
-const STATIC_CACHE = 'lombardaflor-static-v105-fast-check';
-const API_CACHE = 'lombardaflor-api-v105-fast-check';
+// v106 - INSTANT BUTTONS: Ottimizzazione velocità bottoni
+const CACHE_NAME = 'lombardaflor-orders-v106-instant-buttons';
+const STATIC_CACHE = 'lombardaflor-static-v106-instant-buttons';
+const API_CACHE = 'lombardaflor-api-v106-instant-buttons';
 
 const urlsToCache = [
   '/',

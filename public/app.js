@@ -1817,36 +1817,66 @@ async function updateOrderStatus(orderId, status) {
   calendarCache = null;
   calendarCacheTime = 0;
   
+  // OPTIMISTIC UI: aggiorna subito la card visivamente
+  const orderCard = ordersList.querySelector(`.order-card[data-order-id="${orderId}"]`) ||
+    [...ordersList.querySelectorAll('.order-card')].find(card => {
+      const btn = card.querySelector(`[data-id="${orderId}"]`);
+      return btn !== null;
+    });
+  if (orderCard) {
+    orderCard.className = `order-card status-${status}`;
+    orderCard.style.opacity = '0.6';
+    orderCard.style.transition = 'opacity 0.2s';
+    const badge = orderCard.querySelector('.order-status-badge');
+    if (badge) {
+      badge.className = `order-status-badge ${status}`;
+      badge.textContent = ORDER_STATUS_LABELS[status] || status;
+    }
+    // Se pronto/ritirato, spunta subito tutte le checkbox visivamente
+    if (status === 'pronto' || status === 'ritirato') {
+      orderCard.querySelectorAll('.check-line:not(.checked)').forEach(line => {
+        line.classList.add('checked');
+        const box = line.querySelector('.check-box');
+        if (box) { box.classList.add('checked'); box.textContent = '✓'; }
+      });
+    }
+  }
+  
   try {
-    await authenticatedFetch(`${API_URL}/orders/${orderId}/status`, {
+    // Chiamata principale (status) + auto-check in parallelo
+    const statusPromise = authenticatedFetch(`${API_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
     
-    // Se stato = pronto o ritirato, segna tutte le righe come acquistate (1 sola chiamata)
+    let checkPromise = Promise.resolve();
     if (status === 'pronto' || status === 'ritirato') {
-      try {
-        const order = currentDayOrders.find(o => o.id === orderId);
-        if (order && order.description) {
-          const totalLines = order.description.split('\n').filter(l => l.trim() !== '').length;
-          if (totalLines > 0) {
-            await authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ totalLines })
-            });
-          }
+      const order = currentDayOrders.find(o => o.id === orderId);
+      if (order && order.description) {
+        const totalLines = order.description.split('\n').filter(l => l.trim() !== '').length;
+        if (totalLines > 0) {
+          checkPromise = authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ totalLines })
+          }).catch(e => console.log('Auto-check non riuscito:', e));
         }
-      } catch (e) {
-        console.log('Auto-check non riuscito:', e);
       }
     }
+    
+    // Esegui entrambe in parallelo
+    await Promise.all([statusPromise, checkPromise]);
+    
+    // Ricarica ordini e calendario in parallelo
+    await Promise.all([
+      loadOrders(currentDate),
+      loadCalendar(true)
+    ]);
 
-    // Notifica cambio stato
+    // Notifica in background (non bloccante)
     if (Notification.permission === 'granted') {
-      try {
-        const registration = await navigator.serviceWorker.ready;
+      navigator.serviceWorker.ready.then(registration => {
         const statusLabels = {
           'da_preparare': '🟠 Da Preparare',
           'pronto': '✅ Pronto',
@@ -1858,16 +1888,13 @@ async function updateOrderStatus(orderId, status) {
           tag: 'status-changed-' + orderId,
           vibrate: [100]
         });
-      } catch (e) {
-        console.log('Notifica non inviata:', e);
-      }
+      }).catch(() => {});
     }
-    
-    await loadOrders(currentDate);
-    await loadCalendar(true);
   } catch (error) {
     console.error('❌ Errore aggiornamento stato:', error);
     alert('Errore nell\'aggiornamento dello stato: ' + error.message);
+    // Rollback: ricarica per stato corretto
+    await loadOrders(currentDate);
   }
 }
 
