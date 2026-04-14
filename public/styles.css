@@ -1747,15 +1747,15 @@ body {
 }
 
 .check-box {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
   border: 2px solid #d0d0d0;
-  border-radius: 6px;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: white;
   transition: all 0.15s ease;
@@ -1810,18 +1810,17 @@ body {
 .check-labels {
   display: flex;
   gap: 0.5rem;
-  padding: 0 0.5rem 0.15rem;
+  padding: 0 0.5rem 0.1rem;
   margin-bottom: 0;
 }
 
 .check-label {
-  width: 24px;
+  width: 22px;
   text-align: center;
   font-size: 0.55rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .label-ordered {
