@@ -1509,9 +1509,10 @@ function renderOrders(orders) {
     `;
     
     // Click sulle checkbox (prima dei listener generici per stopPropagation)
-    orderCard.querySelectorAll('.check-line').forEach(checkLine => {
-      checkLine.addEventListener('click', (e) => {
+    orderCard.querySelectorAll('.check-box').forEach(checkBox => {
+      checkBox.addEventListener('click', (e) => {
         e.stopPropagation();
+        const checkLine = checkBox.closest('.check-line');
         const orderId = parseInt(checkLine.dataset.orderId);
         const lineNumber = parseInt(checkLine.dataset.line);
         toggleOrderLineCheck(orderId, lineNumber, e.target);
@@ -1583,7 +1584,7 @@ function renderOrders(orders) {
 }
 
 
-// Renderizza descrizione con checkbox per ogni riga
+// Renderizza descrizione con doppia checkbox: ORDINATO + PREPARATO
 function renderDescriptionWithChecks(orderId, description) {
   if (!description) return '';
   
@@ -1593,41 +1594,68 @@ function renderDescriptionWithChecks(orderId, description) {
   if (lines.length === 0) return '';
   
   return lines.map((line, index) => {
-    const isChecked = checks[index] === true;
-    const checkedClass = isChecked ? 'checked' : '';
-    return `<div class="check-line ${checkedClass}" data-order-id="${orderId}" data-line="${index}">
-      <span class="check-box ${checkedClass}">${isChecked ? '✓' : ''}</span>
-      <span class="check-text">${escapeHtml(line.trim())}</span>
+    const lineData = checks[index] || { checked: false, prepared: false };
+    const isOrdered = lineData.checked === true;
+    const isPrepared = lineData.prepared === true;
+    
+    return `<div class="check-line" data-order-id="${orderId}" data-line="${index}">
+      <span class="check-box check-ordered ${isOrdered ? 'checked' : ''}" data-type="ordered" title="Ordinato">${isOrdered ? '✓' : ''}</span>
+      <span class="check-box check-prepared ${isPrepared ? 'checked' : ''}" data-type="prepared" title="Preparato">${isPrepared ? '✓' : ''}</span>
+      <span class="check-text ${isOrdered && isPrepared ? 'all-done' : ''}">${escapeHtml(line.trim())}</span>
     </div>`;
   }).join('');
 }
 
-// Toggle check su riga ordine
-async function toggleOrderLineCheck(orderId, lineNumber, element) {
-  const checkLine = element.closest('.check-line');
-  const checkBox = checkLine.querySelector('.check-box');
-  const isCurrentlyChecked = checkLine.classList.contains('checked');
+// Toggle check su riga ordine (ordinato o preparato)
+async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
+  const checkBox = clickedElement.closest('.check-box');
+  if (!checkBox) return;
+  
+  const type = checkBox.dataset.type;
+  const isCurrentlyChecked = checkBox.classList.contains('checked');
   const newChecked = !isCurrentlyChecked;
   
-  // Aggiorna UI subito (optimistic)
-  checkLine.classList.toggle('checked', newChecked);
+  // Optimistic UI
   checkBox.classList.toggle('checked', newChecked);
   checkBox.textContent = newChecked ? '✓' : '';
   
+  // Aggiorna stato "all-done" sul testo
+  const checkLine = checkBox.closest('.check-line');
+  const otherBox = type === 'ordered' 
+    ? checkLine.querySelector('.check-prepared') 
+    : checkLine.querySelector('.check-ordered');
+  const otherChecked = otherBox && otherBox.classList.contains('checked');
+  const textEl = checkLine.querySelector('.check-text');
+  if (textEl) {
+    textEl.classList.toggle('all-done', newChecked && otherChecked);
+  }
+  
   try {
-    await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ checked: newChecked })
-    });
+    if (type === 'prepared') {
+      await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/prepared`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prepared: newChecked })
+      });
+    } else {
+      await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checked: newChecked })
+      });
+    }
     
     // Aggiorna cache locale
     if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
-    allOrderChecks[orderId][lineNumber] = newChecked;
+    if (!allOrderChecks[orderId][lineNumber]) allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false };
+    if (type === 'prepared') {
+      allOrderChecks[orderId][lineNumber].prepared = newChecked;
+    } else {
+      allOrderChecks[orderId][lineNumber].checked = newChecked;
+    }
   } catch (error) {
     console.error('Errore salvataggio check:', error);
-    // Rollback UI
-    checkLine.classList.toggle('checked', isCurrentlyChecked);
+    // Rollback
     checkBox.classList.toggle('checked', isCurrentlyChecked);
     checkBox.textContent = isCurrentlyChecked ? '✓' : '';
   }
@@ -1834,10 +1862,12 @@ async function updateOrderStatus(orderId, status) {
     }
     // Se pronto/ritirato, spunta subito tutte le checkbox visivamente
     if (status === 'pronto' || status === 'ritirato') {
-      orderCard.querySelectorAll('.check-line:not(.checked)').forEach(line => {
-        line.classList.add('checked');
-        const box = line.querySelector('.check-box');
-        if (box) { box.classList.add('checked'); box.textContent = '✓'; }
+      orderCard.querySelectorAll('.check-box:not(.checked)').forEach(box => {
+        box.classList.add('checked');
+        box.textContent = '✓';
+      });
+      orderCard.querySelectorAll('.check-text').forEach(text => {
+        text.classList.add('all-done');
       });
     }
   }
@@ -1856,11 +1886,18 @@ async function updateOrderStatus(orderId, status) {
       if (order && order.description) {
         const totalLines = order.description.split('\n').filter(l => l.trim() !== '').length;
         if (totalLines > 0) {
-          checkPromise = authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ totalLines })
-          }).catch(e => console.log('Auto-check non riuscito:', e));
+          checkPromise = Promise.all([
+            authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ totalLines, type: 'checked' })
+            }),
+            authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ totalLines, type: 'prepared' })
+            })
+          ]).catch(e => console.log('Auto-check non riuscito:', e));
         }
       }
     }

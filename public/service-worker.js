@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v106 - INSTANT BUTTONS: Ottimizzazione velocità bottoni
-const CACHE_NAME = 'lombardaflor-orders-v106-instant-buttons';
-const STATIC_CACHE = 'lombardaflor-static-v106-instant-buttons';
-const API_CACHE = 'lombardaflor-api-v106-instant-buttons';
+// v107 - DOPPIA SPUNTA: Ordinato (verde) + Preparato (arancione)
+const CACHE_NAME = 'lombardaflor-orders-v107-double-check';
+const STATIC_CACHE = 'lombardaflor-static-v107-double-check';
+const API_CACHE = 'lombardaflor-api-v107-double-check';
 
 const urlsToCache = [
   '/',

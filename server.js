@@ -539,24 +539,43 @@ app.get('/api/fabbisogno-checks/batch/:orderIds', authenticate, (req, res) => {
   }
 });
 
-// POST /api/fabbisogno-checks/check-all/:orderId - Segna tutte le righe come checked
+// POST /api/fabbisogno-checks/check-all/:orderId - Segna tutte le righe come checked/prepared
 app.post('/api/fabbisogno-checks/check-all/:orderId', authenticate, (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId);
-    const { totalLines } = req.body;
+    const { totalLines, type } = req.body;
     
     if (!totalLines || totalLines < 1) {
       return res.status(400).json({ error: 'totalLines richiesto' });
     }
     
     for (let i = 0; i < totalLines; i++) {
-      db.setFabbisognoCheck(orderId, i, true);
+      if (type === 'prepared') {
+        db.setFabbisognoPrepared(orderId, i, true);
+      } else {
+        db.setFabbisognoCheck(orderId, i, true);
+      }
     }
     
-    res.json({ success: true, checked: totalLines });
+    res.json({ success: true, checked: totalLines, type: type || 'checked' });
   } catch (error) {
     console.error('❌ Errore check-all:', error);
     res.status(500).json({ error: 'Errore check-all' });
+  }
+});
+
+// POST /api/fabbisogno-checks/:orderId/:lineNumber/prepared - Set prepared
+app.post('/api/fabbisogno-checks/:orderId/:lineNumber/prepared', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const lineNumber = parseInt(req.params.lineNumber);
+    const prepared = req.body && typeof req.body.prepared === 'boolean' ? req.body.prepared : false;
+    
+    const result = db.setFabbisognoPrepared(orderId, lineNumber, prepared);
+    res.json({ prepared: result });
+  } catch (error) {
+    console.error('❌ Errore salvataggio prepared:', error);
+    res.status(500).json({ error: 'Errore salvataggio: ' + error.message });
   }
 });
 

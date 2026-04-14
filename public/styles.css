@@ -1733,10 +1733,9 @@ body {
 .check-line {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.6rem;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 2px;
   -webkit-tap-highlight-color: transparent;
@@ -1744,42 +1743,52 @@ body {
 }
 
 .check-line:hover {
-  background: rgba(139, 193, 135, 0.08);
-}
-
-.check-line:active {
-  transform: scale(0.98);
-}
-
-.check-line.checked {
-  opacity: 0.55;
-}
-
-.check-line.checked .check-text {
-  text-decoration: line-through;
-  color: var(--color-text-light);
+  background: rgba(139, 193, 135, 0.06);
 }
 
 .check-box {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  border: 2px solid #ccc;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: 2px solid #d0d0d0;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: white;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   background: white;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.check-box.checked {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  box-shadow: 0 2px 6px rgba(139, 193, 135, 0.4);
+.check-box:active {
+  transform: scale(0.9);
+}
+
+/* ORDINATO - Verde */
+.check-ordered {
+  border-color: #a5d6a7;
+}
+
+.check-ordered.checked {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.35);
+}
+
+/* PREPARATO - Arancione */
+.check-prepared {
+  border-color: #ffcc80;
+}
+
+.check-prepared.checked {
+  background: #FF9800;
+  border-color: #FF9800;
+  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.35);
 }
 
 .check-text {
@@ -1788,6 +1797,47 @@ body {
   line-height: 1.4;
   color: var(--color-text);
   word-break: break-word;
+  transition: all 0.2s ease;
+}
+
+.check-text.all-done {
+  text-decoration: line-through;
+  opacity: 0.45;
+  color: var(--color-text-light);
+}
+
+/* Legenda spunte */
+.checks-legend {
+  display: flex;
+  gap: 1.2rem;
+  padding: 0.5rem 1rem;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.legend-ordered {
+  background: #4CAF50;
+}
+
+.legend-prepared {
+  background: #FF9800;
 }
 
 .order-actions {

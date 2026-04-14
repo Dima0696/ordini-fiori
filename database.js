@@ -133,6 +133,16 @@ const initDb = () => {
       }
     }
   });
+
+  // Migrazione: aggiunge colonna 'prepared' a fabbisogno_checks
+  if (!columnExists('fabbisogno_checks', 'prepared')) {
+    try {
+      db.exec('ALTER TABLE fabbisogno_checks ADD COLUMN prepared INTEGER DEFAULT 0');
+      console.log('✅ Aggiunta colonna: prepared (fabbisogno_checks)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo prepared:', error.message);
+    }
+  }
   
   // Aggiungi utenti predefiniti se la tabella è vuota
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
@@ -443,16 +453,15 @@ const deleteSubscription = (endpoint) => {
 
 // Funzioni per gestire i checkbox del fabbisogno
 const getFabbisognoChecks = (orderId) => {
-  console.log('🔵 DB getFabbisognoChecks: orderId=', orderId);
-  const stmt = db.prepare('SELECT line_number, checked FROM fabbisogno_checks WHERE order_id = ?');
+  const stmt = db.prepare('SELECT line_number, checked, prepared FROM fabbisogno_checks WHERE order_id = ?');
   const checks = stmt.all(orderId);
-  console.log('🔵 DB RAW checks:', checks);
-  // Restituisci un oggetto { lineNumber: checked }
   const result = {};
   checks.forEach(c => {
-    result[c.line_number] = c.checked === 1;
+    result[c.line_number] = {
+      checked: c.checked === 1,
+      prepared: (c.prepared || 0) === 1
+    };
   });
-  console.log('🟢 DB RESULT:', result);
   return result;
 };
 
@@ -547,6 +556,31 @@ const setFabbisognoCheck = (orderId, lineNumber, checked) => {
   }
 };
 
+// Set campo prepared (preparato) a valore specifico
+const setFabbisognoPrepared = (orderId, lineNumber, prepared) => {
+  const preparedInt = prepared ? 1 : 0;
+
+  try {
+    const upsert = db.transaction(() => {
+      const existing = db.prepare('SELECT id FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
+
+      if (existing) {
+        db.prepare('UPDATE fabbisogno_checks SET prepared = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?')
+          .run(preparedInt, orderId, lineNumber);
+      } else {
+        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared) VALUES (?, ?, 0, ?)')
+          .run(orderId, lineNumber, preparedInt);
+      }
+    });
+
+    upsert();
+    return prepared;
+  } catch (error) {
+    console.error('❌ DB setFabbisognoPrepared ERROR:', error);
+    throw error;
+  }
+};
+
 const clearFabbisognoChecks = (orderId) => {
   const stmt = db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?');
   stmt.run(orderId);
@@ -600,6 +634,7 @@ module.exports = {
   getFabbisognoChecks,
   toggleFabbisognoCheck,
   setFabbisognoCheck,
+  setFabbisognoPrepared,
   clearFabbisognoChecks,
   getAllListini,
   getListinoById,
