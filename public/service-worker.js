@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v102 - CALENDARIO FUTURO: Mostra solo oggi + prossimi 30 giorni
-const CACHE_NAME = 'lombardaflor-orders-v102-calendar-future';
-const STATIC_CACHE = 'lombardaflor-static-v102-calendar-future';
-const API_CACHE = 'lombardaflor-api-v102-calendar-future';
+// v103 - CHECKLIST INLINE: Spunte direttamente nella lista ordini
+const CACHE_NAME = 'lombardaflor-orders-v103-inline-checks';
+const STATIC_CACHE = 'lombardaflor-static-v103-inline-checks';
+const API_CACHE = 'lombardaflor-api-v103-inline-checks';
 
 const urlsToCache = [
   '/',

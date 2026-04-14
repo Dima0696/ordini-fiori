@@ -524,6 +524,21 @@ app.delete('/api/orders/:id', authenticate, (req, res) => {
 
 // API Routes - Fabbisogno Checks
 
+// GET /api/fabbisogno-checks/batch/:orderIds - Ottieni checks di più ordini in una chiamata
+app.get('/api/fabbisogno-checks/batch/:orderIds', authenticate, (req, res) => {
+  try {
+    const ids = req.params.orderIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+    const result = {};
+    for (const id of ids) {
+      result[id] = db.getFabbisognoChecks(id);
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Errore lettura batch checks:', error);
+    res.status(500).json({ error: 'Errore lettura batch checks' });
+  }
+});
+
 // GET /api/fabbisogno-checks/:orderId - Ottieni checkbox di un ordine
 app.get('/api/fabbisogno-checks/:orderId', authenticate, (req, res) => {
   try {

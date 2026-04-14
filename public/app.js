@@ -1374,10 +1374,28 @@ async function openDayOrders(date) {
 }
 
 // Carica ordini di un giorno
+// Cache globale dei checks per gli ordini visualizzati
+let allOrderChecks = {};
+
 async function loadOrders(date) {
   try {
     const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
     const orders = await response.json();
+    
+    // Carica i checks di tutti gli ordini in batch
+    if (orders.length > 0) {
+      try {
+        const ids = orders.map(o => o.id).join(',');
+        const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${ids}`);
+        allOrderChecks = await checksResponse.json();
+      } catch (e) {
+        console.log('Checks non caricati:', e);
+        allOrderChecks = {};
+      }
+    } else {
+      allOrderChecks = {};
+    }
+    
     renderOrders(orders);
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
@@ -1469,7 +1487,9 @@ function renderOrders(orders) {
           <span class="order-status-badge ${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>
         </div>
         ${infoBadges ? `<div class="order-info">${infoBadges}</div>` : ''}
-        <div class="order-description">${escapeHtml(order.description)}</div>
+        <div class="order-description order-checklist" data-order-id="${order.id}">
+          ${renderDescriptionWithChecks(order.id, order.description)}
+        </div>
         ${photosHtml}
         ${userInfoHtml}
       </div>
@@ -1486,9 +1506,21 @@ function renderOrders(orders) {
       </div>
     `;
     
+    // Click sulle checkbox (prima dei listener generici per stopPropagation)
+    orderCard.querySelectorAll('.check-line').forEach(checkLine => {
+      checkLine.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const orderId = parseInt(checkLine.dataset.orderId);
+        const lineNumber = parseInt(checkLine.dataset.line);
+        toggleOrderLineCheck(orderId, lineNumber, e.target);
+      });
+    });
+    
     // Click sulla card (esclusi i pulsanti) apre VISUALIZZAZIONE (solo lettura + cambio stato)
     const orderContent = orderCard.querySelector('.order-content');
-    orderContent.addEventListener('click', () => {
+    orderContent.addEventListener('click', (e) => {
+      // Non aprire dettaglio se si clicca su una checkbox
+      if (e.target.closest('.check-line')) return;
       openOrderDetail(order);
     });
     
@@ -1548,6 +1580,56 @@ function renderOrders(orders) {
   });
 }
 
+
+// Renderizza descrizione con checkbox per ogni riga
+function renderDescriptionWithChecks(orderId, description) {
+  if (!description) return '';
+  
+  const lines = description.split('\n').filter(line => line.trim() !== '');
+  const checks = allOrderChecks[orderId] || {};
+  
+  if (lines.length === 0) return '';
+  
+  return lines.map((line, index) => {
+    const isChecked = checks[index] === true;
+    const checkedClass = isChecked ? 'checked' : '';
+    return `<div class="check-line ${checkedClass}" data-order-id="${orderId}" data-line="${index}">
+      <span class="check-box ${checkedClass}">${isChecked ? '✓' : ''}</span>
+      <span class="check-text">${escapeHtml(line.trim())}</span>
+    </div>`;
+  }).join('');
+}
+
+// Toggle check su riga ordine
+async function toggleOrderLineCheck(orderId, lineNumber, element) {
+  const checkLine = element.closest('.check-line');
+  const checkBox = checkLine.querySelector('.check-box');
+  const isCurrentlyChecked = checkLine.classList.contains('checked');
+  const newChecked = !isCurrentlyChecked;
+  
+  // Aggiorna UI subito (optimistic)
+  checkLine.classList.toggle('checked', newChecked);
+  checkBox.classList.toggle('checked', newChecked);
+  checkBox.textContent = newChecked ? '✓' : '';
+  
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked: newChecked })
+    });
+    
+    // Aggiorna cache locale
+    if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
+    allOrderChecks[orderId][lineNumber] = newChecked;
+  } catch (error) {
+    console.error('Errore salvataggio check:', error);
+    // Rollback UI
+    checkLine.classList.toggle('checked', isCurrentlyChecked);
+    checkBox.classList.toggle('checked', isCurrentlyChecked);
+    checkBox.textContent = isCurrentlyChecked ? '✓' : '';
+  }
+}
 
 // Goods type è sempre "da_ordinare" per nuovi ordini, può diventare "ordinata" dopo
 
