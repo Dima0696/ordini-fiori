@@ -1806,6 +1806,32 @@ body {
   color: var(--color-text-light);
 }
 
+/* Mini labels dentro ogni ordine */
+.check-labels {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0.5rem 0.15rem;
+  margin-bottom: 0;
+}
+
+.check-label {
+  width: 24px;
+  text-align: center;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.label-ordered {
+  color: #4CAF50;
+}
+
+.label-prepared {
+  color: #FF9800;
+}
+
 /* Legenda spunte */
 .checks-legend {
   display: flex;

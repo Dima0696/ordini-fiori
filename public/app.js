@@ -1593,7 +1593,9 @@ function renderDescriptionWithChecks(orderId, description) {
   
   if (lines.length === 0) return '';
   
-  return lines.map((line, index) => {
+  let html = `<div class="check-labels"><span class="check-label label-ordered">ORD</span><span class="check-label label-prepared">PREP</span></div>`;
+  
+  html += lines.map((line, index) => {
     const lineData = checks[index] || { checked: false, prepared: false };
     const isOrdered = lineData.checked === true;
     const isPrepared = lineData.prepared === true;
@@ -1604,6 +1606,8 @@ function renderDescriptionWithChecks(orderId, description) {
       <span class="check-text ${isOrdered && isPrepared ? 'all-done' : ''}">${escapeHtml(line.trim())}</span>
     </div>`;
   }).join('');
+  
+  return html;
 }
 
 // Toggle check su riga ordine (ordinato o preparato)

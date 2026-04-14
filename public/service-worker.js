@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v107 - DOPPIA SPUNTA: Ordinato (verde) + Preparato (arancione)
-const CACHE_NAME = 'lombardaflor-orders-v107-double-check';
-const STATIC_CACHE = 'lombardaflor-static-v107-double-check';
-const API_CACHE = 'lombardaflor-api-v107-double-check';
+// v108 - Mini labels ORD/PREP sopra checkbox in ogni ordine
+const CACHE_NAME = 'lombardaflor-orders-v108-check-labels';
+const STATIC_CACHE = 'lombardaflor-static-v108-check-labels';
+const API_CACHE = 'lombardaflor-api-v108-check-labels';
 
 const urlsToCache = [
   '/',
