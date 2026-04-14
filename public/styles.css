@@ -1806,42 +1806,19 @@ body {
   color: var(--color-text-light);
 }
 
-/* Mini labels dentro ogni ordine */
-.check-labels {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0 0.5rem 0.1rem;
-  margin-bottom: 0;
-}
-
-.check-label {
-  width: 22px;
-  text-align: center;
-  font-size: 0.55rem;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.label-ordered {
-  color: #4CAF50;
-}
-
-.label-prepared {
-  color: #FF9800;
-}
-
-/* Legenda spunte */
+/* Legenda spunte - fissa sopra la lista ordini */
 .checks-legend {
   display: flex;
-  gap: 1.2rem;
-  padding: 0.5rem 1rem;
+  gap: 1.5rem;
+  padding: 0.6rem 1rem;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-light);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-weight: 600;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  margin: 0 0.5rem 0.5rem;
 }
 
 .legend-item {

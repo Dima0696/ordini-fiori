@@ -1593,7 +1593,7 @@ function renderDescriptionWithChecks(orderId, description) {
   
   if (lines.length === 0) return '';
   
-  let html = `<div class="check-labels"><span class="check-label label-ordered">O</span><span class="check-label label-prepared">P</span></div>`;
+  let html = '';
   
   html += lines.map((line, index) => {
     const lineData = checks[index] || { checked: false, prepared: false };

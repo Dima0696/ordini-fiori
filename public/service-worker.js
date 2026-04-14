@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v109 - FIX MOBILE: Labels compatte O/P, checkbox ridotte
-const CACHE_NAME = 'lombardaflor-orders-v109-compact-labels';
-const STATIC_CACHE = 'lombardaflor-static-v109-compact-labels';
-const API_CACHE = 'lombardaflor-api-v109-compact-labels';
+// v110 - Legenda fissa ORDINATO/PREPARATO sopra lista ordini
+const CACHE_NAME = 'lombardaflor-orders-v110-legend-only';
+const STATIC_CACHE = 'lombardaflor-static-v110-legend-only';
+const API_CACHE = 'lombardaflor-api-v110-legend-only';
 
 const urlsToCache = [
   '/',
