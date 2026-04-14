@@ -1374,13 +1374,15 @@ async function openDayOrders(date) {
 }
 
 // Carica ordini di un giorno
-// Cache globale dei checks per gli ordini visualizzati
+// Cache globale dei checks e ordini visualizzati
 let allOrderChecks = {};
+let currentDayOrders = [];
 
 async function loadOrders(date) {
   try {
     const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
     const orders = await response.json();
+    currentDayOrders = orders;
     
     // Carica i checks di tutti gli ordini in batch
     if (orders.length > 0) {
@@ -1822,6 +1824,29 @@ async function updateOrderStatus(orderId, status) {
       body: JSON.stringify({ status })
     });
     
+    // Se stato = pronto o ritirato, segna tutte le righe come acquistate
+    if (status === 'pronto' || status === 'ritirato') {
+      try {
+        const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/${orderId}`);
+        const currentChecks = await checksResponse.json();
+        const order = currentDayOrders.find(o => o.id === orderId);
+        if (order && order.description) {
+          const lines = order.description.split('\n').filter(l => l.trim() !== '');
+          for (let i = 0; i < lines.length; i++) {
+            if (!currentChecks[i]) {
+              await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${i}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ checked: true })
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.log('Auto-check non riuscito:', e);
+      }
+    }
+
     // Notifica cambio stato
     if (Notification.permission === 'granted') {
       try {

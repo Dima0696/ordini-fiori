@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v103 - CHECKLIST INLINE: Spunte direttamente nella lista ordini
-const CACHE_NAME = 'lombardaflor-orders-v103-inline-checks';
-const STATIC_CACHE = 'lombardaflor-static-v103-inline-checks';
-const API_CACHE = 'lombardaflor-api-v103-inline-checks';
+// v104 - AUTO-CHECK: Spunte automatiche quando ordine diventa pronto/ritirato
+const CACHE_NAME = 'lombardaflor-orders-v104-auto-check';
+const STATIC_CACHE = 'lombardaflor-static-v104-auto-check';
+const API_CACHE = 'lombardaflor-api-v104-auto-check';
 
 const urlsToCache = [
   '/',
