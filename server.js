@@ -539,6 +539,27 @@ app.get('/api/fabbisogno-checks/batch/:orderIds', authenticate, (req, res) => {
   }
 });
 
+// POST /api/fabbisogno-checks/check-all/:orderId - Segna tutte le righe come checked
+app.post('/api/fabbisogno-checks/check-all/:orderId', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const { totalLines } = req.body;
+    
+    if (!totalLines || totalLines < 1) {
+      return res.status(400).json({ error: 'totalLines richiesto' });
+    }
+    
+    for (let i = 0; i < totalLines; i++) {
+      db.setFabbisognoCheck(orderId, i, true);
+    }
+    
+    res.json({ success: true, checked: totalLines });
+  } catch (error) {
+    console.error('❌ Errore check-all:', error);
+    res.status(500).json({ error: 'Errore check-all' });
+  }
+});
+
 // GET /api/fabbisogno-checks/:orderId - Ottieni checkbox di un ordine
 app.get('/api/fabbisogno-checks/:orderId', authenticate, (req, res) => {
   try {

@@ -1824,22 +1824,18 @@ async function updateOrderStatus(orderId, status) {
       body: JSON.stringify({ status })
     });
     
-    // Se stato = pronto o ritirato, segna tutte le righe come acquistate
+    // Se stato = pronto o ritirato, segna tutte le righe come acquistate (1 sola chiamata)
     if (status === 'pronto' || status === 'ritirato') {
       try {
-        const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/${orderId}`);
-        const currentChecks = await checksResponse.json();
         const order = currentDayOrders.find(o => o.id === orderId);
         if (order && order.description) {
-          const lines = order.description.split('\n').filter(l => l.trim() !== '');
-          for (let i = 0; i < lines.length; i++) {
-            if (!currentChecks[i]) {
-              await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${i}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ checked: true })
-              });
-            }
+          const totalLines = order.description.split('\n').filter(l => l.trim() !== '').length;
+          if (totalLines > 0) {
+            await authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ totalLines })
+            });
           }
         }
       } catch (e) {

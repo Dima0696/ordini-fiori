@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v104 - AUTO-CHECK: Spunte automatiche quando ordine diventa pronto/ritirato
-const CACHE_NAME = 'lombardaflor-orders-v104-auto-check';
-const STATIC_CACHE = 'lombardaflor-static-v104-auto-check';
-const API_CACHE = 'lombardaflor-api-v104-auto-check';
+// v105 - FAST CHECK: Endpoint batch per auto-check istantaneo
+const CACHE_NAME = 'lombardaflor-orders-v105-fast-check';
+const STATIC_CACHE = 'lombardaflor-static-v105-fast-check';
+const API_CACHE = 'lombardaflor-api-v105-fast-check';
 
 const urlsToCache = [
   '/',
