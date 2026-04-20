@@ -1348,6 +1348,11 @@ async function openOrderByCustomerAndDate(customer, date) {
 async function openDayOrders(date) {
   currentDate = date;
   
+  // Reset giorni extra quando si cambia giorno
+  selectedExtraDays = new Set();
+  extraDayOrders = {};
+  extraDayChecks = {};
+  
   // Aggiorna titolo
   const dateObj = new Date(date + 'T00:00:00');
   const dayOfWeek = dateObj.getDay();
@@ -1414,20 +1419,124 @@ async function loadOrders(date) {
       allOrderChecks = {};
     }
     
-    // Reset giorni extra e rerender selettore
-    selectedExtraDays = new Set();
-    extraDayOrders = {};
-    extraDayChecks = {};
     renderDaysSelector();
+    renderOrdersView();
     
-    renderOrders(orders);
+    // Aggiorna anche i giorni extra selezionati (in background)
+    if (selectedExtraDays.size > 0) {
+      refreshExtraDays();
+    }
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
     alert('Errore nel caricamento degli ordini: ' + error.message);
   }
 }
 
-// Renderizza lista ordini
+// Ricarica ordini + checks di TUTTI i giorni extra selezionati
+async function refreshExtraDays() {
+  const isos = [...selectedExtraDays];
+  if (isos.length === 0) return;
+  
+  await Promise.all(isos.map(iso => refreshOneExtraDay(iso)));
+  renderDaysSelector();
+  renderOrdersView();
+}
+
+async function refreshOneExtraDay(iso) {
+  try {
+    const response = await fetchNoCache(`${API_URL}/orders/date/${iso}`);
+    const orders = await response.json();
+    extraDayOrders[iso] = orders;
+    
+    if (orders.length > 0) {
+      const ids = orders.map(o => o.id).join(',');
+      const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${ids}`);
+      extraDayChecks[iso] = await checksResponse.json();
+    } else {
+      extraDayChecks[iso] = {};
+    }
+    
+    mergeExtraChecksIntoAll(iso);
+  } catch (e) {
+    console.error('[EXTRA-DAY] refresh fallito:', iso, e);
+  }
+}
+
+// Ordina ordini per stato (da_preparare → pronto → ritirato)
+function sortOrdersByStatus(orders) {
+  const statusOrder = { 'da_preparare': 1, 'pronto': 2, 'ritirato': 3 };
+  return [...orders].sort((a, b) => (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999));
+}
+
+// Entry point: decide se render single-day o multi-day
+function renderOrdersView() {
+  if (selectedExtraDays.size === 0) {
+    renderOrders(currentDayOrders);
+    return;
+  }
+  
+  // Multi-giorno: raccogli gruppi ordinati per data crescente
+  const groups = [];
+  groups.push({ date: currentDate, orders: currentDayOrders, isCurrent: true });
+  
+  [...selectedExtraDays].sort().forEach(iso => {
+    const orders = extraDayOrders[iso];
+    if (Array.isArray(orders)) {
+      groups.push({ date: iso, orders, isCurrent: false });
+    }
+  });
+  
+  renderOrdersGrouped(groups);
+}
+
+// Render multi-giorno con sezioni separate
+function renderOrdersGrouped(groups) {
+  ordersList.innerHTML = '';
+  
+  const totalOrders = groups.reduce((sum, g) => sum + g.orders.length, 0);
+  if (totalOrders === 0) {
+    emptyMessage.style.display = 'block';
+    return;
+  }
+  emptyMessage.style.display = 'none';
+  
+  const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+  
+  groups.forEach(group => {
+    const d = new Date(group.date + 'T00:00:00');
+    const title = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
+    const count = group.orders.length;
+    
+    // Separatore giorno
+    const sep = document.createElement('div');
+    sep.className = `day-separator ${group.isCurrent ? 'day-separator-current' : ''}`;
+    sep.innerHTML = `
+      <div class="day-separator-line"></div>
+      <div class="day-separator-content">
+        <span class="day-separator-title">${title}</span>
+        <span class="day-separator-count">${count} ${count === 1 ? 'ordine' : 'ordini'}</span>
+      </div>
+      <div class="day-separator-line"></div>
+    `;
+    ordersList.appendChild(sep);
+    
+    if (count === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'day-group-empty';
+      empty.textContent = 'Nessun ordine';
+      ordersList.appendChild(empty);
+      return;
+    }
+    
+    sortOrdersByStatus(group.orders).forEach((order, index) => {
+      ordersList.appendChild(createOrderCard(order, index));
+    });
+  });
+}
+
+// Render lista singola (usata quando non ci sono giorni extra)
 function renderOrders(orders) {
   ordersList.innerHTML = '';
   
@@ -1438,18 +1547,13 @@ function renderOrders(orders) {
   
   emptyMessage.style.display = 'none';
   
-  // ORDINA: Prima "da_preparare", poi "pronto", poi "ritirato"
-  const statusOrder = {
-    'da_preparare': 1,
-    'pronto': 2,
-    'ritirato': 3
-  };
-  
-  const sortedOrders = [...orders].sort((a, b) => {
-    return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+  sortOrdersByStatus(orders).forEach((order, index) => {
+    ordersList.appendChild(createOrderCard(order, index));
   });
-  
-  sortedOrders.forEach((order, index) => {
+}
+
+// Crea la card di un singolo ordine con tutti i listener
+function createOrderCard(order, index) {
     const orderCard = document.createElement('div');
     orderCard.className = `order-card status-${order.status}`;
     
@@ -1614,8 +1718,7 @@ function renderOrders(orders) {
       });
     }
     
-    ordersList.appendChild(orderCard);
-  });
+    return orderCard;
 }
 
 
@@ -1691,7 +1794,7 @@ function renderOrderProgress(orderId, description) {
 
 // Aggiorna barra progresso di un ordine
 function updateOrderProgress(orderId) {
-  const order = currentDayOrders.find(o => o.id === orderId);
+  const order = findDisplayedOrder(orderId);
   if (!order) return;
   
   const progressEl = document.querySelector(`[data-progress-order="${orderId}"]`);
@@ -1855,16 +1958,24 @@ function renderDaysSelector() {
 // Toggle selezione di un giorno extra (carica ordini+checks se necessario)
 async function toggleExtraDay(iso) {
   if (selectedExtraDays.has(iso)) {
+    // Deselezione: rimuovi gli ordini di quel giorno dai checks unificati
     selectedExtraDays.delete(iso);
+    const orders = extraDayOrders[iso];
+    if (Array.isArray(orders)) {
+      orders.forEach(o => { delete allOrderChecks[o.id]; });
+    }
     renderDaysSelector();
+    renderOrdersView();
     return;
   }
   
   selectedExtraDays.add(iso);
   
-  // Se già in cache, basta rerender
-  if (extraDayOrders[iso] && extraDayOrders[iso] !== 'loading') {
+  // Se già in cache, unisci e rerender
+  if (Array.isArray(extraDayOrders[iso])) {
+    mergeExtraChecksIntoAll(iso);
     renderDaysSelector();
+    renderOrdersView();
     return;
   }
   
@@ -1884,6 +1995,8 @@ async function toggleExtraDay(iso) {
     } else {
       extraDayChecks[iso] = {};
     }
+    
+    mergeExtraChecksIntoAll(iso);
   } catch (e) {
     console.error('[EXTRA-DAY] Errore caricamento', iso, e);
     extraDayOrders[iso] = [];
@@ -1893,6 +2006,30 @@ async function toggleExtraDay(iso) {
   }
   
   renderDaysSelector();
+  renderOrdersView();
+}
+
+// Unisce i checks di un giorno extra dentro allOrderChecks (gli id sono univoci)
+function mergeExtraChecksIntoAll(iso) {
+  const extraChecks = extraDayChecks[iso] || {};
+  Object.keys(extraChecks).forEach(orderId => {
+    allOrderChecks[orderId] = extraChecks[orderId];
+  });
+}
+
+// Cerca un ordine visualizzato (giorno corrente o extra)
+function findDisplayedOrder(orderId) {
+  const id = parseInt(orderId);
+  const inCurrent = (currentDayOrders || []).find(o => o.id === id);
+  if (inCurrent) return inCurrent;
+  for (const iso of selectedExtraDays) {
+    const list = extraDayOrders[iso];
+    if (Array.isArray(list)) {
+      const found = list.find(o => o.id === id);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 // Aggiorna info sulla barra copia (es. "3 giorni inclusi")
@@ -2344,7 +2481,7 @@ async function updateOrderStatus(orderId, status) {
     
     let checkPromise = Promise.resolve();
     if (status === 'pronto' || status === 'ritirato') {
-      const order = currentDayOrders.find(o => o.id === orderId);
+      const order = findDisplayedOrder(orderId);
       if (order && order.description) {
         const totalLines = order.description.split('\n').filter(l => l.trim() !== '').length;
         if (totalLines > 0) {
