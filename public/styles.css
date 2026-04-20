@@ -4692,22 +4692,21 @@ button {
     display: block !important;
   }
   
-  /* INTESTAZIONE AL BORDO DEL FOGLIO per impilamento sfalsato - SOLO per ordine singolo */
+  /* INTESTAZIONE in cima al documento (non fissa: evita sovrapposizioni e
+     tagli quando l'ordine è lungo e serve la seconda pagina) */
   #modal-detail.active .print-header-stack {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     background: white !important;
-    padding: 2mm 4mm !important;
-    margin: 0 !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    padding: 2mm 4mm 3mm !important;
+    margin: 0 0 4mm 0 !important;
+    position: static !important;
     border-bottom: 3px solid #000 !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
-    z-index: 9999 !important;
+    break-inside: avoid !important;
+    break-after: avoid !important;
   }
   
   .print-stack-logo {
@@ -4786,10 +4785,9 @@ button {
     transform: none !important;
   }
   
-  /* Padding specifico per ordine singolo (ha header fisso) */
+  /* Padding specifico per ordine singolo (header non più fisso) */
   #modal-detail.active .modal-content {
-    padding: 15mm !important;
-    padding-top: 30mm !important; /* Spazio per intestazione fissa compatta */
+    padding: 4mm 10mm 10mm 10mm !important;
   }
   
   /* Assicura che il contenuto sia visibile */
@@ -5139,19 +5137,19 @@ button {
     visibility: visible !important;
   }
   
-  /* SEZIONE MERCE STAMPA */
+  /* SEZIONE MERCE STAMPA - può fluire su più pagine per ordini lunghi */
   .print-merce-section {
     display: block !important;
     background: white !important;
-    padding: 8mm 15mm !important;
+    padding: 0 !important;
     margin: 0 !important;
-    page-break-inside: avoid !important;
+    /* Rimosso page-break-inside: avoid: su ordini lunghi causava tagli */
   }
   
   /* Checklist merce con checkbox per ogni articolo */
   .print-checklist {
     display: block !important;
-    padding: 3mm 0 !important;
+    padding: 2mm 0 !important;
   }
   
   .print-checklist-item {
@@ -5160,6 +5158,7 @@ button {
     gap: 4mm !important;
     margin: 2.5mm 0 !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   .print-checkbox-square {
@@ -5190,6 +5189,8 @@ button {
     margin-top: 8mm !important;
     padding-top: 5mm !important;
     border-top: 2px dashed #999 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   .print-checkbox {
@@ -5197,6 +5198,8 @@ button {
     align-items: center !important;
     gap: 5mm !important;
     margin: 3mm 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   .checkbox-square {
