@@ -564,6 +564,21 @@ app.post('/api/fabbisogno-checks/check-all/:orderId', authenticate, (req, res) =
   }
 });
 
+// POST /api/fabbisogno-checks/:orderId/:lineNumber/supplier - Set supplier (NL, ITA, IMPORT, '')
+app.post('/api/fabbisogno-checks/:orderId/:lineNumber/supplier', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const lineNumber = parseInt(req.params.lineNumber);
+    const supplier = (req.body && typeof req.body.supplier === 'string') ? req.body.supplier : '';
+    
+    const result = db.setFabbisognoSupplier(orderId, lineNumber, supplier);
+    res.json({ supplier: result });
+  } catch (error) {
+    console.error('❌ Errore salvataggio supplier:', error);
+    res.status(500).json({ error: 'Errore salvataggio: ' + error.message });
+  }
+});
+
 // POST /api/fabbisogno-checks/:orderId/:lineNumber/prepared - Set prepared
 app.post('/api/fabbisogno-checks/:orderId/:lineNumber/prepared', authenticate, (req, res) => {
   try {

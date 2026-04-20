@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
 // v111 - PROGRESS BAR: Barra avanzamento preparazione per ogni ordine
-const CACHE_NAME = 'lombardaflor-orders-v111-progress-bar';
-const STATIC_CACHE = 'lombardaflor-static-v111-progress-bar';
-const API_CACHE = 'lombardaflor-api-v111-progress-bar';
+const CACHE_NAME = 'lombardaflor-orders-v112-supplier-copy';
+const STATIC_CACHE = 'lombardaflor-static-v112-supplier-copy';
+const API_CACHE = 'lombardaflor-api-v112-supplier-copy';
 
 const urlsToCache = [
   '/',

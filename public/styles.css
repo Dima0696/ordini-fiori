@@ -1806,6 +1806,246 @@ body {
   color: var(--color-text-light);
 }
 
+/* ============================================
+   PROVENIENZA (IMPORT / ITA / NL) per riga articolo
+   ============================================ */
+.supplier-group {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.supplier-btn {
+  font-family: inherit;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 3px 6px;
+  min-width: 30px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.supplier-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.supplier-btn:active {
+  transform: scale(0.92);
+}
+
+/* IMPORT - Viola/indaco */
+.supplier-btn.supplier-import.active {
+  background: linear-gradient(135deg, #7E57C2 0%, #5E35B1 100%);
+  color: white;
+  border-color: #5E35B1;
+  box-shadow: 0 2px 6px rgba(94, 53, 177, 0.35);
+}
+
+/* ITA - Tricolore elegante (verde bandiera) */
+.supplier-btn.supplier-ita.active {
+  background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
+  color: white;
+  border-color: #2E7D32;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.35);
+}
+
+/* NL - Arancione Olanda */
+.supplier-btn.supplier-nl.active {
+  background: linear-gradient(135deg, #FB8C00 0%, #E65100 100%);
+  color: white;
+  border-color: #E65100;
+  box-shadow: 0 2px 6px rgba(230, 81, 0, 0.35);
+}
+
+/* Mobile: bottoni ancora più compatti */
+@media (max-width: 480px) {
+  .supplier-group {
+    gap: 2px;
+    padding: 0;
+  }
+  
+  .supplier-btn {
+    font-size: 0.55rem;
+    padding: 2px 4px;
+    min-width: 26px;
+    height: 20px;
+    letter-spacing: 0.3px;
+  }
+  
+  .check-line {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  
+  .check-text {
+    min-width: 50%;
+  }
+}
+
+/* ============================================
+   BARRA COPIA PER FORNITORE
+   ============================================ */
+.copy-suppliers-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0 0.5rem 0.75rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 249, 0.95) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.copy-suppliers-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: auto;
+}
+
+.copy-supplier-btn {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: white;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.copy-supplier-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.copy-supplier-btn.copy-supplier-import {
+  background: linear-gradient(135deg, #7E57C2 0%, #5E35B1 100%);
+  box-shadow: 0 2px 6px rgba(94, 53, 177, 0.3);
+}
+
+.copy-supplier-btn.copy-supplier-ita {
+  background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+}
+
+.copy-supplier-btn.copy-supplier-nl {
+  background: linear-gradient(135deg, #FB8C00 0%, #E65100 100%);
+  box-shadow: 0 2px 6px rgba(230, 81, 0, 0.3);
+}
+
+.copy-supplier-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.copy-supplier-btn:active {
+  transform: scale(0.96);
+}
+
+.copy-supplier-btn.copying {
+  animation: copyPulse 0.6s ease;
+}
+
+@keyframes copyPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+  100% { transform: scale(1); }
+}
+
+@media (max-width: 480px) {
+  .copy-suppliers-bar {
+    gap: 0.35rem;
+    padding: 0.5rem 0.6rem;
+  }
+  
+  .copy-suppliers-label {
+    width: 100%;
+    text-align: center;
+    margin: 0 0 0.25rem 0;
+    font-size: 0.65rem;
+  }
+  
+  .copy-supplier-btn {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.68rem;
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+/* ============================================
+   MINI TOAST (copia negli appunti)
+   ============================================ */
+.mini-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 0.75rem 1.25rem;
+  background: rgba(33, 33, 33, 0.95);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  max-width: 90vw;
+  text-align: center;
+}
+
+.mini-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.mini-toast.success {
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.95) 0%, rgba(67, 160, 71, 0.95) 100%);
+}
+
+.mini-toast.error {
+  background: linear-gradient(135deg, rgba(198, 40, 40, 0.95) 0%, rgba(229, 57, 53, 0.95) 100%);
+}
+
+.mini-toast.info {
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.95) 0%, rgba(30, 136, 229, 0.95) 100%);
+}
+
 /* Barra di progresso ordine - Premium */
 .order-progress {
   margin: 0.75rem 0 0.25rem;

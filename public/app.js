@@ -513,6 +513,17 @@ function setupEventListeners() {
   document.getElementById('btn-refresh-calendar').addEventListener('click', refreshCalendar);
   document.getElementById('btn-refresh-orders').addEventListener('click', refreshOrdersList);
   
+  // Copia articoli per fornitore
+  document.querySelectorAll('.copy-supplier-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const supplier = btn.dataset.supplier;
+      // Feedback animazione
+      btn.classList.add('copying');
+      setTimeout(() => btn.classList.remove('copying'), 600);
+      copySupplierItems(supplier);
+    });
+  });
+  
   // Barra di ricerca
   let searchDebounceTimer;
   const searchInput = document.getElementById('search-input');
@@ -1520,6 +1531,18 @@ function renderOrders(orders) {
       });
     });
     
+    // Click sui bottoni provenienza (IMPORT / ITA / NL)
+    orderCard.querySelectorAll('.supplier-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const group = btn.closest('.supplier-group');
+        const orderId = parseInt(group.dataset.orderId);
+        const lineNumber = parseInt(group.dataset.line);
+        const supplier = btn.dataset.supplier;
+        toggleOrderLineSupplier(orderId, lineNumber, supplier, btn);
+      });
+    });
+    
     // Click sulla card (esclusi i pulsanti) apre VISUALIZZAZIONE (solo lettura + cambio stato)
     const orderContent = orderCard.querySelector('.order-content');
     orderContent.addEventListener('click', (e) => {
@@ -1597,14 +1620,20 @@ function renderDescriptionWithChecks(orderId, description) {
   let html = '';
   
   html += lines.map((line, index) => {
-    const lineData = checks[index] || { checked: false, prepared: false };
+    const lineData = checks[index] || { checked: false, prepared: false, supplier: '' };
     const isOrdered = lineData.checked === true;
     const isPrepared = lineData.prepared === true;
+    const supplier = (lineData.supplier || '').toUpperCase();
     
     return `<div class="check-line" data-order-id="${orderId}" data-line="${index}">
       <span class="check-box check-ordered ${isOrdered ? 'checked' : ''}" data-type="ordered" title="Ordinato">${isOrdered ? '✓' : ''}</span>
       <span class="check-box check-prepared ${isPrepared ? 'checked' : ''}" data-type="prepared" title="Preparato">${isPrepared ? '✓' : ''}</span>
       <span class="check-text ${isOrdered && isPrepared ? 'all-done' : ''}">${escapeHtml(line.trim())}</span>
+      <span class="supplier-group" data-order-id="${orderId}" data-line="${index}">
+        <button type="button" class="supplier-btn supplier-import ${supplier === 'IMPORT' ? 'active' : ''}" data-supplier="IMPORT" title="Import">IMP</button>
+        <button type="button" class="supplier-btn supplier-ita ${supplier === 'ITA' ? 'active' : ''}" data-supplier="ITA" title="Italia">ITA</button>
+        <button type="button" class="supplier-btn supplier-nl ${supplier === 'NL' ? 'active' : ''}" data-supplier="NL" title="Olanda">NL</button>
+      </span>
     </div>`;
   }).join('');
   
@@ -1723,6 +1752,112 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
     checkBox.classList.toggle('checked', isCurrentlyChecked);
     checkBox.textContent = isCurrentlyChecked ? '✓' : '';
   }
+}
+
+// Toggle provenienza (IMPORT / ITA / NL) su una riga
+async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
+  const group = btnEl.closest('.supplier-group');
+  if (!group) return;
+  
+  const wasActive = btnEl.classList.contains('active');
+  const newSupplier = wasActive ? '' : supplier;
+  
+  // Optimistic UI: deseleziona tutti, poi seleziona (se non era già attivo)
+  const prevState = {};
+  group.querySelectorAll('.supplier-btn').forEach(b => {
+    prevState[b.dataset.supplier] = b.classList.contains('active');
+    b.classList.remove('active');
+  });
+  if (!wasActive) btnEl.classList.add('active');
+  
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/supplier`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier: newSupplier })
+    });
+    
+    // Aggiorna cache locale
+    if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
+    if (!allOrderChecks[orderId][lineNumber]) {
+      allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '' };
+    }
+    allOrderChecks[orderId][lineNumber].supplier = newSupplier;
+  } catch (error) {
+    console.error('Errore salvataggio provenienza:', error);
+    // Rollback
+    group.querySelectorAll('.supplier-btn').forEach(b => {
+      b.classList.toggle('active', !!prevState[b.dataset.supplier]);
+    });
+  }
+}
+
+// Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
+async function copySupplierItems(supplier) {
+  const lines = [];
+  
+  // Usa sortedOrders come nella lista (già in currentDayOrders)
+  const orders = currentDayOrders || [];
+  
+  orders.forEach(order => {
+    if (!order.description) return;
+    const orderLines = order.description.split('\n').filter(l => l.trim() !== '');
+    const checks = allOrderChecks[order.id] || {};
+    
+    orderLines.forEach((line, index) => {
+      const data = checks[index] || {};
+      const rowSupplier = (data.supplier || '').toUpperCase();
+      const isOrdered = data.checked === true;
+      
+      if (rowSupplier === supplier && !isOrdered) {
+        lines.push(line.trim());
+      }
+    });
+  });
+  
+  if (lines.length === 0) {
+    showToast(`Nessun articolo da ordinare per ${supplier}`, 'info');
+    return;
+  }
+  
+  const text = lines.join('\n');
+  
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`✓ Copiati ${lines.length} articoli ${supplier}`, 'success');
+  } catch (err) {
+    // Fallback per browser che non supportano clipboard API
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      showToast(`✓ Copiati ${lines.length} articoli ${supplier}`, 'success');
+    } catch (e) {
+      showToast('Errore copia negli appunti', 'error');
+    }
+    document.body.removeChild(textarea);
+  }
+}
+
+// Mini toast (se non esiste già un helper analogo, crea uno qui)
+function showToast(message, type = 'info') {
+  let toast = document.getElementById('mini-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'mini-toast';
+    toast.className = 'mini-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `mini-toast show ${type}`;
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2200);
 }
 
 // Goods type è sempre "da_ordinare" per nuovi ordini, può diventare "ordinata" dopo

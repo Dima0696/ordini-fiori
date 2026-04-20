@@ -143,6 +143,16 @@ const initDb = () => {
       console.error('⚠️ Errore aggiungendo prepared:', error.message);
     }
   }
+
+  // Migrazione: aggiunge colonna 'supplier' a fabbisogno_checks (NL, ITA, IMPORT)
+  if (!columnExists('fabbisogno_checks', 'supplier')) {
+    try {
+      db.exec("ALTER TABLE fabbisogno_checks ADD COLUMN supplier TEXT DEFAULT ''");
+      console.log('✅ Aggiunta colonna: supplier (fabbisogno_checks)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo supplier:', error.message);
+    }
+  }
   
   // Aggiungi utenti predefiniti se la tabella è vuota
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
@@ -453,13 +463,14 @@ const deleteSubscription = (endpoint) => {
 
 // Funzioni per gestire i checkbox del fabbisogno
 const getFabbisognoChecks = (orderId) => {
-  const stmt = db.prepare('SELECT line_number, checked, prepared FROM fabbisogno_checks WHERE order_id = ?');
+  const stmt = db.prepare('SELECT line_number, checked, prepared, supplier FROM fabbisogno_checks WHERE order_id = ?');
   const checks = stmt.all(orderId);
   const result = {};
   checks.forEach(c => {
     result[c.line_number] = {
       checked: c.checked === 1,
-      prepared: (c.prepared || 0) === 1
+      prepared: (c.prepared || 0) === 1,
+      supplier: c.supplier || ''
     };
   });
   return result;
@@ -581,6 +592,31 @@ const setFabbisognoPrepared = (orderId, lineNumber, prepared) => {
   }
 };
 
+// Set fornitore (NL, ITA, IMPORT, '')
+const setFabbisognoSupplier = (orderId, lineNumber, supplier) => {
+  const validSupplier = ['NL', 'ITA', 'IMPORT', ''].includes(supplier) ? supplier : '';
+  
+  try {
+    const upsert = db.transaction(() => {
+      const existing = db.prepare('SELECT id FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
+
+      if (existing) {
+        db.prepare('UPDATE fabbisogno_checks SET supplier = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?')
+          .run(validSupplier, orderId, lineNumber);
+      } else {
+        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier) VALUES (?, ?, 0, 0, ?)')
+          .run(orderId, lineNumber, validSupplier);
+      }
+    });
+
+    upsert();
+    return validSupplier;
+  } catch (error) {
+    console.error('❌ DB setFabbisognoSupplier ERROR:', error);
+    throw error;
+  }
+};
+
 const clearFabbisognoChecks = (orderId) => {
   const stmt = db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?');
   stmt.run(orderId);
@@ -635,6 +671,7 @@ module.exports = {
   toggleFabbisognoCheck,
   setFabbisognoCheck,
   setFabbisognoPrepared,
+  setFabbisognoSupplier,
   clearFabbisognoChecks,
   getAllListini,
   getListinoById,
