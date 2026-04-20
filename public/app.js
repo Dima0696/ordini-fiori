@@ -1739,9 +1739,13 @@ function renderDescriptionWithChecks(orderId, description) {
     const isPrepared = lineData.prepared === true;
     const supplier = (lineData.supplier || '').toUpperCase();
     
+    // Icone SVG per differenziare visivamente le due spunte
+    const cartIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/></svg>`;
+    const boxIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>`;
+    
     return `<div class="check-line" data-order-id="${orderId}" data-line="${index}">
-      <span class="check-box check-ordered ${isOrdered ? 'checked' : ''}" data-type="ordered" title="Ordinato">${isOrdered ? '✓' : ''}</span>
-      <span class="check-box check-prepared ${isPrepared ? 'checked' : ''}" data-type="prepared" title="Preparato">${isPrepared ? '✓' : ''}</span>
+      <span class="check-box check-ordered ${isOrdered ? 'checked' : ''}" data-type="ordered" title="Ordinato (acquistato dal fornitore)" aria-label="Ordinato">${cartIcon}</span>
+      <span class="check-box check-prepared ${isPrepared ? 'checked' : ''}" data-type="prepared" title="Preparato (pronto in negozio)" aria-label="Preparato">${boxIcon}</span>
       <span class="check-text ${isOrdered && isPrepared ? 'all-done' : ''}">${escapeHtml(line.trim())}</span>
       <span class="supplier-group" data-order-id="${orderId}" data-line="${index}">
         <button type="button" class="supplier-btn supplier-import ${supplier === 'IMPORT' ? 'active' : ''}" data-supplier="IMPORT" title="Import">IMP</button>
@@ -1821,9 +1825,8 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
   const isCurrentlyChecked = checkBox.classList.contains('checked');
   const newChecked = !isCurrentlyChecked;
   
-  // Optimistic UI
+  // Optimistic UI (l'icona SVG è statica, cambia solo lo stato)
   checkBox.classList.toggle('checked', newChecked);
-  checkBox.textContent = newChecked ? '✓' : '';
   
   // Aggiorna stato "all-done" sul testo
   const checkLine = checkBox.closest('.check-line');
@@ -1864,7 +1867,6 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
     console.error('Errore salvataggio check:', error);
     // Rollback
     checkBox.classList.toggle('checked', isCurrentlyChecked);
-    checkBox.textContent = isCurrentlyChecked ? '✓' : '';
   }
 }
 
@@ -2032,16 +2034,18 @@ function findDisplayedOrder(orderId) {
   return null;
 }
 
-// Aggiorna info sulla barra copia (es. "3 giorni inclusi")
+// Aggiorna badge con numero di giorni inclusi nella barra copia
 function updateCopyBarInfo() {
-  const label = document.querySelector('.copy-suppliers-label');
-  if (!label) return;
+  const badge = document.getElementById('orders-toolbar-days-badge');
+  if (!badge) return;
   
   const totalDays = 1 + selectedExtraDays.size;
   if (totalDays > 1) {
-    label.innerHTML = `Copia da ordinare <span class="copy-bar-badge">${totalDays} giorni</span>:`;
+    badge.textContent = `${totalDays} giorni`;
+    badge.hidden = false;
   } else {
-    label.textContent = 'Copia da ordinare:';
+    badge.textContent = '';
+    badge.hidden = true;
   }
 }
 
