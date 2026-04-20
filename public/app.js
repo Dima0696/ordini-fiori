@@ -30,6 +30,7 @@ const GOODS_TYPE_LABELS = {
 let currentDate = null;
 let currentMonth = new Date(); // Parte dal mese corrente
 let currentOrderId = null;
+let goodsTypeDirty = false; // true quando l'utente cambia disponibilità nel form
 let currentDetailOrder = null;
 let currentEditOrder = null;
 let orderStats = {};
@@ -804,6 +805,18 @@ function setupEventListeners() {
       document.getElementById('goods-type').value = goodsType;
       document.querySelectorAll('.btn-goods-premium').forEach(b => b.classList.remove('active'));
       e.currentTarget.classList.add('active');
+      
+      // Segna come "sporco" così al submit applicheremo le spunte automaticamente
+      goodsTypeDirty = true;
+      
+      // Se siamo in modifica (ordine esistente), applica subito le spunte
+      if (currentOrderId) {
+        const description = document.getElementById('order-description').value.trim();
+        const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
+        if (totalLines > 0) {
+          applyGoodsTypeToChecks(currentOrderId, goodsType, totalLines);
+        }
+      }
     });
   });
   
@@ -1882,7 +1895,69 @@ function updateOrderProgress(orderId) {
   progressEl.classList.add(percent === 100 ? 'complete' : percent >= 50 ? 'mid' : 'low');
 }
 
+// Applica il tipo disponibilità ai check dell'ordine (chiamata in massa)
+//   da_ordinare → azzera tutte le spunte (checked=false, prepared=false)
+//   ordinata    → tutte ORDINATO attive, PREPARATO invariato
+//   in_cella    → tutte ORDINATO e PREPARATO attive (Pronto)
+async function applyGoodsTypeToChecks(orderId, goodsType, totalLines) {
+  if (!orderId || !totalLines) return;
+  
+  let payload = null;
+  if (goodsType === GOODS_TYPE.DA_ORDINARE) {
+    payload = { totalLines, checked: false, prepared: false };
+  } else if (goodsType === GOODS_TYPE.ORDINATA) {
+    payload = { totalLines, checked: true };
+  } else if (goodsType === GOODS_TYPE.IN_CELLA) {
+    payload = { totalLines, checked: true, prepared: true };
+  }
+  if (!payload) return;
+  
+  // Optimistic update cache locale
+  if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
+  for (let i = 0; i < totalLines; i++) {
+    if (!allOrderChecks[orderId][i]) {
+      allOrderChecks[orderId][i] = { checked: false, prepared: false, supplier: '' };
+    }
+    if (typeof payload.checked === 'boolean') {
+      allOrderChecks[orderId][i].checked = payload.checked;
+    }
+    if (typeof payload.prepared === 'boolean') {
+      allOrderChecks[orderId][i].prepared = payload.prepared;
+    }
+  }
+  
+  // Aggiorna UI sulla card se visibile
+  const orderCard = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+  if (orderCard) {
+    orderCard.querySelectorAll('.check-line').forEach(line => {
+      const lineIdx = parseInt(line.dataset.line);
+      const data = allOrderChecks[orderId][lineIdx] || {};
+      const ordBox = line.querySelector('.check-ordered');
+      const prepBox = line.querySelector('.check-prepared');
+      const text = line.querySelector('.check-text');
+      if (ordBox) ordBox.classList.toggle('checked', !!data.checked);
+      if (prepBox) prepBox.classList.toggle('checked', !!data.prepared);
+      if (text) text.classList.toggle('all-done', !!data.checked && !!data.prepared);
+    });
+    updateOrderProgress(orderId);
+    refreshOrderCardState(orderId);
+  }
+  
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/set-all/${orderId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    console.error('Errore applicazione goods_type alle spunte:', error);
+  }
+}
+
 // Toggle check su riga ordine (ordinato o preparato)
+// Logica coerente:
+//   - Spunta PREPARATO su una riga → imposta anche ORDINATO (se preparato => necessariamente ordinato)
+//   - Tolta ORDINATO su una riga con preparato attivo → toglie anche PREPARATO
 async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
   const checkBox = clickedElement.closest('.check-box');
   if (!checkBox) return;
@@ -1891,51 +1966,67 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
   const isCurrentlyChecked = checkBox.classList.contains('checked');
   const newChecked = !isCurrentlyChecked;
   
-  // Optimistic UI (l'icona SVG è statica, cambia solo lo stato)
-  checkBox.classList.toggle('checked', newChecked);
-  
-  // Aggiorna stato "all-done" sul testo
   const checkLine = checkBox.closest('.check-line');
-  const otherBox = type === 'ordered' 
-    ? checkLine.querySelector('.check-prepared') 
-    : checkLine.querySelector('.check-ordered');
-  const otherChecked = otherBox && otherBox.classList.contains('checked');
-  const textEl = checkLine.querySelector('.check-text');
-  if (textEl) {
-    textEl.classList.toggle('all-done', newChecked && otherChecked);
+  const orderedBox = checkLine.querySelector('.check-ordered');
+  const preparedBox = checkLine.querySelector('.check-prepared');
+  
+  // Stato iniziale per eventuale rollback
+  const prevOrdered = orderedBox && orderedBox.classList.contains('checked');
+  const prevPrepared = preparedBox && preparedBox.classList.contains('checked');
+  
+  // Calcolo nuovi stati applicando la logica di coerenza
+  let newOrdered = prevOrdered;
+  let newPrepared = prevPrepared;
+  
+  if (type === 'prepared') {
+    newPrepared = newChecked;
+    // Se stiamo attivando preparato, attiva anche ordinato
+    if (newChecked && !newOrdered) newOrdered = true;
+  } else { // type === 'ordered'
+    newOrdered = newChecked;
+    // Se stiamo togliendo ordinato, togli anche preparato
+    if (!newChecked && newPrepared) newPrepared = false;
   }
   
+  // Optimistic UI
+  if (orderedBox) orderedBox.classList.toggle('checked', newOrdered);
+  if (preparedBox) preparedBox.classList.toggle('checked', newPrepared);
+  const textEl = checkLine.querySelector('.check-text');
+  if (textEl) textEl.classList.toggle('all-done', newOrdered && newPrepared);
+  
   try {
-    if (type === 'prepared') {
-      await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/prepared`, {
+    // Invia in parallelo solo i campi effettivamente cambiati
+    const requests = [];
+    if (newOrdered !== prevOrdered) {
+      requests.push(authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prepared: newChecked })
-      });
-    } else {
-      await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checked: newChecked })
-      });
+        body: JSON.stringify({ checked: newOrdered })
+      }));
     }
+    if (newPrepared !== prevPrepared) {
+      requests.push(authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/prepared`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prepared: newPrepared })
+      }));
+    }
+    await Promise.all(requests);
     
     // Aggiorna cache locale
     if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
     if (!allOrderChecks[orderId][lineNumber]) allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false };
-    if (type === 'prepared') {
-      allOrderChecks[orderId][lineNumber].prepared = newChecked;
-      updateOrderProgress(orderId);
-    } else {
-      allOrderChecks[orderId][lineNumber].checked = newChecked;
-    }
+    allOrderChecks[orderId][lineNumber].checked = newOrdered;
+    allOrderChecks[orderId][lineNumber].prepared = newPrepared;
     
-    // Aggiorna badge di stato (ORDINATO / PRONTO) e bottone Ritirato
+    updateOrderProgress(orderId);
     refreshOrderCardState(orderId);
   } catch (error) {
     console.error('Errore salvataggio check:', error);
     // Rollback
-    checkBox.classList.toggle('checked', isCurrentlyChecked);
+    if (orderedBox) orderedBox.classList.toggle('checked', prevOrdered);
+    if (preparedBox) preparedBox.classList.toggle('checked', prevPrepared);
+    if (textEl) textEl.classList.toggle('all-done', prevOrdered && prevPrepared);
   }
 }
 
@@ -2358,6 +2449,7 @@ function openNewOrderModal() {
   currentOrderId = null;
   currentEditOrder = null;
   uploadedPhotos = [];
+  goodsTypeDirty = false;
   
   document.getElementById('modal-title').textContent = 'Nuovo ordine';
   document.getElementById('order-form').reset();
@@ -2382,6 +2474,7 @@ function openEditOrderModal(order) {
   currentOrderId = order.id;
   currentEditOrder = order;
   uploadedPhotos = order.photos || [];
+  goodsTypeDirty = false;
   
   document.getElementById('modal-title').textContent = 'Modifica ordine';
   document.getElementById('order-id').value = order.id;
@@ -2461,6 +2554,14 @@ async function handleOrderSubmit(e) {
         body: JSON.stringify({ ...orderData, date })
       });
       
+      // Se la disponibilità è stata cambiata, sincronizza le spunte
+      if (goodsTypeDirty) {
+        const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
+        if (totalLines > 0) {
+          await applyGoodsTypeToChecks(parseInt(orderId), goodsType, totalLines);
+        }
+      }
+      
       // Notifica modifica
       if (Notification.permission === 'granted') {
         try {
@@ -2477,11 +2578,22 @@ async function handleOrderSubmit(e) {
       }
     } else {
       // Crea nuovo ordine
-      await authenticatedFetch(`${API_URL}/orders`, {
+      const createRes = await authenticatedFetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...orderData, date })
       });
+      
+      // Se la disponibilità è diversa da "da_ordinare", sincronizza le spunte sul nuovo ordine
+      if (goodsType !== GOODS_TYPE.DA_ORDINARE && createRes && createRes.ok) {
+        try {
+          const newOrder = await createRes.json();
+          const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
+          if (newOrder && newOrder.id && totalLines > 0) {
+            await applyGoodsTypeToChecks(newOrder.id, goodsType, totalLines);
+          }
+        } catch (e) { /* no-op */ }
+      }
       
       // Notifica creazione
       if (Notification.permission === 'granted') {

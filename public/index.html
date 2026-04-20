@@ -505,22 +505,38 @@
           </div>
           
           <div class="goods-buttons-premium">
-            <button type="button" class="btn-goods-premium btn-goods-order" data-goods="in_cella">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              Pronto
-            </button>
-            <button type="button" class="btn-goods-premium btn-goods-order active" data-goods="da_ordinare">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="btn-goods-premium btn-goods-tordinare active" data-goods="da_ordinare">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
               Da ordinare
             </button>
+            <button type="button" class="btn-goods-premium btn-goods-ordinato" data-goods="ordinata">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="21" r="1.5"/>
+                <circle cx="18" cy="21" r="1.5"/>
+                <path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/>
+              </svg>
+              Ordinato
+            </button>
+            <button type="button" class="btn-goods-premium btn-goods-pronto" data-goods="in_cella">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Pronto
+            </button>
           </div>
           <input type="hidden" id="goods-type" value="da_ordinare">
+          <p class="goods-buttons-hint">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Aggiorna automaticamente tutte le spunte degli articoli</span>
+          </p>
         </div>
         
         <!-- SEZIONE FOTO -->

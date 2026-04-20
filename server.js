@@ -543,7 +543,9 @@ app.get('/api/fabbisogno-checks/batch/:orderIds', authenticate, (req, res) => {
 app.post('/api/fabbisogno-checks/check-all/:orderId', authenticate, (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId);
-    const { totalLines, type } = req.body;
+    const { totalLines, type, value } = req.body;
+    // value è opzionale: default true (per retrocompatibilità)
+    const val = value === false ? false : true;
     
     if (!totalLines || totalLines < 1) {
       return res.status(400).json({ error: 'totalLines richiesto' });
@@ -551,16 +553,44 @@ app.post('/api/fabbisogno-checks/check-all/:orderId', authenticate, (req, res) =
     
     for (let i = 0; i < totalLines; i++) {
       if (type === 'prepared') {
-        db.setFabbisognoPrepared(orderId, i, true);
+        db.setFabbisognoPrepared(orderId, i, val);
       } else {
-        db.setFabbisognoCheck(orderId, i, true);
+        db.setFabbisognoCheck(orderId, i, val);
       }
     }
     
-    res.json({ success: true, checked: totalLines, type: type || 'checked' });
+    res.json({ success: true, checked: totalLines, type: type || 'checked', value: val });
   } catch (error) {
     console.error('❌ Errore check-all:', error);
     res.status(500).json({ error: 'Errore check-all' });
+  }
+});
+
+// POST /api/fabbisogno-checks/set-all/:orderId - Set contemporaneamente checked e prepared
+// body: { totalLines, checked: bool|null, prepared: bool|null }
+// se checked/prepared è null o undefined, quella proprietà non viene toccata
+app.post('/api/fabbisogno-checks/set-all/:orderId', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const { totalLines, checked, prepared } = req.body;
+    
+    if (!totalLines || totalLines < 1) {
+      return res.status(400).json({ error: 'totalLines richiesto' });
+    }
+    
+    for (let i = 0; i < totalLines; i++) {
+      if (typeof checked === 'boolean') {
+        db.setFabbisognoCheck(orderId, i, checked);
+      }
+      if (typeof prepared === 'boolean') {
+        db.setFabbisognoPrepared(orderId, i, prepared);
+      }
+    }
+    
+    res.json({ success: true, totalLines, checked, prepared });
+  } catch (error) {
+    console.error('❌ Errore set-all:', error);
+    res.status(500).json({ error: 'Errore set-all' });
   }
 });
 
