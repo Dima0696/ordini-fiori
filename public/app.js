@@ -1794,7 +1794,9 @@ async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
 
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
 // supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
-async function copySupplierItems(supplier) {
+function copySupplierItems(supplier) {
+  console.log('[COPY] Richiesta copia per:', supplier);
+  
   const lines = [];
   let unassignedCount = 0;
   
@@ -1813,7 +1815,6 @@ async function copySupplierItems(supplier) {
       
       if (isOrdered) return;
       
-      // Conta gli articoli senza provenienza (utile per il messaggio di fallback)
       if (!rowSupplier) unassignedCount++;
       
       if (isUnassignedMode) {
@@ -1824,39 +1825,148 @@ async function copySupplierItems(supplier) {
     });
   });
   
+  console.log('[COPY] Trovati', lines.length, 'articoli');
+  
   if (lines.length === 0) {
     if (isUnassignedMode) {
       showToast('Tutti gli articoli hanno già una provenienza', 'info');
     } else if (unassignedCount > 0) {
-      // Messaggio più utile: indica quanti articoli sono senza provenienza
-      showToast(`0 articoli ${supplier} - ${unassignedCount} ancora senza provenienza. Usa "ALTRI" o assegnali.`, 'info');
+      showToast(`0 articoli ${supplier} - ${unassignedCount} senza provenienza. Usa "ALTRI".`, 'info');
     } else {
       showToast(`Nessun articolo da ordinare per ${supplier}`, 'info');
     }
     return;
   }
   
+  const label = isUnassignedMode ? 'SENZA PROVENIENZA' : supplier;
+  showCopyModal(label, lines);
+}
+
+// Modal anteprima/copia: mostra testo, prova copia automatica, fallback manuale
+function showCopyModal(label, lines) {
   const text = lines.join('\n');
-  const label = isUnassignedMode ? 'senza provenienza' : supplier;
   
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast(`✓ Copiati ${lines.length} articoli ${label}`, 'success');
-  } catch (err) {
-    // Fallback per browser che non supportano clipboard API
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
+  // Rimuovi modal precedente se esiste
+  const existing = document.getElementById('copy-preview-modal');
+  if (existing) existing.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'copy-preview-modal';
+  modal.className = 'modal active copy-preview-modal';
+  modal.innerHTML = `
+    <div class="modal-content copy-preview-content">
+      <div class="modal-header">
+        <h2>COPIA ${label}</h2>
+        <button type="button" class="modal-close" aria-label="Chiudi">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="copy-preview-info">
+          <strong>${lines.length}</strong> articoli da ordinare.
+          Seleziona e copia, oppure premi <strong>COPIA</strong>.
+        </p>
+        <textarea class="copy-preview-textarea" readonly spellcheck="false">${text.replace(/</g, '&lt;')}</textarea>
+        <div class="copy-preview-status" id="copy-preview-status"></div>
+      </div>
+      <div class="modal-footer copy-preview-footer">
+        <button type="button" class="btn-secondary copy-preview-close">Chiudi</button>
+        <button type="button" class="btn-primary copy-preview-copy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          COPIA
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const textarea = modal.querySelector('.copy-preview-textarea');
+  const statusEl = modal.querySelector('#copy-preview-status');
+  const btnCopy = modal.querySelector('.copy-preview-copy');
+  const btnClose = modal.querySelector('.copy-preview-close');
+  const btnX = modal.querySelector('.modal-close');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 200);
+  };
+  
+  btnClose.addEventListener('click', closeModal);
+  btnX.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // Auto-seleziona il testo (utile per copia manuale rapida)
+  setTimeout(() => {
+    textarea.focus();
     textarea.select();
-    try {
-      document.execCommand('copy');
-      showToast(`✓ Copiati ${lines.length} articoli ${label}`, 'success');
-    } catch (e) {
-      showToast('Errore copia negli appunti', 'error');
+  }, 100);
+  
+  // Tenta copia automatica all'apertura (senza await per non perdere user gesture)
+  tryCopy(text).then(ok => {
+    if (ok) {
+      statusEl.textContent = '✓ Copiato automaticamente';
+      statusEl.className = 'copy-preview-status success';
     }
-    document.body.removeChild(textarea);
+  });
+  
+  // Bottone COPIA: ritenta la copia (user gesture fresco)
+  btnCopy.addEventListener('click', async () => {
+    const ok = await tryCopy(text, textarea);
+    if (ok) {
+      statusEl.textContent = `✓ Copiati ${lines.length} articoli`;
+      statusEl.className = 'copy-preview-status success';
+      btnCopy.classList.add('copied');
+      setTimeout(() => {
+        closeModal();
+      }, 800);
+    } else {
+      statusEl.textContent = '⚠ Copia automatica non riuscita. Seleziona manualmente il testo e premi Cmd/Ctrl+C.';
+      statusEl.className = 'copy-preview-status error';
+      textarea.focus();
+      textarea.select();
+    }
+  });
+}
+
+// Tenta copia con Clipboard API + fallback execCommand
+async function tryCopy(text, textareaEl) {
+  // 1) Clipboard API moderna
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log('[COPY] Clipboard API OK');
+      return true;
+    } catch (e) {
+      console.warn('[COPY] Clipboard API fallita:', e);
+    }
+  }
+  
+  // 2) Fallback execCommand con textarea esistente o temporanea
+  try {
+    const ta = textareaEl || (() => {
+      const t = document.createElement('textarea');
+      t.value = text;
+      t.style.position = 'fixed';
+      t.style.top = '0';
+      t.style.left = '0';
+      t.style.opacity = '0';
+      document.body.appendChild(t);
+      return t;
+    })();
+    
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    
+    const ok = document.execCommand('copy');
+    console.log('[COPY] execCommand:', ok);
+    
+    if (!textareaEl) document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    console.error('[COPY] execCommand fallito:', e);
+    return false;
   }
 }
 
