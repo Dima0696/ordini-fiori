@@ -1855,19 +1855,18 @@ function showCopyModal(label, lines) {
   modal.className = 'modal active copy-preview-modal';
   modal.innerHTML = `
     <div class="modal-content copy-preview-content">
-      <div class="modal-header">
+      <div class="copy-preview-header">
         <h2>COPIA ${label}</h2>
-        <button type="button" class="modal-close" aria-label="Chiudi">&times;</button>
+        <button type="button" class="btn-close copy-preview-x" aria-label="Chiudi">&times;</button>
       </div>
-      <div class="modal-body">
+      <div class="copy-preview-body">
         <p class="copy-preview-info">
-          <strong>${lines.length}</strong> articoli da ordinare.
-          Seleziona e copia, oppure premi <strong>COPIA</strong>.
+          <strong>${lines.length}</strong> articoli da ordinare
         </p>
         <textarea class="copy-preview-textarea" readonly spellcheck="false">${text.replace(/</g, '&lt;')}</textarea>
         <div class="copy-preview-status" id="copy-preview-status"></div>
       </div>
-      <div class="modal-footer copy-preview-footer">
+      <div class="copy-preview-footer">
         <button type="button" class="btn-secondary copy-preview-close">Chiudi</button>
         <button type="button" class="btn-primary copy-preview-copy">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
@@ -1883,7 +1882,7 @@ function showCopyModal(label, lines) {
   const statusEl = modal.querySelector('#copy-preview-status');
   const btnCopy = modal.querySelector('.copy-preview-copy');
   const btnClose = modal.querySelector('.copy-preview-close');
-  const btnX = modal.querySelector('.modal-close');
+  const btnX = modal.querySelector('.copy-preview-x');
   
   const closeModal = () => {
     modal.classList.remove('active');
