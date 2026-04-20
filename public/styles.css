@@ -1962,6 +1962,11 @@ body {
   box-shadow: 0 2px 6px rgba(230, 81, 0, 0.3);
 }
 
+.copy-supplier-btn.copy-supplier-other {
+  background: linear-gradient(135deg, #757575 0%, #424242 100%);
+  box-shadow: 0 2px 6px rgba(66, 66, 66, 0.3);
+}
+
 .copy-supplier-btn:hover {
   transform: translateY(-2px);
   filter: brightness(1.08);

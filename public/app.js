@@ -1793,11 +1793,13 @@ async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
 }
 
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
+// supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
 async function copySupplierItems(supplier) {
   const lines = [];
+  let unassignedCount = 0;
   
-  // Usa sortedOrders come nella lista (già in currentDayOrders)
   const orders = currentDayOrders || [];
+  const isUnassignedMode = supplier === '__UNASSIGNED__';
   
   orders.forEach(order => {
     if (!order.description) return;
@@ -1809,22 +1811,37 @@ async function copySupplierItems(supplier) {
       const rowSupplier = (data.supplier || '').toUpperCase();
       const isOrdered = data.checked === true;
       
-      if (rowSupplier === supplier && !isOrdered) {
-        lines.push(line.trim());
+      if (isOrdered) return;
+      
+      // Conta gli articoli senza provenienza (utile per il messaggio di fallback)
+      if (!rowSupplier) unassignedCount++;
+      
+      if (isUnassignedMode) {
+        if (!rowSupplier) lines.push(line.trim());
+      } else {
+        if (rowSupplier === supplier) lines.push(line.trim());
       }
     });
   });
   
   if (lines.length === 0) {
-    showToast(`Nessun articolo da ordinare per ${supplier}`, 'info');
+    if (isUnassignedMode) {
+      showToast('Tutti gli articoli hanno già una provenienza', 'info');
+    } else if (unassignedCount > 0) {
+      // Messaggio più utile: indica quanti articoli sono senza provenienza
+      showToast(`0 articoli ${supplier} - ${unassignedCount} ancora senza provenienza. Usa "ALTRI" o assegnali.`, 'info');
+    } else {
+      showToast(`Nessun articolo da ordinare per ${supplier}`, 'info');
+    }
     return;
   }
   
   const text = lines.join('\n');
+  const label = isUnassignedMode ? 'senza provenienza' : supplier;
   
   try {
     await navigator.clipboard.writeText(text);
-    showToast(`✓ Copiati ${lines.length} articoli ${supplier}`, 'success');
+    showToast(`✓ Copiati ${lines.length} articoli ${label}`, 'success');
   } catch (err) {
     // Fallback per browser che non supportano clipboard API
     const textarea = document.createElement('textarea');
@@ -1835,7 +1852,7 @@ async function copySupplierItems(supplier) {
     textarea.select();
     try {
       document.execCommand('copy');
-      showToast(`✓ Copiati ${lines.length} articoli ${supplier}`, 'success');
+      showToast(`✓ Copiati ${lines.length} articoli ${label}`, 'success');
     } catch (e) {
       showToast('Errore copia negli appunti', 'error');
     }
