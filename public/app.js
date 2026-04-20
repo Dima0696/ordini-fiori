@@ -1668,13 +1668,9 @@ function createOrderCard(order, index) {
       });
     });
     
-    // Click sulla card (esclusi i pulsanti) apre VISUALIZZAZIONE (solo lettura + cambio stato)
-    const orderContent = orderCard.querySelector('.order-content');
-    orderContent.addEventListener('click', (e) => {
-      // Non aprire dettaglio se si clicca su una checkbox
-      if (e.target.closest('.check-line')) return;
-      openOrderDetail(order);
-    });
+    // Nota: il click sulla card NON apre più il dettaglio.
+    // La modifica avviene solo tramite il bottone "Modifica" dedicato.
+    
     
     // Event listeners pulsanti
     orderCard.querySelector('.btn-print-quick').addEventListener('click', (e) => {
