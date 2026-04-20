@@ -1389,6 +1389,11 @@ async function openDayOrders(date) {
 let allOrderChecks = {};
 let currentDayOrders = [];
 
+// Multi-giorno: giorni extra selezionati + cache loro ordini/checks
+let selectedExtraDays = new Set();
+let extraDayOrders = {}; // { 'YYYY-MM-DD': [orders] }
+let extraDayChecks = {}; // { 'YYYY-MM-DD': { orderId: { line: {...} } } }
+
 async function loadOrders(date) {
   try {
     const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
@@ -1408,6 +1413,12 @@ async function loadOrders(date) {
     } else {
       allOrderChecks = {};
     }
+    
+    // Reset giorni extra e rerender selettore
+    selectedExtraDays = new Set();
+    extraDayOrders = {};
+    extraDayChecks = {};
+    renderDaysSelector();
     
     renderOrders(orders);
   } catch (error) {
@@ -1792,21 +1803,145 @@ async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
   }
 }
 
+// Renderizza le pillole dei prossimi 7 giorni (escluso il corrente: è sempre attivo)
+function renderDaysSelector() {
+  const container = document.getElementById('days-selector-chips');
+  if (!container || !currentDate) return;
+  
+  const current = new Date(currentDate + 'T00:00:00');
+  const dayNames = ['DOM', 'LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB'];
+  const monthNames = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  
+  // Oggi (fissa, sempre attiva)
+  const todayChip = `
+    <button type="button" class="day-chip day-chip-current active" disabled title="Giorno aperto, sempre incluso">
+      <span class="day-chip-name">${dayNames[current.getDay()]}</span>
+      <span class="day-chip-num">${current.getDate()}</span>
+    </button>
+  `;
+  
+  // Prossimi 6 giorni
+  let chipsHtml = todayChip;
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(current);
+    d.setDate(d.getDate() + i);
+    const iso = formatDate(d);
+    const isActive = selectedExtraDays.has(iso);
+    const isLoading = extraDayOrders[iso] === 'loading';
+    
+    chipsHtml += `
+      <button type="button" class="day-chip ${isActive ? 'active' : ''} ${isLoading ? 'loading' : ''}" data-date="${iso}" title="${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}">
+        <span class="day-chip-name">${dayNames[d.getDay()]}</span>
+        <span class="day-chip-num">${d.getDate()}</span>
+        <span class="day-chip-month">${monthNames[d.getMonth()]}</span>
+      </button>
+    `;
+  }
+  
+  container.innerHTML = chipsHtml;
+  
+  // Bind click
+  container.querySelectorAll('.day-chip[data-date]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const iso = chip.dataset.date;
+      toggleExtraDay(iso);
+    });
+  });
+  
+  // Aggiorna indicatore sulla copy-bar
+  updateCopyBarInfo();
+}
+
+// Toggle selezione di un giorno extra (carica ordini+checks se necessario)
+async function toggleExtraDay(iso) {
+  if (selectedExtraDays.has(iso)) {
+    selectedExtraDays.delete(iso);
+    renderDaysSelector();
+    return;
+  }
+  
+  selectedExtraDays.add(iso);
+  
+  // Se già in cache, basta rerender
+  if (extraDayOrders[iso] && extraDayOrders[iso] !== 'loading') {
+    renderDaysSelector();
+    return;
+  }
+  
+  // Carica ordini + checks di quel giorno
+  extraDayOrders[iso] = 'loading';
+  renderDaysSelector();
+  
+  try {
+    const response = await fetchNoCache(`${API_URL}/orders/date/${iso}`);
+    const orders = await response.json();
+    extraDayOrders[iso] = orders;
+    
+    if (orders.length > 0) {
+      const ids = orders.map(o => o.id).join(',');
+      const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${ids}`);
+      extraDayChecks[iso] = await checksResponse.json();
+    } else {
+      extraDayChecks[iso] = {};
+    }
+  } catch (e) {
+    console.error('[EXTRA-DAY] Errore caricamento', iso, e);
+    extraDayOrders[iso] = [];
+    extraDayChecks[iso] = {};
+    selectedExtraDays.delete(iso);
+    showToast('Errore caricamento ordini di quel giorno', 'error');
+  }
+  
+  renderDaysSelector();
+}
+
+// Aggiorna info sulla barra copia (es. "3 giorni inclusi")
+function updateCopyBarInfo() {
+  const label = document.querySelector('.copy-suppliers-label');
+  if (!label) return;
+  
+  const totalDays = 1 + selectedExtraDays.size;
+  if (totalDays > 1) {
+    label.innerHTML = `Copia da ordinare <span class="copy-bar-badge">${totalDays} giorni</span>:`;
+  } else {
+    label.textContent = 'Copia da ordinare:';
+  }
+}
+
+// Raccoglie tutti gli (order, checks) da considerare: giorno corrente + extra selezionati
+function collectOrdersAndChecks() {
+  const items = [];
+  
+  (currentDayOrders || []).forEach(order => {
+    items.push({ order, checks: allOrderChecks[order.id] || {} });
+  });
+  
+  selectedExtraDays.forEach(iso => {
+    const orders = extraDayOrders[iso];
+    if (!orders || orders === 'loading') return;
+    const checksByOrder = extraDayChecks[iso] || {};
+    orders.forEach(order => {
+      items.push({ order, checks: checksByOrder[order.id] || {} });
+    });
+  });
+  
+  return items;
+}
+
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
 // supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
 function copySupplierItems(supplier) {
-  console.log('[COPY] Richiesta copia per:', supplier);
+  console.log('[COPY] Richiesta copia per:', supplier, '| Giorni extra:', [...selectedExtraDays]);
   
   const lines = [];
   let unassignedCount = 0;
-  
-  const orders = currentDayOrders || [];
   const isUnassignedMode = supplier === '__UNASSIGNED__';
   
-  orders.forEach(order => {
+  const pool = collectOrdersAndChecks();
+  
+  pool.forEach(({ order, checks }) => {
     if (!order.description) return;
     const orderLines = order.description.split('\n').filter(l => l.trim() !== '');
-    const checks = allOrderChecks[order.id] || {};
     
     orderLines.forEach((line, index) => {
       const data = checks[index] || {};
@@ -1825,7 +1960,7 @@ function copySupplierItems(supplier) {
     });
   });
   
-  console.log('[COPY] Trovati', lines.length, 'articoli');
+  console.log('[COPY] Trovati', lines.length, 'articoli su', pool.length, 'ordini');
   
   if (lines.length === 0) {
     if (isUnassignedMode) {
@@ -1839,12 +1974,14 @@ function copySupplierItems(supplier) {
   }
   
   const label = isUnassignedMode ? 'SENZA PROVENIENZA' : supplier;
-  showCopyModal(label, lines);
+  const daysCount = 1 + selectedExtraDays.size;
+  showCopyModal(label, lines, daysCount);
 }
 
 // Modal anteprima/copia: mostra testo, prova copia automatica, fallback manuale
-function showCopyModal(label, lines) {
+function showCopyModal(label, lines, daysCount = 1) {
   const text = lines.join('\n');
+  const daysBadge = daysCount > 1 ? `<span class="copy-modal-days-badge">${daysCount} giorni</span>` : '';
   
   // Rimuovi modal precedente se esiste
   const existing = document.getElementById('copy-preview-modal');
@@ -1861,7 +1998,7 @@ function showCopyModal(label, lines) {
       </div>
       <div class="copy-preview-body">
         <p class="copy-preview-info">
-          <strong>${lines.length}</strong> articoli da ordinare
+          <strong>${lines.length}</strong> articoli da ordinare ${daysBadge}
         </p>
         <textarea class="copy-preview-textarea" readonly spellcheck="false">${text.replace(/</g, '&lt;')}</textarea>
         <div class="copy-preview-status" id="copy-preview-status"></div>
