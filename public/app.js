@@ -1897,7 +1897,7 @@ function updateOrderProgress(orderId) {
 
 // Applica il tipo disponibilità ai check dell'ordine (chiamata in massa)
 //   da_ordinare → azzera tutte le spunte (checked=false, prepared=false)
-//   ordinata    → tutte ORDINATO attive, PREPARATO invariato
+//   ordinata    → tutte ORDINATO attive, tutte PREPARATO disattive
 //   in_cella    → tutte ORDINATO e PREPARATO attive (Pronto)
 async function applyGoodsTypeToChecks(orderId, goodsType, totalLines) {
   if (!orderId || !totalLines) return;
@@ -1906,7 +1906,7 @@ async function applyGoodsTypeToChecks(orderId, goodsType, totalLines) {
   if (goodsType === GOODS_TYPE.DA_ORDINARE) {
     payload = { totalLines, checked: false, prepared: false };
   } else if (goodsType === GOODS_TYPE.ORDINATA) {
-    payload = { totalLines, checked: true };
+    payload = { totalLines, checked: true, prepared: false };
   } else if (goodsType === GOODS_TYPE.IN_CELLA) {
     payload = { totalLines, checked: true, prepared: true };
   }
