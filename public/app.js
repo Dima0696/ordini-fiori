@@ -1492,6 +1492,7 @@ function renderOrders(orders) {
         <div class="order-description order-checklist" data-order-id="${order.id}">
           ${renderDescriptionWithChecks(order.id, order.description)}
         </div>
+        ${renderOrderProgress(order.id, order.description)}
         ${photosHtml}
         ${userInfoHtml}
       </div>
@@ -1610,6 +1611,64 @@ function renderDescriptionWithChecks(orderId, description) {
   return html;
 }
 
+// Calcola statistiche preparazione ordine
+function getOrderProgress(orderId, description) {
+  if (!description) return { total: 0, done: 0, percent: 0 };
+  const lines = description.split('\n').filter(l => l.trim() !== '');
+  const total = lines.length;
+  if (total === 0) return { total: 0, done: 0, percent: 0 };
+  
+  const checks = allOrderChecks[orderId] || {};
+  let done = 0;
+  for (let i = 0; i < total; i++) {
+    if (checks[i] && checks[i].prepared === true) done++;
+  }
+  
+  return {
+    total,
+    done,
+    percent: Math.round((done / total) * 100)
+  };
+}
+
+// Renderizza barra di progresso ordine (basata su PREPARATO)
+function renderOrderProgress(orderId, description) {
+  const { total, done, percent } = getOrderProgress(orderId, description);
+  if (total === 0) return '';
+  
+  const statusClass = percent === 100 ? 'complete' : percent >= 50 ? 'mid' : 'low';
+  
+  return `<div class="order-progress ${statusClass}" data-progress-order="${orderId}">
+    <div class="progress-header">
+      <span class="progress-label">📦 Preparazione</span>
+      <span class="progress-stats"><strong>${done}/${total}</strong> <span class="progress-percent">${percent}%</span></span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" style="width: ${percent}%"></div>
+    </div>
+  </div>`;
+}
+
+// Aggiorna barra progresso di un ordine
+function updateOrderProgress(orderId) {
+  const order = currentDayOrders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  const progressEl = document.querySelector(`[data-progress-order="${orderId}"]`);
+  if (!progressEl) return;
+  
+  const { total, done, percent } = getOrderProgress(orderId, order.description);
+  
+  const fillEl = progressEl.querySelector('.progress-bar-fill');
+  const statsEl = progressEl.querySelector('.progress-stats');
+  
+  if (fillEl) fillEl.style.width = percent + '%';
+  if (statsEl) statsEl.innerHTML = `<strong>${done}/${total}</strong> <span class="progress-percent">${percent}%</span>`;
+  
+  progressEl.classList.remove('complete', 'mid', 'low');
+  progressEl.classList.add(percent === 100 ? 'complete' : percent >= 50 ? 'mid' : 'low');
+}
+
 // Toggle check su riga ordine (ordinato o preparato)
 async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
   const checkBox = clickedElement.closest('.check-box');
@@ -1654,6 +1713,7 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
     if (!allOrderChecks[orderId][lineNumber]) allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false };
     if (type === 'prepared') {
       allOrderChecks[orderId][lineNumber].prepared = newChecked;
+      updateOrderProgress(orderId);
     } else {
       allOrderChecks[orderId][lineNumber].checked = newChecked;
     }

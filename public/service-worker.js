@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v110 - Legenda fissa ORDINATO/PREPARATO sopra lista ordini
-const CACHE_NAME = 'lombardaflor-orders-v110-legend-only';
-const STATIC_CACHE = 'lombardaflor-static-v110-legend-only';
-const API_CACHE = 'lombardaflor-api-v110-legend-only';
+// v111 - PROGRESS BAR: Barra avanzamento preparazione per ogni ordine
+const CACHE_NAME = 'lombardaflor-orders-v111-progress-bar';
+const STATIC_CACHE = 'lombardaflor-static-v111-progress-bar';
+const API_CACHE = 'lombardaflor-api-v111-progress-bar';
 
 const urlsToCache = [
   '/',
