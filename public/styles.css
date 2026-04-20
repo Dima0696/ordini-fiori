@@ -1716,6 +1716,117 @@ body {
   opacity: 0.8;
 }
 
+/* ============================================
+   ORDER STATE BADGES (auto, da spunte)
+   ============================================ */
+.order-state-badges {
+  display: inline-flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.order-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.38rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: #F5F5F5;
+  color: #9E9E9E;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.order-state-badge svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.25s ease;
+}
+
+.order-state-badge.state-ordinato.active {
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.45);
+  transform: translateY(-1px);
+}
+
+.order-state-badge.state-pronto.active {
+  background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 3px 10px rgba(255, 152, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.order-state-badge.active svg {
+  opacity: 1;
+}
+
+.order-state-badge.state-ritirato {
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 3px 10px rgba(66, 66, 66, 0.35);
+  padding: 0.42rem 0.85rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.8px;
+}
+
+/* Card di ordine ritirato: leggermente sbiadita */
+.order-card.order-ritirato {
+  opacity: 0.72;
+  filter: saturate(0.85);
+}
+.order-card.order-ritirato:hover {
+  opacity: 0.92;
+  filter: saturate(1);
+}
+.order-card.order-ritirato .order-customer {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(66, 66, 66, 0.35);
+}
+
+/* Bottone Modifica (sostituisce Pronto) */
+.btn-small.btn-edit-order {
+  background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.35);
+}
+.btn-small.btn-edit-order:hover {
+  background: linear-gradient(135deg, #1E88E5 0%, #0D47A1 100%);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.45);
+  transform: translateY(-1px);
+}
+.btn-small.btn-edit-order:active {
+  transform: translateY(0);
+}
+
+/* Responsive: badge di stato compatti */
+@media (max-width: 480px) {
+  .order-state-badge {
+    font-size: 0.6rem;
+    padding: 0.32rem 0.55rem;
+  }
+  .order-state-badge svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
 .order-description {
   color: var(--color-text-light);
   margin-bottom: 1rem;

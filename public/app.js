@@ -1555,18 +1555,32 @@ function renderOrders(orders) {
 // Crea la card di un singolo ordine con tutti i listener
 function createOrderCard(order, index) {
     const orderCard = document.createElement('div');
-    orderCard.className = `order-card status-${order.status}`;
+    const isRitirato = order.status === ORDER_STATUS.RITIRATO;
+    orderCard.className = `order-card status-${order.status}${isRitirato ? ' order-ritirato' : ''}`;
+    orderCard.dataset.orderId = order.id;
     
-    // Mostra disponibilità: se ordine è pronto/ritirato, mostra solo quello
-    let infoBadges = '';
-    if (order.status === ORDER_STATUS.PRONTO || order.status === ORDER_STATUS.RITIRATO) {
-      // Ordine già pronto o ritirato → mostra solo questo
-      infoBadges += `<span class="info-badge status-${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>`;
-    } else if (order.goods_type) {
-      // Ordine da preparare → mostra stato merce
-      const goodsClass = order.goods_type === GOODS_TYPE.DA_ORDINARE ? 'da_ordinare' : 
-                         order.goods_type === GOODS_TYPE.ORDINATA ? 'ordinata' : '';
-      infoBadges += `<span class="info-badge ${goodsClass}">${GOODS_TYPE_LABELS[order.goods_type] || order.goods_type}</span>`;
+    // Calcolo stati automatici dalle spunte
+    const orderedProg = getOrderedProgress(order.id, order.description);
+    const preparedProg = getOrderProgress(order.id, order.description);
+    const hasLines = preparedProg.total > 0;
+    const isAllOrdered = hasLines && orderedProg.done === orderedProg.total;
+    const isAllPrepared = hasLines && preparedProg.done === preparedProg.total;
+    
+    // Badge di stato (in alto a destra)
+    let stateBadgesHtml = '';
+    if (isRitirato) {
+      stateBadgesHtml = `<span class="order-state-badge state-ritirato">RITIRATO</span>`;
+    } else {
+      stateBadgesHtml = `
+        <span class="order-state-badge state-ordinato ${isAllOrdered ? 'active' : ''}" title="Tutti gli articoli ordinati">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/></svg>
+          <span>ORDINATO</span>
+        </span>
+        <span class="order-state-badge state-pronto ${isAllPrepared ? 'active' : ''}" title="Tutti gli articoli preparati">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+          <span>PRONTO</span>
+        </span>
+      `;
     }
     
     // Costruisci foto
@@ -1612,9 +1626,8 @@ function createOrderCard(order, index) {
             ${escapeHtml(order.customer)}
             ${indicators ? `<span class="order-indicators">${indicators}</span>` : ''}
           </div>
-          <span class="order-status-badge ${order.status}">${ORDER_STATUS_LABELS[order.status]}</span>
+          <div class="order-state-badges">${stateBadgesHtml}</div>
         </div>
-        ${infoBadges ? `<div class="order-info">${infoBadges}</div>` : ''}
         <div class="order-description order-checklist" data-order-id="${order.id}">
           ${renderDescriptionWithChecks(order.id, order.description)}
         </div>
@@ -1626,12 +1639,9 @@ function createOrderCard(order, index) {
         <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
           ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
         </button>
-        ${order.status === 'da_preparare' ? 
-          `<button class="btn-small btn-ready" data-id="${order.id}">✓ Pronto</button>` : ''}
-        ${order.status === 'pronto' ? 
-          `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
-        ${order.status === 'ritirato' ? 
-          `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
+        ${!isRitirato ? `<button class="btn-small btn-edit-order" data-id="${order.id}">✎ Modifica</button>` : ''}
+        ${!isRitirato && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
+        ${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
       </div>
     `;
     
@@ -1694,11 +1704,11 @@ function createOrderCard(order, index) {
       }, 300);
     });
     
-    const btnReady = orderCard.querySelector('.btn-ready');
-    if (btnReady) {
-      btnReady.addEventListener('click', (e) => {
+    const btnEdit = orderCard.querySelector('.btn-edit-order');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', (e) => {
         e.stopPropagation();
-        updateOrderStatus(order.id, 'pronto');
+        openEditOrderModal(order);
       });
     }
     
@@ -1714,7 +1724,7 @@ function createOrderCard(order, index) {
     if (btnUndoCollected) {
       btnUndoCollected.addEventListener('click', (e) => {
         e.stopPropagation();
-        updateOrderStatus(order.id, 'pronto');
+        updateOrderStatus(order.id, 'da_preparare');
       });
     }
     
@@ -1758,7 +1768,7 @@ function renderDescriptionWithChecks(orderId, description) {
   return html;
 }
 
-// Calcola statistiche preparazione ordine
+// Calcola statistiche preparazione ordine (basato su PREPARATO)
 function getOrderProgress(orderId, description) {
   if (!description) return { total: 0, done: 0, percent: 0 };
   const lines = description.split('\n').filter(l => l.trim() !== '');
@@ -1776,6 +1786,66 @@ function getOrderProgress(orderId, description) {
     done,
     percent: Math.round((done / total) * 100)
   };
+}
+
+// Calcola statistiche di ordinazione (basato su ORDINATO / checked)
+function getOrderedProgress(orderId, description) {
+  if (!description) return { total: 0, done: 0, percent: 0 };
+  const lines = description.split('\n').filter(l => l.trim() !== '');
+  const total = lines.length;
+  if (total === 0) return { total: 0, done: 0, percent: 0 };
+  
+  const checks = allOrderChecks[orderId] || {};
+  let done = 0;
+  for (let i = 0; i < total; i++) {
+    if (checks[i] && checks[i].checked === true) done++;
+  }
+  
+  return {
+    total,
+    done,
+    percent: Math.round((done / total) * 100)
+  };
+}
+
+// Aggiorna badge di stato (ORDINATO / PRONTO) e bottone Ritirato sulla card
+function refreshOrderCardState(orderId) {
+  const order = findDisplayedOrder(orderId);
+  if (!order) return;
+  if (order.status === ORDER_STATUS.RITIRATO) return; // card ritirata: nessun aggiornamento automatico
+  
+  const orderCard = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+  if (!orderCard) return;
+  
+  const orderedProg = getOrderedProgress(orderId, order.description);
+  const preparedProg = getOrderProgress(orderId, order.description);
+  const hasLines = preparedProg.total > 0;
+  const isAllOrdered = hasLines && orderedProg.done === orderedProg.total;
+  const isAllPrepared = hasLines && preparedProg.done === preparedProg.total;
+  
+  const badgeOrd = orderCard.querySelector('.order-state-badge.state-ordinato');
+  const badgePro = orderCard.querySelector('.order-state-badge.state-pronto');
+  if (badgeOrd) badgeOrd.classList.toggle('active', isAllOrdered);
+  if (badgePro) badgePro.classList.toggle('active', isAllPrepared);
+  
+  // Gestione bottone "Ritirato" (appare solo quando tutto è preparato)
+  const actionsEl = orderCard.querySelector('.order-actions');
+  if (actionsEl) {
+    let btnCollected = actionsEl.querySelector('.btn-collected');
+    if (isAllPrepared && !btnCollected) {
+      btnCollected = document.createElement('button');
+      btnCollected.className = 'btn-small btn-collected';
+      btnCollected.dataset.id = orderId;
+      btnCollected.textContent = '✓ Ritirato';
+      btnCollected.addEventListener('click', (e) => {
+        e.stopPropagation();
+        updateOrderStatus(orderId, 'ritirato');
+      });
+      actionsEl.appendChild(btnCollected);
+    } else if (!isAllPrepared && btnCollected) {
+      btnCollected.remove();
+    }
+  }
 }
 
 // Renderizza barra di progresso ordine (basata su PREPARATO)
@@ -1863,6 +1933,9 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
     } else {
       allOrderChecks[orderId][lineNumber].checked = newChecked;
     }
+    
+    // Aggiorna badge di stato (ORDINATO / PRONTO) e bottone Ritirato
+    refreshOrderCardState(orderId);
   } catch (error) {
     console.error('Errore salvataggio check:', error);
     // Rollback
@@ -2302,7 +2375,6 @@ function openNewOrderModal() {
     btn.classList.toggle('active', btn.getAttribute('data-goods') === GOODS_TYPE.DA_ORDINARE);
   });
   
-  document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'none';
   
   renderPhotoPreview();
@@ -2333,8 +2405,6 @@ function openEditOrderModal(order) {
     btn.classList.toggle('active', btnValue === displayValue);
   });
   
-  // Nascondo gruppo stato (lo stato si cambia solo dalla visualizzazione)
-  document.getElementById('status-group').style.display = 'none';
   document.getElementById('btn-delete-order').style.display = 'block';
   
   renderPhotoPreview();
