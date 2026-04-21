@@ -65,10 +65,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Se su Railway, servi anche le foto dal volume
+// Opzioni cache per /uploads: i file hanno nome unico (timestamp+random),
+// quindi sono immutable. Il browser li cacha 1 anno → secondo caricamento = istantaneo.
+const uploadsStaticOptions = {
+  maxAge: '365d',
+  immutable: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+};
+
+// Locale (sviluppo): uploads sotto public/, serviti da express.static('public') senza headers.
+// Railway (produzione): volume separato, qui monto la route dedicata.
 if (process.env.DATABASE_PATH) {
-  app.use('/uploads', express.static(uploadsDir));
-  console.log(`📸 Serving uploads from volume: ${uploadsDir}`);
+  app.use('/uploads', express.static(uploadsDir, uploadsStaticOptions));
+  console.log(`📸 Serving uploads from volume: ${uploadsDir} (cache 1y)`);
+} else {
+  // In locale aggiungo comunque headers sugli uploads
+  app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), uploadsStaticOptions));
 }
 
 // Semplice autenticazione con token in memoria
@@ -1517,11 +1531,47 @@ app.post('/api/catalog/duplicate', authenticate, (req, res) => {
   }
 });
 
-// POST /api/catalog/upload-photo → upload foto singola, ritorna URL
-app.post('/api/catalog/upload-photo', authenticate, upload.single('photo'), (req, res) => {
+// POST /api/catalog/upload-photo → upload foto singola, riscrive a JPEG ottimizzato, ritorna URL
+app.post('/api/catalog/upload-photo', authenticate, upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Nessuna foto caricata' });
-    res.json({ photo_url: `/uploads/${req.file.filename}` });
+    
+    const originalPath = req.file.path;
+    const originalSize = req.file.size;
+    
+    // Post-processing server-side: max 1400px / JPEG 82% (gestisce anche HEIC e file non compressi client)
+    try {
+      const sharp = require('sharp');
+      const baseName = path.basename(req.file.filename, path.extname(req.file.filename));
+      const finalName = baseName + '.jpg';
+      const finalPath = path.join(uploadsDir, finalName);
+      
+      await sharp(originalPath)
+        .rotate() // rispetta orientamento EXIF
+        .resize({
+          width: 1400,
+          height: 1400,
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: 82, progressive: true, mozjpeg: true })
+        .toFile(finalPath);
+      
+      // Se il nome del file cambia (estensione era .png/.heic/.webp), rimuovo l'originale
+      if (finalName !== req.file.filename) {
+        try { fs.unlinkSync(originalPath); } catch {}
+      }
+      
+      const newSize = fs.statSync(finalPath).size;
+      const saved = originalSize > 0 ? Math.round((1 - newSize / originalSize) * 100) : 0;
+      console.log(`📸 Foto catalogo ottimizzata: ${req.file.filename} → ${finalName} (${(originalSize/1024).toFixed(0)}KB → ${(newSize/1024).toFixed(0)}KB, -${saved}%)`);
+      
+      return res.json({ photo_url: `/uploads/${finalName}` });
+    } catch (sharpError) {
+      // Fallback: se sharp fallisce (formato non supportato, corruzione), ritorno l'originale
+      console.warn('Sharp ha fallito, ritorno foto originale:', sharpError.message);
+      return res.json({ photo_url: `/uploads/${req.file.filename}` });
+    }
   } catch (error) {
     console.error('Errore upload foto catalogo:', error);
     res.status(500).json({ error: 'Errore upload' });
@@ -1559,5 +1609,62 @@ app.listen(PORT, '0.0.0.0', () => {
   
   // Test volume persistente - Railway deploy
   console.log('🧪 Volume test: Database path =', process.env.DATABASE_PATH || './ordini.db');
+  
+  // Ottimizzazione automatica foto catalogo esistenti (non-bloccante, idempotente).
+  // Gira una volta dopo l'avvio: foto già leggere vengono saltate grazie alla soglia.
+  setTimeout(() => {
+    autoOptimizeCatalogPhotos().catch(err => {
+      console.warn('Auto-optimize foto: errore non critico:', err.message);
+    });
+  }, 5000);
 });
+
+// Auto-optimize: stessa logica di optimize-catalog-photos.js ma inline non-bloccante
+async function autoOptimizeCatalogPhotos() {
+  let sharp;
+  try { sharp = require('sharp'); } catch { return; }
+  
+  const THRESHOLD_BYTES = 500 * 1024; // 500 KB
+  const catalogDates = db.getCatalogDates();
+  if (!catalogDates || catalogDates.length === 0) return;
+  
+  let allItems = [];
+  for (const row of catalogDates) {
+    const items = db.getCatalogByDate(row.catalog_date);
+    allItems = allItems.concat(items);
+  }
+  const withPhoto = allItems.filter(i => i.photo_url && i.photo_url.startsWith('/uploads/'));
+  if (withPhoto.length === 0) return;
+  
+  let optimized = 0;
+  let totalSaved = 0;
+  
+  for (const item of withPhoto) {
+    const filename = path.basename(item.photo_url);
+    const filePath = path.join(uploadsDir, filename);
+    if (!fs.existsSync(filePath)) continue;
+    
+    const stat = fs.statSync(filePath);
+    if (stat.size <= THRESHOLD_BYTES) continue;
+    
+    const tmpPath = filePath + '.tmp';
+    try {
+      await sharp(filePath)
+        .rotate()
+        .resize({ width: 1400, height: 1400, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 82, progressive: true, mozjpeg: true })
+        .toFile(tmpPath);
+      const newSize = fs.statSync(tmpPath).size;
+      fs.renameSync(tmpPath, filePath);
+      optimized++;
+      totalSaved += (stat.size - newSize);
+    } catch (err) {
+      try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch {}
+    }
+  }
+  
+  if (optimized > 0) {
+    console.log(`📸 Auto-optimize foto: ${optimized} foto ottimizzate, risparmio ${(totalSaved/1024/1024).toFixed(1)} MB`);
+  }
+}
 

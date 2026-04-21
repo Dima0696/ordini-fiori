@@ -5593,7 +5593,7 @@ function renderCatalogoStaff() {
     const card = document.createElement('div');
     card.className = 'catalog-card' + (item.active ? '' : ' is-inactive');
     const photoHtml = item.photo_url
-      ? `<div class="catalog-card-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy">
+      ? `<div class="catalog-card-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy" decoding="async">
            ${item.category ? `<span class="catalog-card-cat">${escapeHtml(item.category)}</span>` : ''}
            ${!item.active ? `<span class="catalog-card-badge-inactive">NASCOSTO</span>` : ''}
          </div>`

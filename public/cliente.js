@@ -163,7 +163,7 @@ function renderCatalog() {
     const card = document.createElement('div');
     card.className = 'c-prod-card' + (qty > 0 ? ' in-cart' : '');
     const photoHtml = item.photo_url
-      ? `<div class="c-prod-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy">
+      ? `<div class="c-prod-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy" decoding="async" fetchpriority="low">
           ${qty > 0 ? `<span class="c-prod-qty-chip">${qty}</span>` : ''}
         </div>`
       : `<div class="c-prod-photo no-photo">
