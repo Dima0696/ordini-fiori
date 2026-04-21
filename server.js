@@ -978,6 +978,76 @@ app.delete('/api/listini/:id', authenticate, (req, res) => {
   }
 });
 
+// ============================================
+// PREVENTIVI
+// ============================================
+
+// GET /api/preventivi - Lista preventivi (snapshot leggero, senza items)
+app.get('/api/preventivi', authenticate, (req, res) => {
+  try {
+    const list = db.getAllPreventivi();
+    res.json(list);
+  } catch (error) {
+    console.error('Errore lista preventivi:', error);
+    res.status(500).json({ error: 'Errore nel recupero preventivi' });
+  }
+});
+
+// GET /api/preventivi/:id - Ottieni singolo preventivo completo
+app.get('/api/preventivi/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const prev = db.getPreventivoById(id);
+    if (!prev) return res.status(404).json({ error: 'Preventivo non trovato' });
+    res.json(prev);
+  } catch (error) {
+    console.error('Errore get preventivo:', error);
+    res.status(500).json({ error: 'Errore nel recupero preventivo' });
+  }
+});
+
+// POST /api/preventivi - Crea nuovo preventivo
+app.post('/api/preventivi', authenticate, (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.cliente || String(body.cliente).trim() === '') {
+      return res.status(400).json({ error: 'Cliente obbligatorio' });
+    }
+    const prev = db.createPreventivo(body, req.user.username);
+    res.status(201).json(prev);
+  } catch (error) {
+    console.error('Errore create preventivo:', error);
+    res.status(500).json({ error: 'Errore nella creazione del preventivo' });
+  }
+});
+
+// PUT /api/preventivi/:id - Aggiorna preventivo
+app.put('/api/preventivi/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updated = db.updatePreventivo(id, req.body || {}, req.user.username);
+    if (!updated) return res.status(404).json({ error: 'Preventivo non trovato' });
+    res.json(updated);
+  } catch (error) {
+    console.error('Errore update preventivo:', error);
+    res.status(500).json({ error: 'Errore nell\'aggiornamento del preventivo' });
+  }
+});
+
+// DELETE /api/preventivi/:id
+app.delete('/api/preventivi/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const existing = db.getPreventivoById(id);
+    if (!existing) return res.status(404).json({ error: 'Preventivo non trovato' });
+    db.deletePreventivo(id);
+    res.json({ message: 'Preventivo eliminato' });
+  } catch (error) {
+    console.error('Errore delete preventivo:', error);
+    res.status(500).json({ error: 'Errore nell\'eliminazione del preventivo' });
+  }
+});
+
 // Serve l'app per tutte le altre route (deve essere l'ultima route)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

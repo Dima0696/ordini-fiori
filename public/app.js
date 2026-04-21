@@ -96,6 +96,7 @@ const holidays = [
 const pageCalendar = document.getElementById('page-calendar');
 const pageOrders = document.getElementById('page-orders');
 const pageListini = document.getElementById('page-listini');
+const pagePreventivi = document.getElementById('page-preventivi');
 const modalOrder = document.getElementById('modal-order');
 const modalConfirm = document.getElementById('modal-confirm');
 const daysList = document.getElementById('days-list');
@@ -686,6 +687,12 @@ function setupEventListeners() {
     openListiniPage();
   });
   
+  // Preventivi
+  const quickPrev = document.getElementById('quick-preventivi');
+  if (quickPrev) quickPrev.addEventListener('click', () => openPreventiviPage());
+  const fabPrev = document.getElementById('fab-preventivi');
+  if (fabPrev) fabPrev.addEventListener('click', () => { closeFabMenu(); openPreventiviPage(); });
+  
   // Pulsanti pagina Listini
   document.getElementById('btn-back-listini').addEventListener('click', () => {
     showPage('calendar');
@@ -696,6 +703,15 @@ function setupEventListeners() {
   });
   
   document.getElementById('btn-logout-listini').addEventListener('click', logout);
+  
+  // Pulsanti pagina Preventivi
+  const btnBackPrev = document.getElementById('btn-back-preventivi');
+  if (btnBackPrev) btnBackPrev.addEventListener('click', () => showPage('calendar'));
+  const btnHomePrev = document.getElementById('btn-home-preventivi');
+  if (btnHomePrev) btnHomePrev.addEventListener('click', () => showPage('calendar'));
+  const btnLogoutPrev = document.getElementById('btn-logout-preventivi');
+  if (btnLogoutPrev) btnLogoutPrev.addEventListener('click', logout);
+  setupPreventiviListeners();
   
   document.getElementById('btn-select-file').addEventListener('click', () => {
     document.getElementById('listino-file-input').click();
@@ -2758,6 +2774,7 @@ function showPage(page) {
   pageCalendar.classList.remove('active');
   pageOrders.classList.remove('active');
   pageListini.classList.remove('active');
+  if (pagePreventivi) pagePreventivi.classList.remove('active');
   
   if (page === 'calendar') {
     pageCalendar.classList.add('active');
@@ -2765,6 +2782,8 @@ function showPage(page) {
     pageOrders.classList.add('active');
   } else if (page === 'listini') {
     pageListini.classList.add('active');
+  } else if (page === 'preventivi') {
+    if (pagePreventivi) pagePreventivi.classList.add('active');
   }
   
   // Scroll in alto
@@ -4179,3 +4198,520 @@ window.debugSchema = debugSchema; // Usa debugSchema() nella console per verific
 window.checkNotifications = checkNotifications; // Usa checkNotifications() per verificare notifiche
 window.viewListino = viewListino;
 window.deleteListino = deleteListino;
+
+// ============================================
+// PREVENTIVI
+// ============================================
+
+let currentPreventivo = null; // preventivo caricato nell'editor (null = nuovo)
+let preventiviCache = [];     // cache lista
+const PREV_EMPTY_ROW = () => ({ qt: '', qt_min: '', desc: '', prezzo: '' });
+
+function openPreventiviPage() {
+  showPage('preventivi');
+  loadPreventivi();
+  const usernameEl = document.getElementById('username-display-preventivi');
+  if (usernameEl) usernameEl.textContent = currentUser;
+}
+
+async function loadPreventivi() {
+  const listEl = document.getElementById('preventivi-list');
+  const emptyEl = document.getElementById('preventivi-empty');
+  if (!listEl) return;
+  
+  try {
+    const res = await authenticatedFetch(`${API_URL}/preventivi`);
+    const items = await res.json();
+    preventiviCache = items || [];
+    renderPreventiviList(preventiviCache);
+  } catch (err) {
+    console.error('Errore caricamento preventivi:', err);
+    listEl.innerHTML = '';
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      emptyEl.querySelector('p').textContent = 'Errore nel caricamento';
+    }
+  }
+}
+
+function renderPreventiviList(items) {
+  const listEl = document.getElementById('preventivi-list');
+  const emptyEl = document.getElementById('preventivi-empty');
+  if (!listEl) return;
+  
+  if (!items || items.length === 0) {
+    listEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  
+  listEl.innerHTML = items.map(p => {
+    const dataStr = p.data_preventivo ? formatDateItalianShort(p.data_preventivo) : '';
+    const totale = formatCurrency(p.totale || 0);
+    const who = p.updated_by || p.created_by || '';
+    const subtitleParts = [];
+    if (p.ragione_sociale) subtitleParts.push(escapeHtml(p.ragione_sociale));
+    if (p.luogo_consegna) subtitleParts.push(escapeHtml(p.luogo_consegna));
+    return `
+      <div class="preventivo-card" data-id="${p.id}">
+        <div class="preventivo-card-head">
+          <div class="preventivo-numero">${escapeHtml(p.numero || '—')}</div>
+          <div class="preventivo-totale-mini">${totale}</div>
+        </div>
+        <div class="preventivo-cliente">${escapeHtml(p.cliente || '')}</div>
+        ${subtitleParts.length ? `<div class="preventivo-sub">${subtitleParts.join(' · ')}</div>` : ''}
+        <div class="preventivo-meta">
+          <span>${dataStr}</span>
+          ${who ? `<span>· ${escapeHtml(who)}</span>` : ''}
+        </div>
+        <div class="preventivo-card-actions">
+          <button class="btn-mini btn-mini-edit" data-action="edit" data-id="${p.id}">Apri</button>
+          <button class="btn-mini btn-mini-dup" data-action="duplicate" data-id="${p.id}">Duplica</button>
+          <button class="btn-mini btn-mini-del" data-action="delete" data-id="${p.id}">Elimina</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  listEl.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = parseInt(btn.dataset.id);
+      const action = btn.dataset.action;
+      if (action === 'edit') openPreventivoEditor(id);
+      else if (action === 'duplicate') duplicatePreventivo(id);
+      else if (action === 'delete') deletePreventivoHandler(id);
+    });
+  });
+  
+  listEl.querySelectorAll('.preventivo-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = parseInt(card.dataset.id);
+      openPreventivoEditor(id);
+    });
+  });
+}
+
+function formatDateItalianShort(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + (dateStr.length === 10 ? 'T00:00:00' : ''));
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return dateStr; }
+}
+
+function formatCurrency(n) {
+  const num = Number(n) || 0;
+  return '€ ' + num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function setupPreventiviListeners() {
+  const searchEl = document.getElementById('preventivi-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.trim().toLowerCase();
+      if (!q) return renderPreventiviList(preventiviCache);
+      const filtered = preventiviCache.filter(p => {
+        const str = `${p.numero || ''} ${p.cliente || ''} ${p.ragione_sociale || ''} ${p.luogo_consegna || ''}`.toLowerCase();
+        return str.includes(q);
+      });
+      renderPreventiviList(filtered);
+    });
+  }
+  
+  const btnNew = document.getElementById('btn-new-preventivo');
+  if (btnNew) btnNew.addEventListener('click', () => openPreventivoEditor(null));
+  
+  const btnClose = document.getElementById('btn-close-preventivo');
+  if (btnClose) btnClose.addEventListener('click', closePreventivoEditor);
+  
+  const modal = document.getElementById('modal-preventivo');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePreventivoEditor();
+    });
+  }
+  
+  const btnAddRow = document.getElementById('btn-add-prev-row');
+  if (btnAddRow) btnAddRow.addEventListener('click', () => addPrevRow(PREV_EMPTY_ROW()));
+  
+  const btnSave = document.getElementById('btn-save-preventivo');
+  if (btnSave) btnSave.addEventListener('click', savePreventivo);
+  
+  const btnPrint = document.getElementById('btn-print-preventivo');
+  if (btnPrint) btnPrint.addEventListener('click', printPreventivo);
+  
+  const btnDel = document.getElementById('btn-delete-preventivo');
+  if (btnDel) btnDel.addEventListener('click', () => {
+    if (currentPreventivo && currentPreventivo.id) {
+      deletePreventivoHandler(currentPreventivo.id, true);
+    }
+  });
+}
+
+function openPreventivoEditor(id) {
+  currentPreventivo = null;
+  const modal = document.getElementById('modal-preventivo');
+  const itemsBox = document.getElementById('preventivo-items');
+  if (itemsBox) itemsBox.innerHTML = '';
+  
+  const titleEl = document.getElementById('preventivo-modal-title');
+  const delBtn = document.getElementById('btn-delete-preventivo');
+  
+  if (!id) {
+    // Nuovo
+    if (titleEl) titleEl.textContent = 'Nuovo preventivo';
+    if (delBtn) delBtn.style.display = 'none';
+    document.getElementById('prev-numero').value = '';
+    document.getElementById('prev-data').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('prev-cliente').value = '';
+    document.getElementById('prev-ragione').value = '';
+    document.getElementById('prev-luogo').value = '';
+    document.getElementById('prev-data-consegna').value = '';
+    document.getElementById('prev-indirizzo').value = '';
+    document.getElementById('prev-note').value = '';
+    addPrevRow(PREV_EMPTY_ROW());
+    recalcPreventivoTotale();
+    modal.classList.add('active');
+    return;
+  }
+  
+  // Modifica: carica dal server
+  (async () => {
+    try {
+      const res = await authenticatedFetch(`${API_URL}/preventivi/${id}`);
+      if (!res.ok) throw new Error('Preventivo non trovato');
+      const p = await res.json();
+      currentPreventivo = p;
+      
+      if (titleEl) titleEl.textContent = `Preventivo ${p.numero || ''}`;
+      if (delBtn) delBtn.style.display = 'flex';
+      
+      document.getElementById('prev-numero').value = p.numero || '';
+      document.getElementById('prev-data').value = p.data_preventivo || '';
+      document.getElementById('prev-cliente').value = p.cliente || '';
+      document.getElementById('prev-ragione').value = p.ragione_sociale || '';
+      document.getElementById('prev-luogo').value = p.luogo_consegna || '';
+      document.getElementById('prev-data-consegna').value = p.data_consegna || '';
+      document.getElementById('prev-indirizzo').value = p.indirizzo_consegna || '';
+      document.getElementById('prev-note').value = p.note || '';
+      
+      const items = Array.isArray(p.items) ? p.items : [];
+      if (items.length === 0) {
+        addPrevRow(PREV_EMPTY_ROW());
+      } else {
+        items.forEach(it => addPrevRow({
+          qt: it.qt ?? '',
+          qt_min: it.qt_min ?? '',
+          desc: it.desc ?? '',
+          prezzo: it.prezzo ?? ''
+        }));
+      }
+      recalcPreventivoTotale();
+      modal.classList.add('active');
+    } catch (err) {
+      console.error(err);
+      alert('Errore caricamento preventivo: ' + err.message);
+    }
+  })();
+}
+
+function closePreventivoEditor() {
+  const modal = document.getElementById('modal-preventivo');
+  if (modal) modal.classList.remove('active');
+  currentPreventivo = null;
+}
+
+function addPrevRow(data = {}) {
+  const container = document.getElementById('preventivo-items');
+  if (!container) return;
+  
+  const row = document.createElement('div');
+  row.className = 'preventivo-item-row';
+  row.innerHTML = `
+    <input type="number" class="prev-inp prev-qt" step="1" min="0" inputmode="decimal" placeholder="0" value="${data.qt ?? ''}">
+    <input type="number" class="prev-inp prev-qtmin" step="1" min="0" inputmode="decimal" placeholder="—" value="${data.qt_min ?? ''}">
+    <input type="text" class="prev-inp prev-desc" placeholder="Descrizione articolo" value="${escapeAttr(data.desc ?? '')}">
+    <input type="number" class="prev-inp prev-prezzo" step="0.01" min="0" inputmode="decimal" placeholder="0,00" value="${data.prezzo ?? ''}">
+    <div class="prev-totale-cell" data-totale>—</div>
+    <button type="button" class="btn-row-del" title="Rimuovi riga" aria-label="Rimuovi riga">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  `;
+  container.appendChild(row);
+  
+  const update = () => updateRowTotale(row);
+  row.querySelectorAll('.prev-qt, .prev-prezzo').forEach(inp => inp.addEventListener('input', update));
+  row.querySelector('.btn-row-del').addEventListener('click', () => {
+    row.remove();
+    recalcPreventivoTotale();
+  });
+  update();
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function updateRowTotale(row) {
+  const qt = parseFloat(row.querySelector('.prev-qt').value) || 0;
+  const prezzo = parseFloat(row.querySelector('.prev-prezzo').value) || 0;
+  const tot = qt * prezzo;
+  const cell = row.querySelector('[data-totale]');
+  if (cell) cell.textContent = tot > 0 ? formatCurrency(tot) : '—';
+  recalcPreventivoTotale();
+}
+
+function recalcPreventivoTotale() {
+  let totale = 0;
+  document.querySelectorAll('#preventivo-items .preventivo-item-row').forEach(row => {
+    const qt = parseFloat(row.querySelector('.prev-qt').value) || 0;
+    const prezzo = parseFloat(row.querySelector('.prev-prezzo').value) || 0;
+    totale += qt * prezzo;
+  });
+  const box = document.getElementById('prev-totale');
+  if (box) box.textContent = formatCurrency(totale);
+  return totale;
+}
+
+function collectPreventivoFormData() {
+  const rows = [...document.querySelectorAll('#preventivo-items .preventivo-item-row')];
+  const items = rows.map(r => ({
+    qt: parseFloat(r.querySelector('.prev-qt').value) || 0,
+    qt_min: parseFloat(r.querySelector('.prev-qtmin').value) || 0,
+    desc: r.querySelector('.prev-desc').value.trim(),
+    prezzo: parseFloat(r.querySelector('.prev-prezzo').value) || 0
+  })).filter(it => it.desc !== '' || it.qt > 0 || it.prezzo > 0);
+  
+  const totale = items.reduce((s, it) => s + (it.qt * it.prezzo), 0);
+  
+  return {
+    numero: document.getElementById('prev-numero').value.trim(),
+    cliente: document.getElementById('prev-cliente').value.trim(),
+    ragione_sociale: document.getElementById('prev-ragione').value.trim(),
+    luogo_consegna: document.getElementById('prev-luogo').value.trim(),
+    indirizzo_consegna: document.getElementById('prev-indirizzo').value.trim(),
+    data_preventivo: document.getElementById('prev-data').value || new Date().toISOString().slice(0, 10),
+    data_consegna: document.getElementById('prev-data-consegna').value || '',
+    items,
+    totale,
+    note: document.getElementById('prev-note').value.trim()
+  };
+}
+
+async function savePreventivo() {
+  const data = collectPreventivoFormData();
+  if (!data.cliente) {
+    alert('Inserisci almeno l\'intestazione cliente (es. "Sig. Mario Rossi").');
+    document.getElementById('prev-cliente').focus();
+    return;
+  }
+  
+  try {
+    let saved;
+    if (currentPreventivo && currentPreventivo.id) {
+      const res = await authenticatedFetch(`${API_URL}/preventivi/${currentPreventivo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      saved = await res.json();
+    } else {
+      const res = await authenticatedFetch(`${API_URL}/preventivi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      saved = await res.json();
+    }
+    currentPreventivo = saved;
+    // Aggiorna titolo e numero generato auto
+    const titleEl = document.getElementById('preventivo-modal-title');
+    if (titleEl) titleEl.textContent = `Preventivo ${saved.numero || ''}`;
+    const numeroInp = document.getElementById('prev-numero');
+    if (numeroInp && !numeroInp.value) numeroInp.value = saved.numero || '';
+    const delBtn = document.getElementById('btn-delete-preventivo');
+    if (delBtn) delBtn.style.display = 'flex';
+    showMiniToast('Preventivo salvato', 'success');
+    loadPreventivi();
+  } catch (err) {
+    console.error(err);
+    alert('Errore salvataggio preventivo: ' + err.message);
+  }
+}
+
+async function duplicatePreventivo(id) {
+  try {
+    const res = await authenticatedFetch(`${API_URL}/preventivi/${id}`);
+    if (!res.ok) throw new Error('Preventivo non trovato');
+    const p = await res.json();
+    // Crea copia senza id e numero (il server genererà un nuovo numero)
+    const copy = {
+      cliente: p.cliente,
+      ragione_sociale: p.ragione_sociale,
+      luogo_consegna: p.luogo_consegna,
+      indirizzo_consegna: p.indirizzo_consegna,
+      data_preventivo: new Date().toISOString().slice(0, 10),
+      data_consegna: p.data_consegna,
+      items: p.items,
+      totale: p.totale,
+      note: p.note
+    };
+    const cres = await authenticatedFetch(`${API_URL}/preventivi`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(copy)
+    });
+    const newPrev = await cres.json();
+    showMiniToast('Preventivo duplicato', 'success');
+    loadPreventivi();
+    openPreventivoEditor(newPrev.id);
+  } catch (err) {
+    console.error(err);
+    alert('Errore duplicazione preventivo: ' + err.message);
+  }
+}
+
+async function deletePreventivoHandler(id, fromEditor = false) {
+  if (!confirm('Eliminare definitivamente questo preventivo?')) return;
+  try {
+    await authenticatedFetch(`${API_URL}/preventivi/${id}`, { method: 'DELETE' });
+    if (fromEditor) closePreventivoEditor();
+    showMiniToast('Preventivo eliminato', 'success');
+    loadPreventivi();
+  } catch (err) {
+    console.error(err);
+    alert('Errore eliminazione: ' + err.message);
+  }
+}
+
+function showMiniToast(msg, type = 'info') {
+  // Usa stile mini-toast esistente se disponibile, altrimenti fallback
+  const existing = document.querySelector('.mini-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'mini-toast ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'info'));
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+// ============================================
+// STAMPA PREVENTIVO (PDF via window.print)
+// ============================================
+
+function printPreventivo() {
+  const data = collectPreventivoFormData();
+  if (!data.cliente) {
+    alert('Inserisci almeno l\'intestazione cliente prima di stampare.');
+    return;
+  }
+  
+  // Rendi HTML fedele al layout richiesto (logo a sx, data a dx, ecc.)
+  const printView = document.getElementById('preventivo-print-view');
+  printView.innerHTML = renderPreventivoPrintHtml(data);
+  
+  // Nascondi editor, mostra print view
+  document.body.classList.add('printing-preventivo');
+  
+  const onAfter = () => {
+    document.body.classList.remove('printing-preventivo');
+    window.removeEventListener('afterprint', onAfter);
+  };
+  window.addEventListener('afterprint', onAfter);
+  
+  setTimeout(() => window.print(), 150);
+}
+
+function renderPreventivoPrintHtml(p) {
+  const dataPrev = p.data_preventivo ? formatDateItalianShort(p.data_preventivo) : '';
+  const dataCons = p.data_consegna ? formatDateItalianShort(p.data_consegna) : '';
+  
+  const rowsHtml = (p.items || []).map(it => {
+    const qt = Number(it.qt) || 0;
+    const qtMin = Number(it.qt_min) || 0;
+    const prezzo = Number(it.prezzo) || 0;
+    const totale = qt * prezzo;
+    return `
+      <tr>
+        <td class="ppv-col-qt">${qt || ''}</td>
+        <td class="ppv-col-qtmin">${qtMin || '—'}</td>
+        <td class="ppv-col-desc">${escapeHtml(it.desc || '')}</td>
+        <td class="ppv-col-price">${prezzo > 0 ? prezzo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+        <td class="ppv-col-total">${totale > 0 ? totale.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  const totale = (p.items || []).reduce((s, it) => s + ((Number(it.qt) || 0) * (Number(it.prezzo) || 0)), 0);
+  const totaleFmt = totale.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  const numero = p.numero ? `N° ${p.numero}` : '';
+  const citta = p.luogo_consegna || 'Cesano Boscone';
+  
+  return `
+    <div class="ppv-sheet">
+      <div class="ppv-top">
+        <img src="logo.png" alt="LombardaFlor" class="ppv-logo">
+        <div class="ppv-top-right">
+          <div class="ppv-numero">${escapeHtml(numero)}</div>
+          <div class="ppv-city">${escapeHtml(citta)}, ${escapeHtml(dataPrev)}</div>
+        </div>
+      </div>
+      
+      <div class="ppv-intestazione">
+        <div class="ppv-sig"><strong>${escapeHtml(p.cliente)}</strong>${p.ragione_sociale ? ' - ' + escapeHtml(p.ragione_sociale) : ''}</div>
+        ${p.indirizzo_consegna ? `<div class="ppv-info-row"><span class="ppv-label">CONSEGNA:</span> ${escapeHtml(dataCons || '')}</div>` : ''}
+        ${p.indirizzo_consegna ? `<div class="ppv-info-row"><span class="ppv-label">LUOGO:</span> ${escapeHtml(p.indirizzo_consegna)}</div>` : ''}
+      </div>
+      
+      <div class="ppv-oggetto"><strong>OGGETTO:</strong> Preventivo offerta</div>
+      
+      <p class="ppv-intro">Con la presente Vi inoltriamo preventivo come da Vostra richiesta.</p>
+      <p class="ppv-intro ppv-intro-highlight">I prezzi indicati si intendono esclusi di Iva e sono orientativi, in quanto potrebbero subire variazioni di mercato.</p>
+      
+      <table class="ppv-table">
+        <thead>
+          <tr>
+            <th class="ppv-col-qt">Qt</th>
+            <th class="ppv-col-qtmin">Qt min.</th>
+            <th class="ppv-col-desc">Descrizione</th>
+            <th class="ppv-col-price">Prezzo<br>unitario (€)</th>
+            <th class="ppv-col-total">Prezzo<br>complessivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+        <tfoot>
+          <tr class="ppv-totale-row">
+            <td colspan="4" class="ppv-totale-label">Totale</td>
+            <td class="ppv-totale-value">€ ${totaleFmt}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <p class="ppv-closing">Restiamo in attesa di ricevere Vs conferma al più presto, in modo tale da poterVi dare disponibilità e prezzi effettivi fiori.</p>
+      
+      <p class="ppv-regards">Cordiali saluti,<br><strong>LOMBARDA FLOR SRL</strong></p>
+      
+      ${p.note ? `<p class="ppv-note"><em>${escapeHtml(p.note)}</em></p>` : ''}
+      
+      <div class="ppv-footer">
+        <span>LombardaFlor S.r.l.</span> · 
+        <span>Via Dante Alighieri, Cesano Boscone (MI)</span> · 
+        <span>P.IVA 00000000000</span>
+      </div>
+    </div>
+  `;
+}
+
+window.openPreventivoEditor = openPreventivoEditor;

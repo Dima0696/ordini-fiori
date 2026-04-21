@@ -92,11 +92,32 @@ const initDb = () => {
     )
   `;
   
+  const createPreventiviTableQuery = `
+    CREATE TABLE IF NOT EXISTS preventivi (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero TEXT,
+      cliente TEXT NOT NULL,
+      ragione_sociale TEXT DEFAULT '',
+      luogo_consegna TEXT DEFAULT '',
+      indirizzo_consegna TEXT DEFAULT '',
+      data_preventivo TEXT NOT NULL,
+      data_consegna TEXT DEFAULT '',
+      items TEXT NOT NULL DEFAULT '[]',
+      totale REAL DEFAULT 0,
+      note TEXT DEFAULT '',
+      created_by TEXT,
+      updated_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
   db.exec(createFabbisognoChecksTableQuery);
   db.exec(createListiniTableQuery);
+  db.exec(createPreventiviTableQuery);
   
   // Crea indici per performance
   try {
@@ -106,6 +127,8 @@ const initDb = () => {
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_goods_type ON orders(goods_type)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_fabbisogno_order ON fabbisogno_checks(order_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_preventivi_data ON preventivi(data_preventivo DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_preventivi_cliente ON preventivi(cliente)');
     console.log('✓ Indici database creati per performance');
   } catch (error) {
     console.log('⚠️ Indici già esistenti');
@@ -650,6 +673,131 @@ const deleteListino = (id) => {
   return stmt.run(id);
 };
 
+// ============================================
+// PREVENTIVI
+// ============================================
+
+function mapPreventivoRow(row) {
+  if (!row) return null;
+  let items = [];
+  try {
+    items = row.items ? JSON.parse(row.items) : [];
+  } catch (e) {
+    items = [];
+  }
+  return {
+    id: row.id,
+    numero: row.numero || '',
+    cliente: row.cliente || '',
+    ragione_sociale: row.ragione_sociale || '',
+    luogo_consegna: row.luogo_consegna || '',
+    indirizzo_consegna: row.indirizzo_consegna || '',
+    data_preventivo: row.data_preventivo || '',
+    data_consegna: row.data_consegna || '',
+    items,
+    totale: Number(row.totale) || 0,
+    note: row.note || '',
+    created_by: row.created_by || '',
+    updated_by: row.updated_by || '',
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || ''
+  };
+}
+
+const getAllPreventivi = () => {
+  const rows = db.prepare(`
+    SELECT id, numero, cliente, ragione_sociale, luogo_consegna, data_preventivo,
+           data_consegna, totale, created_by, updated_by, created_at, updated_at
+    FROM preventivi
+    ORDER BY datetime(updated_at) DESC, id DESC
+  `).all();
+  return rows.map(r => ({ ...r, totale: Number(r.totale) || 0 }));
+};
+
+const getPreventivoById = (id) => {
+  const row = db.prepare('SELECT * FROM preventivi WHERE id = ?').get(id);
+  return mapPreventivoRow(row);
+};
+
+function computeNumeroPreventivo(data) {
+  // Formato: YYYY-NNN (sequenza progressiva per anno)
+  const year = (data && data.length >= 4) ? data.slice(0, 4) : String(new Date().getFullYear());
+  const row = db.prepare(`
+    SELECT COUNT(*) AS cnt FROM preventivi WHERE numero LIKE ?
+  `).get(`${year}-%`);
+  const next = (row && row.cnt ? row.cnt : 0) + 1;
+  return `${year}-${String(next).padStart(3, '0')}`;
+}
+
+const createPreventivo = (p, username) => {
+  const data = p.data_preventivo || new Date().toISOString().slice(0, 10);
+  const numero = p.numero || computeNumeroPreventivo(data);
+  const items = JSON.stringify(Array.isArray(p.items) ? p.items : []);
+  const stmt = db.prepare(`
+    INSERT INTO preventivi
+      (numero, cliente, ragione_sociale, luogo_consegna, indirizzo_consegna,
+       data_preventivo, data_consegna, items, totale, note, created_by, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const info = stmt.run(
+    numero,
+    p.cliente || '',
+    p.ragione_sociale || '',
+    p.luogo_consegna || '',
+    p.indirizzo_consegna || '',
+    data,
+    p.data_consegna || '',
+    items,
+    Number(p.totale) || 0,
+    p.note || '',
+    username || '',
+    username || ''
+  );
+  return getPreventivoById(info.lastInsertRowid);
+};
+
+const updatePreventivo = (id, p, username) => {
+  const existing = getPreventivoById(id);
+  if (!existing) return null;
+  const items = JSON.stringify(Array.isArray(p.items) ? p.items : existing.items);
+  const stmt = db.prepare(`
+    UPDATE preventivi SET
+      numero = ?,
+      cliente = ?,
+      ragione_sociale = ?,
+      luogo_consegna = ?,
+      indirizzo_consegna = ?,
+      data_preventivo = ?,
+      data_consegna = ?,
+      items = ?,
+      totale = ?,
+      note = ?,
+      updated_by = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  stmt.run(
+    p.numero !== undefined ? p.numero : existing.numero,
+    p.cliente !== undefined ? p.cliente : existing.cliente,
+    p.ragione_sociale !== undefined ? p.ragione_sociale : existing.ragione_sociale,
+    p.luogo_consegna !== undefined ? p.luogo_consegna : existing.luogo_consegna,
+    p.indirizzo_consegna !== undefined ? p.indirizzo_consegna : existing.indirizzo_consegna,
+    p.data_preventivo !== undefined ? p.data_preventivo : existing.data_preventivo,
+    p.data_consegna !== undefined ? p.data_consegna : existing.data_consegna,
+    items,
+    p.totale !== undefined ? Number(p.totale) || 0 : existing.totale,
+    p.note !== undefined ? p.note : existing.note,
+    username || existing.updated_by,
+    id
+  );
+  return getPreventivoById(id);
+};
+
+const deletePreventivo = (id) => {
+  const stmt = db.prepare('DELETE FROM preventivi WHERE id = ?');
+  return stmt.run(id);
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -676,6 +824,11 @@ module.exports = {
   getAllListini,
   getListinoById,
   addListino,
-  deleteListino
+  deleteListino,
+  getAllPreventivi,
+  getPreventivoById,
+  createPreventivo,
+  updatePreventivo,
+  deletePreventivo
 };
 
