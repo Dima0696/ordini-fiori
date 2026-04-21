@@ -985,20 +985,21 @@ body {
 .catalog-empty-c p { margin: 0.25rem 0; }
 .catalog-empty-c .muted { font-size: 0.85rem; color: #9ca3af; }
 
-/* Cart bar sticky */
+/* Cart bar fixed sulla viewport (landing diretta catalogo) */
 .cart-bar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   background: white;
   border-top: 2px solid var(--c-primary, #267A6C);
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-  padding: 0.7rem 0.9rem;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  padding: 0.7rem 0.9rem calc(0.7rem + env(safe-area-inset-bottom));
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.6rem;
-  margin: 0 -1rem -1rem; /* estende oltre padding modal */
-  z-index: 20;
+  z-index: 40;
   animation: slideUp 0.24s ease-out;
 }
 
@@ -1160,4 +1161,65 @@ body {
 .cart-footer-total strong {
   font-size: 1.2rem;
   color: var(--c-primary, #267A6C);
+}
+
+/* =========================================
+   LANDING DIRETTA SUL CATALOGO (override)
+   ========================================= */
+
+/* Più spazio sotto per il cart-bar fixed */
+.c-main {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+}
+
+.catalog-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.catalog-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--c-text, #1a2520);
+  letter-spacing: -0.01em;
+}
+
+/* Checkout summary */
+.checkout-summary {
+  background: var(--c-bg-soft, #f4f6f5);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin: 0.8rem 0 0.4rem;
+}
+
+.checkout-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  font-size: 0.92rem;
+  color: var(--c-text-soft);
+}
+
+.checkout-summary-row strong {
+  color: var(--c-text, #1a2520);
+  font-size: 1rem;
+}
+
+.checkout-summary-row.total {
+  padding-top: 0.55rem;
+  border-top: 1px solid #dde3e0;
+  margin-top: 0.35rem;
+  font-size: 1rem;
+  color: var(--c-text, #1a2520);
+}
+
+.checkout-summary-row.total strong {
+  color: var(--c-primary, #267A6C);
+  font-size: 1.15rem;
 }

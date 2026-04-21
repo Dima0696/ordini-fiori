@@ -26,7 +26,7 @@
     </div>
   </section>
 
-  <!-- App portale cliente -->
+  <!-- App portale cliente: catalogo in landing diretta -->
   <div id="app" class="app hidden">
 
     <!-- Header -->
@@ -35,7 +35,7 @@
         <img src="/logo.png" alt="LombardaFlor" class="c-logo">
         <div class="c-header-titles">
           <div class="c-header-brand">LombardaFlor</div>
-          <div class="c-header-sub" id="c-greeting">Portale clienti</div>
+          <div class="c-header-sub" id="c-greeting">Catalogo del giorno</div>
         </div>
       </div>
       <div class="c-header-right">
@@ -48,122 +48,45 @@
       </div>
     </header>
 
-    <!-- Hero / call-to-action -->
-    <section class="hero">
-      <div class="hero-text">
-        <h2 class="hero-title">Ciao <span id="hero-customer">Cliente</span> 👋</h2>
-        <p class="hero-sub">Inserisci qui il tuo ordine in pochi secondi. Ti confermeremo la presa in carico al più presto.</p>
-      </div>
-      <button class="cta-new-order" id="btn-new-order">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nuovo ordine
-      </button>
-    </section>
-
-    <!-- Lista ordini -->
+    <!-- Catalogo direttamente in pagina -->
     <main class="c-main">
-      <div class="c-section-title">
-        <h3>I tuoi ordini</h3>
-        <span class="c-count" id="orders-count">—</span>
+      <div class="catalog-header-row">
+        <h2 class="catalog-title">Catalogo</h2>
+        <span id="catalog-date-label" class="catalog-date-label"></span>
       </div>
       
-      <div id="orders-empty" class="orders-empty hidden">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>
-        <p>Non hai ancora effettuato ordini</p>
-        <button class="btn-ghost" id="btn-new-order-empty">+ Fai il primo ordine</button>
-      </div>
+      <div id="catalog-categories" class="catalog-categories"></div>
       
-      <ul id="orders-list" class="orders-list"></ul>
+      <div id="catalog-grid-c" class="catalog-grid-c"></div>
+      
+      <div id="catalog-empty-c" class="catalog-empty-c hidden">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/>
+          <path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
+        </svg>
+        <p>Catalogo non ancora disponibile</p>
+        <p class="muted">Torna più tardi o contattaci per informazioni.</p>
+      </div>
     </main>
-  </div>
-
-  <!-- Modal: nuovo ordine -->
-  <div id="modal-order" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <header class="modal-header">
-        <h2>Nuovo ordine</h2>
-        <button class="icon-btn" id="btn-close-order" aria-label="Chiudi">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </header>
-      
-      <form id="form-order" class="form-order">
-        <label class="field">
-          <span class="field-label">Data consegna / ritiro *</span>
-          <input type="date" id="order-date" required>
-        </label>
-        
-        <fieldset class="field">
-          <span class="field-label">Tipo *</span>
-          <div class="radio-group">
-            <label class="radio-pill">
-              <input type="radio" name="delivery_type" value="ritiro" checked>
-              <span>Ritiro in sede</span>
-            </label>
-            <label class="radio-pill">
-              <input type="radio" name="delivery_type" value="consegna">
-              <span>Consegna</span>
-            </label>
-          </div>
-        </fieldset>
-        
-        <div id="delivery-fields" class="delivery-fields hidden">
-          <label class="field">
-            <span class="field-label">Orario consegna</span>
-            <input type="time" id="order-time">
-          </label>
-          <label class="field">
-            <span class="field-label">Indirizzo di consegna</span>
-            <select id="order-address-select" class="address-select">
-              <option value="">— Seleziona un indirizzo salvato —</option>
-            </select>
-          </label>
-          <label class="field">
-            <span class="field-label">Oppure scrivi un indirizzo</span>
-            <input type="text" id="order-address-manual" placeholder="Via, civico, città">
-          </label>
+    
+    <!-- Carrello sticky sul fondo pagina -->
+    <div id="cart-bar" class="cart-bar hidden">
+      <div class="cart-bar-info">
+        <span id="cart-count" class="cart-count">0</span>
+        <div class="cart-bar-text">
+          <div class="cart-bar-title">Il tuo ordine</div>
+          <div id="cart-summary-line" class="cart-bar-sub">Nessun articolo</div>
         </div>
-        
-        <div class="catalog-section">
-          <div class="catalog-section-head">
-            <span class="field-label">Scegli dal catalogo *</span>
-            <span id="catalog-date-label" class="catalog-date-label"></span>
-          </div>
-          
-          <div id="catalog-categories" class="catalog-categories"></div>
-          
-          <div id="catalog-grid-c" class="catalog-grid-c"></div>
-          
-          <div id="catalog-empty-c" class="catalog-empty-c hidden">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/>
-              <path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
-            </svg>
-            <p>Catalogo non ancora disponibile</p>
-            <p class="muted">Torna più tardi o contatta LombardaFlor.</p>
-          </div>
-        </div>
-      </form>
-      
-      <!-- Carrello sticky -->
-      <div id="cart-bar" class="cart-bar hidden">
-        <div class="cart-bar-info">
-          <span id="cart-count" class="cart-count">0</span>
-          <div>
-            <div class="cart-bar-title">Il tuo ordine</div>
-            <div id="cart-summary-line" class="cart-bar-sub">Nessun articolo</div>
-          </div>
-          <div id="cart-total" class="cart-total">€ 0,00</div>
-        </div>
-        <div class="cart-bar-actions">
-          <button type="button" id="btn-cart-view" class="btn-secondary">Riepilogo</button>
-          <button type="button" id="btn-cart-submit" class="btn-primary">Invia ordine</button>
-        </div>
+        <div id="cart-total" class="cart-total">€ 0,00</div>
+      </div>
+      <div class="cart-bar-actions">
+        <button type="button" id="btn-cart-view" class="btn-secondary">Riepilogo</button>
+        <button type="button" id="btn-cart-submit" class="btn-primary">Procedi</button>
       </div>
     </div>
   </div>
-  
-  <!-- Modal carrello / riepilogo -->
+
+  <!-- Modal riepilogo carrello -->
   <div id="modal-cart" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
       <header class="modal-header">
@@ -179,10 +102,76 @@
           <strong id="cart-footer-total">€ 0,00</strong>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="btn-cart-keep">Continua</button>
-          <button type="button" class="btn-primary" id="btn-cart-confirm">Conferma ordine</button>
+          <button type="button" class="btn-secondary" id="btn-cart-keep">Continua a scegliere</button>
+          <button type="button" class="btn-primary" id="btn-cart-proceed">Vai al checkout</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal checkout: dati consegna + conferma -->
+  <div id="modal-checkout" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2>Dati consegna</h2>
+        <button class="icon-btn" id="btn-close-checkout" aria-label="Chiudi">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+      
+      <form id="form-checkout" class="form-order">
+        <label class="field">
+          <span class="field-label">Data consegna / ritiro *</span>
+          <input type="date" id="order-date" required>
+        </label>
+        
+        <fieldset class="field">
+          <span class="field-label">Modalità *</span>
+          <div class="radio-group">
+            <label class="radio-pill">
+              <input type="radio" name="delivery_type" value="ritiro" checked>
+              <span>Ritiro in sede</span>
+            </label>
+            <label class="radio-pill">
+              <input type="radio" name="delivery_type" value="consegna">
+              <span>Consegna</span>
+            </label>
+          </div>
+        </fieldset>
+        
+        <div id="delivery-fields" class="delivery-fields hidden">
+          <label class="field">
+            <span class="field-label">Orario consegna (opzionale)</span>
+            <input type="time" id="order-time">
+          </label>
+          <label class="field">
+            <span class="field-label">Indirizzo di consegna</span>
+            <select id="order-address-select" class="address-select">
+              <option value="">— Seleziona un indirizzo salvato —</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Oppure scrivi un indirizzo</span>
+            <input type="text" id="order-address-manual" placeholder="Via, civico, città">
+          </label>
+        </div>
+        
+        <div class="checkout-summary">
+          <div class="checkout-summary-row">
+            <span>Articoli</span>
+            <strong id="checkout-items-count">0</strong>
+          </div>
+          <div class="checkout-summary-row total">
+            <span>Totale indicativo</span>
+            <strong id="checkout-total">€ 0,00</strong>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btn-checkout-back">Indietro</button>
+          <button type="submit" class="btn-primary" id="btn-checkout-submit">Invia ordine</button>
+        </div>
+      </form>
     </div>
   </div>
 
