@@ -719,17 +719,12 @@ function setupEventListeners() {
   
   document.getElementById('listino-file-input').addEventListener('change', handleListinoUpload);
   
-  // Pulsante fabbisogno (solo Carlo e Dimitri)
+  // Pulsante "Fabbisogno giorno" nascosto in UI (sostituito da checkbox
+  // ORDINATO/PREPARATO a livello di singolo articolo). Le funzioni interne
+  // (openFabbisognoModal, modal-fabbisogno, printFabbisogno) restano nel
+  // codice perché riutilizzate da altri flussi: NON vanno rimosse.
   const btnFabbisogno = document.getElementById('btn-fabbisogno');
-  
-  if (currentUser && (currentUser === 'Carlo' || currentUser === 'Dimitri')) {
-    btnFabbisogno.style.display = 'flex';
-    btnFabbisogno.addEventListener('click', () => {
-      openFabbisognoModal(currentDate);
-    });
-  } else {
-    btnFabbisogno.style.display = 'none';
-  }
+  if (btnFabbisogno) btnFabbisogno.style.display = 'none';
   
   // Listener per stampa fabbisogno
   document.getElementById('btn-print-fabbisogno').addEventListener('click', () => {
