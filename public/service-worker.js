@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v111 - PROGRESS BAR: Barra avanzamento preparazione per ogni ordine
-const CACHE_NAME = 'lombardaflor-orders-v129-header-nav';
-const STATIC_CACHE = 'lombardaflor-static-v129-header-nav';
-const API_CACHE = 'lombardaflor-api-v129-header-nav';
+// v130 - Portale clienti: account self-service + approvazione ordini
+const CACHE_NAME = 'lombardaflor-orders-v130-portale-clienti';
+const STATIC_CACHE = 'lombardaflor-static-v130-portale-clienti';
+const API_CACHE = 'lombardaflor-api-v130-portale-clienti';
 
 const urlsToCache = [
   '/',
@@ -48,6 +48,16 @@ self.addEventListener('fetch', (event) => {
   
   // Solo GET requests
   if (request.method !== 'GET') {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // Portale clienti (pagina e asset) + magic link: MAI cache, sempre network
+  if (url.pathname === '/cliente' ||
+      url.pathname === '/cliente.html' ||
+      url.pathname === '/cliente.js' ||
+      url.pathname === '/cliente.css' ||
+      url.pathname.startsWith('/c/')) {
     event.respondWith(fetch(request));
     return;
   }

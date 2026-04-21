@@ -97,6 +97,7 @@ const pageCalendar = document.getElementById('page-calendar');
 const pageOrders = document.getElementById('page-orders');
 const pageListini = document.getElementById('page-listini');
 const pagePreventivi = document.getElementById('page-preventivi');
+const pageClienti = document.getElementById('page-clienti');
 const modalOrder = document.getElementById('modal-order');
 const modalConfirm = document.getElementById('modal-confirm');
 const daysList = document.getElementById('days-list');
@@ -171,6 +172,15 @@ async function initializeApp() {
   
   // Avvia auto-refresh ogni 2 minuti
   startAutoRefresh();
+  
+  // Aggiorna badge "ordini in attesa" (portale clienti)
+  if (typeof refreshPendingBadgeOnly === 'function') {
+    refreshPendingBadgeOnly();
+    // Polling ogni 60s per mantenerlo aggiornato
+    setInterval(() => {
+      if (typeof refreshPendingBadgeOnly === 'function') refreshPendingBadgeOnly();
+    }, 60000);
+  }
 }
 
 // Auto-refresh ogni 3 minuti
@@ -692,6 +702,19 @@ function setupEventListeners() {
   if (quickPrev) quickPrev.addEventListener('click', () => openPreventiviPage());
   const fabPrev = document.getElementById('fab-preventivi');
   if (fabPrev) fabPrev.addEventListener('click', () => { closeFabMenu(); openPreventiviPage(); });
+  
+  // Clienti portale
+  const quickCli = document.getElementById('quick-clienti');
+  if (quickCli) quickCli.addEventListener('click', () => openClientiPage());
+  const fabCli = document.getElementById('fab-clienti');
+  if (fabCli) fabCli.addEventListener('click', () => { closeFabMenu(); openClientiPage(); });
+  const btnBackCli = document.getElementById('btn-back-clienti');
+  if (btnBackCli) btnBackCli.addEventListener('click', () => showPage('calendar'));
+  const btnHomeCli = document.getElementById('btn-home-clienti');
+  if (btnHomeCli) btnHomeCli.addEventListener('click', () => showPage('calendar'));
+  const btnLogoutCli = document.getElementById('btn-logout-clienti');
+  if (btnLogoutCli) btnLogoutCli.addEventListener('click', logout);
+  setupClientiListeners();
   
   // Pulsanti pagina Listini
   document.getElementById('btn-back-listini').addEventListener('click', () => {
@@ -1580,7 +1603,14 @@ function renderOrders(orders) {
 function createOrderCard(order, index) {
     const orderCard = document.createElement('div');
     const isRitirato = order.status === ORDER_STATUS.RITIRATO;
-    orderCard.className = `order-card status-${order.status}${isRitirato ? ' order-ritirato' : ''}`;
+    const isCustomerPending = order.customer_order_status === 'pending';
+    const isCustomerRejected = order.customer_order_status === 'rejected';
+    const isCustomerOrder = !!order.customer_id;
+    let cardExtraCls = '';
+    if (isRitirato) cardExtraCls += ' order-ritirato';
+    if (isCustomerPending) cardExtraCls += ' is-customer-pending';
+    if (isCustomerRejected) cardExtraCls += ' is-customer-rejected';
+    orderCard.className = `order-card status-${order.status}${cardExtraCls}`;
     orderCard.dataset.orderId = order.id;
     
     // Calcolo stati automatici dalle spunte
@@ -1643,6 +1673,23 @@ function createOrderCard(order, index) {
     }
     userInfoHtml += '</div>';
     
+    // Badge "CLIENTE WEB" + stato customer
+    let customerBadgesHtml = '';
+    if (isCustomerOrder) {
+      customerBadgesHtml += `<span class="order-chip-customer-web">🌐 CLIENTE WEB</span>`;
+      if (isCustomerPending) {
+        customerBadgesHtml += `<span class="order-chip-pending">⏳ IN ATTESA</span>`;
+      } else if (isCustomerRejected) {
+        customerBadgesHtml += `<span class="order-chip-rejected">❌ RIFIUTATO</span>`;
+      }
+    }
+    
+    // Azioni specifiche per ordine cliente in attesa
+    const customerPendingActions = isCustomerPending ? `
+      <button class="btn-small btn-approve-inline" data-id="${order.id}">✓ Approva</button>
+      <button class="btn-small btn-reject-inline" data-id="${order.id}">✗ Rifiuta</button>
+    ` : '';
+    
     orderCard.innerHTML = `
       <div class="order-content">
         <div class="order-header">
@@ -1652,6 +1699,8 @@ function createOrderCard(order, index) {
           </div>
           <div class="order-state-badges">${stateBadgesHtml}</div>
         </div>
+        ${customerBadgesHtml ? `<div class="order-customer-badges">${customerBadgesHtml}</div>` : ''}
+        ${isCustomerRejected && order.customer_reject_reason ? `<div class="order-reject-note">Motivo rifiuto: ${escapeHtml(order.customer_reject_reason)}</div>` : ''}
         <div class="order-description order-checklist" data-order-id="${order.id}">
           ${renderDescriptionWithChecks(order.id, order.description)}
         </div>
@@ -1660,11 +1709,12 @@ function createOrderCard(order, index) {
         ${userInfoHtml}
       </div>
       <div class="order-actions">
+        ${customerPendingActions}
         <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
           ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
         </button>
         ${!isRitirato ? `<button class="btn-small btn-edit-order" data-id="${order.id}">✎ Modifica</button>` : ''}
-        ${!isRitirato && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
+        ${!isRitirato && !isCustomerPending && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
         ${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
       </div>
     `;
@@ -1745,6 +1795,47 @@ function createOrderCard(order, index) {
       btnUndoCollected.addEventListener('click', (e) => {
         e.stopPropagation();
         updateOrderStatus(order.id, 'da_preparare');
+      });
+    }
+    
+    // Approva / Rifiuta ordini cliente in attesa (inline sulla card)
+    const btnApproveInline = orderCard.querySelector('.btn-approve-inline');
+    if (btnApproveInline) {
+      btnApproveInline.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          const res = await fetch(`/api/orders/${order.id}/approve`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!res.ok) throw new Error('Errore approvazione');
+          showMiniToast('Ordine approvato', 'success');
+          if (typeof currentDate !== 'undefined' && currentDate) await loadOrders(currentDate);
+          if (typeof refreshPendingBadgeOnly === 'function') refreshPendingBadgeOnly();
+        } catch (err) { showMiniToast(err.message || 'Errore', 'error'); }
+      });
+    }
+    
+    const btnRejectInline = orderCard.querySelector('.btn-reject-inline');
+    if (btnRejectInline) {
+      btnRejectInline.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const reason = prompt('Motivo del rifiuto (verrà mostrato al cliente):', '');
+        if (reason === null) return;
+        try {
+          const res = await fetch(`/api/orders/${order.id}/reject`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+          });
+          if (!res.ok) throw new Error('Errore rifiuto');
+          showMiniToast('Ordine rifiutato', 'success');
+          if (typeof currentDate !== 'undefined' && currentDate) await loadOrders(currentDate);
+          if (typeof refreshPendingBadgeOnly === 'function') refreshPendingBadgeOnly();
+        } catch (err) { showMiniToast(err.message || 'Errore', 'error'); }
       });
     }
     
@@ -2770,6 +2861,7 @@ function showPage(page) {
   pageOrders.classList.remove('active');
   pageListini.classList.remove('active');
   if (pagePreventivi) pagePreventivi.classList.remove('active');
+  if (pageClienti) pageClienti.classList.remove('active');
   
   if (page === 'calendar') {
     pageCalendar.classList.add('active');
@@ -2779,6 +2871,8 @@ function showPage(page) {
     pageListini.classList.add('active');
   } else if (page === 'preventivi') {
     if (pagePreventivi) pagePreventivi.classList.add('active');
+  } else if (page === 'clienti') {
+    if (pageClienti) pageClienti.classList.add('active');
   }
   
   // Scroll in alto
@@ -5000,3 +5094,375 @@ function renderPreventivoPrintHtml(p) {
 }
 
 window.openPreventivoEditor = openPreventivoEditor;
+
+// =========================================================
+// PAGINA CLIENTI PORTALE (gestione account + ordini in attesa)
+// =========================================================
+
+let clientiCache = [];
+let pendingOrdersCache = [];
+let currentCliente = null; // cliente in modifica nel modal
+
+async function openClientiPage() {
+  showPage('clienti');
+  const unameEl = document.getElementById('username-display-clienti');
+  if (unameEl) unameEl.textContent = currentUser || '';
+  await Promise.all([loadClienti(), loadPendingOrders()]);
+}
+
+async function loadClienti() {
+  try {
+    const res = await fetch('/api/customers', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore caricamento clienti');
+    clientiCache = await res.json();
+    renderClientiList(clientiCache);
+  } catch (e) {
+    console.error('loadClienti', e);
+    showMiniToast('Errore caricamento clienti', 'error');
+  }
+}
+
+function renderClientiList(items) {
+  const list = document.getElementById('clienti-list');
+  const empty = document.getElementById('clienti-empty');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  if (!items || items.length === 0) {
+    if (empty) empty.style.display = 'flex';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  
+  items.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'cliente-card' + (c.active ? '' : ' is-inactive');
+    card.innerHTML = `
+      <div class="cliente-card-info">
+        <div class="cliente-card-name">
+          ${escapeHtml(c.name)}
+          <span class="cliente-status ${c.active ? 'is-active' : 'is-inactive'}">
+            ${c.active ? 'Attivo' : 'Disattivo'}
+          </span>
+        </div>
+        <div class="cliente-card-meta">
+          ${c.contact_name ? `<span>👤 ${escapeHtml(c.contact_name)}</span>` : ''}
+          ${c.phone ? `<span>📞 ${escapeHtml(c.phone)}</span>` : ''}
+          ${c.email ? `<span>✉️ ${escapeHtml(c.email)}</span>` : ''}
+          ${c.last_login ? `<span>🕒 Ultimo accesso: ${formatLastLogin(c.last_login)}</span>` : '<span style="color:#9ca3af">Mai entrato</span>'}
+        </div>
+      </div>
+      <div class="cliente-card-actions">
+        <button class="btn-copy-cust" data-action="copy" data-id="${c.id}">📋 Copia link</button>
+        <button data-action="edit" data-id="${c.id}">Modifica</button>
+      </div>
+    `;
+    card.querySelector('[data-action="copy"]').addEventListener('click', () => copyCustomerLink(c));
+    card.querySelector('[data-action="edit"]').addEventListener('click', () => openClienteEditor(c.id));
+    list.appendChild(card);
+  });
+}
+
+function formatLastLogin(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) +
+      ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+function buildMagicLink(token) {
+  return `${window.location.origin}/c/${token}`;
+}
+
+async function copyCustomerLink(c) {
+  const url = buildMagicLink(c.login_token);
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    showMiniToast('Link copiato negli appunti', 'success');
+  } catch {
+    prompt('Copia il link:', url);
+  }
+}
+
+// Editor cliente
+function openClienteEditor(id) {
+  currentCliente = id ? clientiCache.find(c => c.id === id) : null;
+  const titleEl = document.getElementById('cliente-modal-title');
+  if (titleEl) titleEl.textContent = currentCliente ? 'Modifica cliente' : 'Nuovo cliente';
+  
+  document.getElementById('cliente-name').value = currentCliente?.name || '';
+  document.getElementById('cliente-contact').value = currentCliente?.contact_name || '';
+  document.getElementById('cliente-email').value = currentCliente?.email || '';
+  document.getElementById('cliente-phone').value = currentCliente?.phone || '';
+  document.getElementById('cliente-notes').value = currentCliente?.notes || '';
+  document.getElementById('cliente-active').checked = currentCliente ? !!currentCliente.active : true;
+  
+  const linkBox = document.getElementById('cliente-link-box');
+  const delBtn = document.getElementById('btn-delete-cliente');
+  if (currentCliente) {
+    linkBox.style.display = 'block';
+    const url = buildMagicLink(currentCliente.login_token);
+    document.getElementById('cliente-link-url').value = url;
+    const waMsg = encodeURIComponent(`Ciao! Ecco il tuo link personale per accedere al portale clienti di LombardaFlor: ${url}`);
+    document.getElementById('cliente-link-wa').href = `https://wa.me/?text=${waMsg}`;
+    delBtn.style.display = 'inline-block';
+  } else {
+    linkBox.style.display = 'none';
+    delBtn.style.display = 'none';
+  }
+  
+  document.getElementById('modal-cliente').classList.add('active');
+}
+
+function closeClienteEditor() {
+  document.getElementById('modal-cliente').classList.remove('active');
+  currentCliente = null;
+}
+
+async function saveCliente() {
+  const name = document.getElementById('cliente-name').value.trim();
+  if (!name) {
+    showMiniToast('Nome azienda obbligatorio', 'error');
+    return;
+  }
+  const body = {
+    name,
+    contact_name: document.getElementById('cliente-contact').value.trim(),
+    email: document.getElementById('cliente-email').value.trim(),
+    phone: document.getElementById('cliente-phone').value.trim(),
+    notes: document.getElementById('cliente-notes').value.trim(),
+    active: document.getElementById('cliente-active').checked
+  };
+  
+  try {
+    const url = currentCliente ? `/api/customers/${currentCliente.id}` : '/api/customers';
+    const method = currentCliente ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Errore salvataggio');
+    }
+    const saved = await res.json();
+    showMiniToast(currentCliente ? 'Cliente aggiornato' : 'Cliente creato', 'success');
+    await loadClienti();
+    if (!currentCliente) {
+      // Se nuovo: riapri editor per mostrare subito il link
+      openClienteEditor(saved.id);
+    } else {
+      closeClienteEditor();
+    }
+  } catch (e) {
+    console.error('saveCliente', e);
+    showMiniToast(e.message || 'Errore', 'error');
+  }
+}
+
+async function deleteClienteHandler() {
+  if (!currentCliente) return;
+  if (!confirm(`Eliminare "${currentCliente.name}"?\n\nGli ordini già fatti rimarranno nel sistema ma non saranno più collegati al cliente.`)) return;
+  try {
+    const res = await fetch(`/api/customers/${currentCliente.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore eliminazione');
+    showMiniToast('Cliente eliminato', 'success');
+    closeClienteEditor();
+    await loadClienti();
+  } catch (e) {
+    showMiniToast(e.message, 'error');
+  }
+}
+
+async function regenCustomerToken() {
+  if (!currentCliente) return;
+  if (!confirm('Rigenerare il link magico?\n\nIl vecchio link smetterà di funzionare immediatamente.')) return;
+  try {
+    const res = await fetch(`/api/customers/${currentCliente.id}/regenerate-token`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore rigenerazione');
+    const updated = await res.json();
+    showMiniToast('Nuovo link generato', 'success');
+    await loadClienti();
+    openClienteEditor(updated.id);
+  } catch (e) {
+    showMiniToast(e.message, 'error');
+  }
+}
+
+function copyClienteLinkFromModal() {
+  const url = document.getElementById('cliente-link-url').value;
+  if (!url) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(
+      () => showMiniToast('Link copiato', 'success'),
+      () => prompt('Copia il link:', url)
+    );
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showMiniToast('Link copiato', 'success'); }
+    catch { prompt('Copia il link:', url); }
+    ta.remove();
+  }
+}
+
+// Ordini in attesa
+async function loadPendingOrders() {
+  try {
+    const res = await fetch('/api/admin/pending-orders', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore');
+    pendingOrdersCache = await res.json();
+    renderPendingOrders();
+    updatePendingBadge();
+  } catch (e) {
+    console.error('loadPendingOrders', e);
+  }
+}
+
+function renderPendingOrders() {
+  const section = document.getElementById('pending-orders-section');
+  const list = document.getElementById('pending-orders-list');
+  const count = document.getElementById('pending-count-display');
+  if (!section || !list) return;
+  
+  if (!pendingOrdersCache || pendingOrdersCache.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  count.textContent = pendingOrdersCache.length;
+  list.innerHTML = '';
+  
+  pendingOrdersCache.forEach(o => {
+    const card = document.createElement('div');
+    card.className = 'pending-order-card';
+    const deliveryInfo = o.delivery_type === 'consegna'
+      ? `🚚 Consegna${o.delivery_time ? ' ore ' + o.delivery_time : ''}${o.delivery_address ? ' · ' + escapeHtml(o.delivery_address) : ''}`
+      : '🏪 Ritiro in sede';
+    
+    card.innerHTML = `
+      <div class="pending-order-head">
+        <div class="pending-order-customer">${escapeHtml(o.customer_name || o.customer)}</div>
+        <div class="pending-order-date">📅 ${formatDateItalian(o.date)}</div>
+      </div>
+      <div style="color:#5b6963; font-size:0.85rem; margin-bottom:0.5rem;">${deliveryInfo}</div>
+      <div class="pending-order-desc">${escapeHtml(o.description || '')}</div>
+      <div class="pending-order-actions">
+        <button class="btn-approve" data-action="approve" data-id="${o.id}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Approva
+        </button>
+        <button class="btn-reject" data-action="reject" data-id="${o.id}">Rifiuta</button>
+      </div>
+    `;
+    card.querySelector('[data-action="approve"]').addEventListener('click', () => approveOrder(o.id));
+    card.querySelector('[data-action="reject"]').addEventListener('click', () => rejectOrder(o.id));
+    list.appendChild(card);
+  });
+}
+
+function updatePendingBadge() {
+  const badge = document.getElementById('badge-pending-orders');
+  if (!badge) return;
+  const n = (pendingOrdersCache || []).length;
+  if (n > 0) {
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function approveOrder(id) {
+  try {
+    const res = await fetch(`/api/orders/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore approvazione');
+    showMiniToast('Ordine approvato', 'success');
+    await loadPendingOrders();
+    if (typeof loadOrders === 'function' && typeof currentDate !== 'undefined' && currentDate) {
+      try { loadOrders(currentDate); } catch {}
+    }
+  } catch (e) { showMiniToast(e.message, 'error'); }
+}
+
+async function rejectOrder(id) {
+  const reason = prompt('Motivo del rifiuto (verrà mostrato al cliente):', '');
+  if (reason === null) return;
+  try {
+    const res = await fetch(`/api/orders/${id}/reject`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ reason })
+    });
+    if (!res.ok) throw new Error('Errore rifiuto');
+    showMiniToast('Ordine rifiutato', 'success');
+    await loadPendingOrders();
+  } catch (e) { showMiniToast(e.message, 'error'); }
+}
+
+// Aggiorna badge ogni volta che il calendario viene caricato
+async function refreshPendingBadgeOnly() {
+  try {
+    const res = await fetch('/api/admin/pending-orders', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) return;
+    pendingOrdersCache = await res.json();
+    updatePendingBadge();
+  } catch { /* no-op */ }
+}
+
+function setupClientiListeners() {
+  const btnNew = document.getElementById('btn-new-cliente');
+  if (btnNew) btnNew.addEventListener('click', () => openClienteEditor(null));
+  const btnClose = document.getElementById('btn-close-cliente');
+  if (btnClose) btnClose.addEventListener('click', closeClienteEditor);
+  const btnSave = document.getElementById('btn-save-cliente');
+  if (btnSave) btnSave.addEventListener('click', saveCliente);
+  const btnDel = document.getElementById('btn-delete-cliente');
+  if (btnDel) btnDel.addEventListener('click', deleteClienteHandler);
+  const btnRegen = document.getElementById('btn-regen-token');
+  if (btnRegen) btnRegen.addEventListener('click', regenCustomerToken);
+  const btnCopyModal = document.getElementById('btn-copy-link');
+  if (btnCopyModal) btnCopyModal.addEventListener('click', copyClienteLinkFromModal);
+  
+  const modalCli = document.getElementById('modal-cliente');
+  if (modalCli) {
+    modalCli.addEventListener('click', (e) => {
+      if (e.target === modalCli) closeClienteEditor();
+    });
+  }
+}
+
+window.openClientiPage = openClientiPage;
+window.refreshPendingBadgeOnly = refreshPendingBadgeOnly;

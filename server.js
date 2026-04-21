@@ -1048,6 +1048,315 @@ app.delete('/api/preventivi/:id', authenticate, (req, res) => {
   }
 });
 
+// ============================================
+// PORTALE CLIENTI (magic link + ordini self-service)
+// ============================================
+
+// Parsing minimale dei cookie (niente dipendenze extra)
+function parseCookies(req) {
+  const header = req.headers.cookie || '';
+  const out = {};
+  if (!header) return out;
+  header.split(';').forEach(c => {
+    const idx = c.indexOf('=');
+    if (idx < 0) return;
+    const k = c.slice(0, idx).trim();
+    const v = c.slice(idx + 1).trim();
+    if (k) {
+      try { out[k] = decodeURIComponent(v); } catch { out[k] = v; }
+    }
+  });
+  return out;
+}
+
+function setCustomerCookie(res, token) {
+  // 90 giorni, HttpOnly, SameSite=Lax. Secure in produzione (dietro HTTPS).
+  const isProd = !!process.env.DATABASE_PATH || process.env.NODE_ENV === 'production';
+  const parts = [
+    `c_token=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${60 * 60 * 24 * 90}`
+  ];
+  if (isProd) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+function clearCustomerCookie(res) {
+  res.setHeader('Set-Cookie', 'c_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+}
+
+// Middleware autenticazione cliente (cookie c_token)
+const customerAuth = (req, res, next) => {
+  const cookies = parseCookies(req);
+  const token = cookies.c_token;
+  if (!token) return res.status(401).json({ error: 'Non autenticato' });
+  const customer = db.getCustomerByToken(token);
+  if (!customer) {
+    clearCustomerCookie(res);
+    return res.status(401).json({ error: 'Sessione scaduta' });
+  }
+  req.customer = customer;
+  next();
+};
+
+// Magic link: imposta cookie e redirect al portale
+app.get('/c/:token', (req, res) => {
+  const token = req.params.token || '';
+  const customer = db.getCustomerByToken(token);
+  if (!customer) {
+    return res.redirect('/cliente?err=invalid');
+  }
+  db.touchCustomerLogin(customer.id);
+  setCustomerCookie(res, token);
+  res.redirect('/cliente');
+});
+
+// Serve la SPA del portale cliente
+app.get('/cliente', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cliente.html'));
+});
+
+// Logout cliente
+app.post('/api/c/logout', (req, res) => {
+  clearCustomerCookie(res);
+  res.json({ success: true });
+});
+
+// GET profilo cliente (+ dati base)
+app.get('/api/c/me', customerAuth, (req, res) => {
+  const { id, name, contact_name, email, phone, notes } = req.customer;
+  res.json({ id, name, contact_name, email, phone, notes });
+});
+
+// PUT aggiorna profilo cliente
+app.put('/api/c/me', customerAuth, (req, res) => {
+  try {
+    const { contact_name, email, phone } = req.body || {};
+    const updated = db.updateCustomer(req.customer.id, {
+      contact_name, email, phone
+    });
+    res.json({
+      id: updated.id,
+      name: updated.name,
+      contact_name: updated.contact_name,
+      email: updated.email,
+      phone: updated.phone
+    });
+  } catch (error) {
+    console.error('Errore update profilo cliente:', error);
+    res.status(500).json({ error: 'Errore aggiornamento profilo' });
+  }
+});
+
+// Indirizzi: list / create / update / delete
+app.get('/api/c/addresses', customerAuth, (req, res) => {
+  try {
+    res.json(db.getCustomerAddresses(req.customer.id));
+  } catch (error) {
+    console.error('Errore GET addresses:', error);
+    res.status(500).json({ error: 'Errore recupero indirizzi' });
+  }
+});
+
+app.post('/api/c/addresses', customerAuth, (req, res) => {
+  try {
+    const a = db.addCustomerAddress(req.customer.id, req.body || {});
+    res.status(201).json(a);
+  } catch (error) {
+    console.error('Errore POST address:', error);
+    res.status(500).json({ error: 'Errore creazione indirizzo' });
+  }
+});
+
+app.put('/api/c/addresses/:id', customerAuth, (req, res) => {
+  try {
+    const addrId = parseInt(req.params.id);
+    const a = db.updateCustomerAddress(req.customer.id, addrId, req.body || {});
+    if (!a) return res.status(404).json({ error: 'Indirizzo non trovato' });
+    res.json(a);
+  } catch (error) {
+    console.error('Errore PUT address:', error);
+    res.status(500).json({ error: 'Errore aggiornamento indirizzo' });
+  }
+});
+
+app.delete('/api/c/addresses/:id', customerAuth, (req, res) => {
+  try {
+    const addrId = parseInt(req.params.id);
+    db.deleteCustomerAddress(req.customer.id, addrId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Errore DELETE address:', error);
+    res.status(500).json({ error: 'Errore eliminazione indirizzo' });
+  }
+});
+
+// Lista ordini del cliente (solo i suoi)
+app.get('/api/c/orders', customerAuth, (req, res) => {
+  try {
+    res.json(db.getOrdersByCustomerId(req.customer.id));
+  } catch (error) {
+    console.error('Errore GET orders cliente:', error);
+    res.status(500).json({ error: 'Errore recupero ordini' });
+  }
+});
+
+// Dettaglio di un suo ordine
+app.get('/api/c/orders/:id', customerAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const o = db.getOrderById(id);
+    if (!o || o.customer_id !== req.customer.id) {
+      return res.status(404).json({ error: 'Ordine non trovato' });
+    }
+    res.json(o);
+  } catch (error) {
+    console.error('Errore GET order:', error);
+    res.status(500).json({ error: 'Errore recupero ordine' });
+  }
+});
+
+// Crea nuovo ordine (sempre in stato customer_order_status = 'pending')
+app.post('/api/c/orders', customerAuth, (req, res) => {
+  try {
+    const { date, description, delivery_type, delivery_time, delivery_address } = req.body || {};
+    if (!date || !description || String(description).trim() === '') {
+      return res.status(400).json({ error: 'Data e descrizione ordine obbligatori' });
+    }
+    
+    const orderData = {
+      date,
+      customer: req.customer.name,
+      description: String(description).trim(),
+      status: 'da_preparare',
+      order_type: 'cliente',
+      delivery_type: delivery_type === 'consegna' ? 'consegna' : 'ritiro',
+      delivery_time: delivery_time || null,
+      delivery_address: delivery_address || null,
+      goods_type: 'da_ordinare',
+      photos: [],
+      customer_id: req.customer.id,
+      customer_order_status: 'pending'
+    };
+    
+    const order = db.createOrder(orderData, `cliente:${req.customer.name}`);
+    
+    // Notifica push allo staff (non-bloccante)
+    setImmediate(() => {
+      sendNotificationToAll(
+        '🆕 Nuovo ordine cliente',
+        `${req.customer.name} · consegna ${date}`,
+        'customer-order-new'
+      );
+    });
+    
+    res.status(201).json(order);
+  } catch (error) {
+    console.error('Errore POST ordine cliente:', error);
+    res.status(500).json({ error: 'Errore creazione ordine' });
+  }
+});
+
+// ============================================
+// ADMIN: gestione clienti (staff)
+// ============================================
+
+app.get('/api/customers', authenticate, (req, res) => {
+  try {
+    res.json(db.getAllCustomers());
+  } catch (error) {
+    console.error('Errore GET customers:', error);
+    res.status(500).json({ error: 'Errore recupero clienti' });
+  }
+});
+
+app.post('/api/customers', authenticate, (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.name || String(body.name).trim() === '') {
+      return res.status(400).json({ error: 'Nome cliente obbligatorio' });
+    }
+    const c = db.createCustomer(body);
+    res.status(201).json(c);
+  } catch (error) {
+    console.error('Errore POST customer:', error);
+    res.status(500).json({ error: 'Errore creazione cliente' });
+  }
+});
+
+app.put('/api/customers/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const c = db.updateCustomer(id, req.body || {});
+    if (!c) return res.status(404).json({ error: 'Cliente non trovato' });
+    res.json(c);
+  } catch (error) {
+    console.error('Errore PUT customer:', error);
+    res.status(500).json({ error: 'Errore aggiornamento cliente' });
+  }
+});
+
+app.post('/api/customers/:id/regenerate-token', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const c = db.regenerateCustomerToken(id);
+    if (!c) return res.status(404).json({ error: 'Cliente non trovato' });
+    res.json(c);
+  } catch (error) {
+    console.error('Errore regen token:', error);
+    res.status(500).json({ error: 'Errore rigenerazione token' });
+  }
+});
+
+app.delete('/api/customers/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    db.deleteCustomer(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Errore DELETE customer:', error);
+    res.status(500).json({ error: 'Errore eliminazione cliente' });
+  }
+});
+
+// Ordini in attesa + approva / rifiuta
+// (path evita conflitti con /api/orders/:id)
+app.get('/api/admin/pending-orders', authenticate, (req, res) => {
+  try {
+    res.json(db.getPendingCustomerOrders());
+  } catch (error) {
+    console.error('Errore GET pending orders:', error);
+    res.status(500).json({ error: 'Errore recupero ordini in attesa' });
+  }
+});
+
+app.post('/api/orders/:id/approve', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    db.approveCustomerOrder(id, req.user.username);
+    const o = db.getOrderById(id);
+    res.json(o);
+  } catch (error) {
+    console.error('Errore approve order:', error);
+    res.status(500).json({ error: 'Errore approvazione ordine' });
+  }
+});
+
+app.post('/api/orders/:id/reject', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { reason } = req.body || {};
+    db.rejectCustomerOrder(id, reason || '', req.user.username);
+    const o = db.getOrderById(id);
+    res.json(o);
+  } catch (error) {
+    console.error('Errore reject order:', error);
+    res.status(500).json({ error: 'Errore rifiuto ordine' });
+  }
+});
+
 // Serve l'app per tutte le altre route (deve essere l'ultima route)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

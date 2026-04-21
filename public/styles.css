@@ -7768,3 +7768,561 @@ button {
   .ppv-totale-row { page-break-inside: avoid; }
   .ppv-closing, .ppv-regards { page-break-inside: avoid; }
 }
+
+/* ===================================================
+   PORTALE CLIENTI (lato staff) - GESTIONE CLIENTI
+   =================================================== */
+
+.clienti-container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem 1.1rem 3rem;
+}
+
+.clienti-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #f0f9f7 0%, #e7f3f0 100%);
+  border: 1px solid #c9e4dd;
+  border-radius: 16px;
+  padding: 1rem 1.2rem;
+  flex-wrap: wrap;
+}
+
+.clienti-info p {
+  margin: 0;
+  color: #1a2520;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 520px;
+}
+
+.btn-cliente-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a2520;
+  margin: 0 0 0.8rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pending-count {
+  background: #f59e0b;
+  color: white;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 22px;
+  text-align: center;
+}
+
+/* Sezione ordini in attesa */
+.pending-orders-section {
+  background: #fff7ed;
+  border: 1.5px solid #fdba74;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pending-orders-section .section-title {
+  color: #9a3412;
+  margin-bottom: 0.8rem;
+}
+
+.pending-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.pending-order-card {
+  background: white;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.pending-order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.pending-order-customer {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1a2520;
+}
+
+.pending-order-date {
+  font-size: 0.88rem;
+  color: #5b6963;
+  margin-bottom: 0.5rem;
+}
+
+.pending-order-desc {
+  font-size: 0.88rem;
+  color: #374151;
+  white-space: pre-wrap;
+  line-height: 1.4;
+  background: #fafbfa;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  max-height: 8em;
+  overflow-y: auto;
+  margin-bottom: 0.7rem;
+}
+
+.pending-order-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-approve {
+  flex: 1;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 110px;
+}
+
+.btn-approve:hover { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+.btn-approve:active { transform: scale(0.98); }
+
+.btn-reject {
+  flex: 1;
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 110px;
+}
+
+.btn-reject:hover { background: #fecaca; }
+
+.btn-view-order {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-view-order:hover { background: #d1d5db; }
+
+/* Lista clienti */
+.clienti-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.cliente-card {
+  background: white;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e1e8e5;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem 1rem;
+  align-items: center;
+}
+
+.cliente-card.is-inactive { opacity: 0.55; background: #fafafa; }
+
+.cliente-card-info { min-width: 0; }
+
+.cliente-card-name {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: #1a2520;
+  margin-bottom: 0.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cliente-status {
+  font-size: 0.7rem;
+  padding: 0.13rem 0.55rem;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.cliente-status.is-active { background: #d1fae5; color: #065f46; }
+.cliente-status.is-inactive { background: #e5e7eb; color: #4b5563; }
+
+.cliente-card-meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.cliente-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.cliente-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cliente-card-actions button {
+  background: #f3f4f6;
+  border: none;
+  color: #374151;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cliente-card-actions button:hover { background: #e5e7eb; }
+
+.cliente-card-actions .btn-copy-cust {
+  background: #267A6C;
+  color: white;
+}
+.cliente-card-actions .btn-copy-cust:hover { background: #1d5d52; }
+
+/* Badge contatore nel navbar */
+.quick-badge-pending {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px white;
+}
+
+#quick-clienti { position: relative; }
+
+/* Badge CLIENTE WEB su order card (home) */
+.order-chip-customer-web {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.order-chip-pending {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.order-chip-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Modal cliente */
+.modal-cliente-premium {
+  max-width: 620px;
+}
+
+.cliente-editor {
+  padding: 1.2rem 1.3rem 1.5rem;
+  overflow-y: auto;
+}
+
+.cliente-form { margin-bottom: 1rem; }
+
+.cliente-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.cliente-field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a2520;
+}
+
+.cliente-field input,
+.cliente-field textarea {
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid #c9d4cf;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+  color: #1a2520;
+}
+
+.cliente-field input:focus,
+.cliente-field textarea:focus {
+  outline: none;
+  border-color: #267A6C;
+  box-shadow: 0 0 0 3px rgba(38, 122, 108, 0.12);
+}
+
+.cliente-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.cliente-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.cliente-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  color: #1a2520;
+  margin-bottom: 0.8rem;
+}
+
+.cliente-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #267A6C;
+}
+
+.cliente-link-box {
+  background: linear-gradient(135deg, #f0f9f7 0%, #e7f3f0 100%);
+  border: 1.5px solid #c9e4dd;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.cliente-link-box h3 {
+  margin: 0 0 0.3rem 0;
+  font-size: 1rem;
+  color: #1d5d52;
+}
+
+.cliente-link-desc {
+  margin: 0 0 0.7rem 0;
+  font-size: 0.85rem;
+  color: #5b6963;
+  line-height: 1.4;
+}
+
+.cliente-link-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.cliente-link-row input {
+  flex: 1;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c9d4cf;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #1a2520;
+  min-width: 0;
+}
+
+.cliente-link-row .btn-secondary {
+  padding: 0.55rem 1rem;
+  background: #267A6C;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cliente-link-row .btn-secondary:hover { background: #1d5d52; }
+
+.cliente-link-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #25d366;
+  color: white;
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-wa:hover { background: #1ebe5a; }
+
+.btn-ghost-danger {
+  background: transparent;
+  border: 1.5px solid #ef4444;
+  color: #dc2626;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-ghost-danger:hover { background: #fee2e2; }
+
+.cliente-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e8e5;
+}
+
+.cliente-actions .btn-primary {
+  padding: 0.7rem 1.4rem;
+  background: linear-gradient(135deg, #267A6C 0%, #1d5d52 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.cliente-actions .btn-danger {
+  padding: 0.7rem 1.2rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cliente-actions .btn-danger:hover { background: #fecaca; }
+
+@media (max-width: 600px) {
+  .cliente-row-2 { grid-template-columns: 1fr; }
+  .cliente-card {
+    grid-template-columns: 1fr;
+  }
+  .cliente-card-actions {
+    justify-content: flex-start;
+  }
+  .clienti-toolbar { flex-direction: column; align-items: stretch; }
+  .btn-cliente-new { justify-content: center; }
+}
+
+/* ===== Ordini cliente web: visualizzazione nella home ===== */
+.order-card.is-customer-pending {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 40%);
+}
+
+.order-card.is-customer-rejected {
+  opacity: 0.6;
+  border-left: 4px solid #ef4444;
+}
+
+.order-customer-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.5rem 0;
+}
+
+.order-reject-note {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid #dc2626;
+}
+
+.btn-small.btn-approve-inline {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 700;
+}
+.btn-small.btn-approve-inline:hover { box-shadow: 0 2px 8px rgba(16,185,129,0.4); }
+
+.btn-small.btn-reject-inline {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}
+.btn-small.btn-reject-inline:hover { background: #fecaca; }

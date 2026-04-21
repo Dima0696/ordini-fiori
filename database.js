@@ -92,6 +92,36 @@ const initDb = () => {
     )
   `;
   
+  const createCustomersTableQuery = `
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      contact_name TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      login_token TEXT NOT NULL UNIQUE,
+      active INTEGER DEFAULT 1,
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME
+    )
+  `;
+  
+  const createCustomerAddressesTableQuery = `
+    CREATE TABLE IF NOT EXISTS customer_addresses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      label TEXT DEFAULT '',
+      street TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      is_default INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+    )
+  `;
+  
   const createPreventiviTableQuery = `
     CREATE TABLE IF NOT EXISTS preventivi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,6 +149,8 @@ const initDb = () => {
   db.exec(createFabbisognoChecksTableQuery);
   db.exec(createListiniTableQuery);
   db.exec(createPreventiviTableQuery);
+  db.exec(createCustomersTableQuery);
+  db.exec(createCustomerAddressesTableQuery);
   
   // Crea indici per performance
   try {
@@ -130,6 +162,11 @@ const initDb = () => {
     db.exec('CREATE INDEX IF NOT EXISTS idx_fabbisogno_order ON fabbisogno_checks(order_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_preventivi_data ON preventivi(data_preventivo DESC)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_preventivi_cliente ON preventivi(cliente)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_customers_token ON customers(login_token)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_customers_active ON customers(active)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_customer_addresses_cust ON customer_addresses(customer_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer_status ON orders(customer_order_status)');
     console.log('✓ Indici database creati per performance');
   } catch (error) {
     console.log('⚠️ Indici già esistenti');
@@ -185,6 +222,32 @@ const initDb = () => {
       console.log('✅ Aggiunta colonna: oggetto (preventivi)');
     } catch (error) {
       console.error('⚠️ Errore aggiungendo oggetto:', error.message);
+    }
+  }
+  
+  // Migrazione: aggiunge customer_id e customer_order_status a orders
+  if (!columnExists('orders', 'customer_id')) {
+    try {
+      db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER');
+      console.log('✅ Aggiunta colonna: customer_id (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo customer_id:', error.message);
+    }
+  }
+  if (!columnExists('orders', 'customer_order_status')) {
+    try {
+      db.exec("ALTER TABLE orders ADD COLUMN customer_order_status TEXT");
+      console.log('✅ Aggiunta colonna: customer_order_status (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo customer_order_status:', error.message);
+    }
+  }
+  if (!columnExists('orders', 'customer_reject_reason')) {
+    try {
+      db.exec("ALTER TABLE orders ADD COLUMN customer_reject_reason TEXT DEFAULT ''");
+      console.log('✅ Aggiunta colonna: customer_reject_reason (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo customer_reject_reason:', error.message);
     }
   }
   
@@ -287,23 +350,27 @@ const createOrder = (orderData, username) => {
     delivery_time = null,
     delivery_address = null,
     goods_type = 'in_cella',
-    photos = null
+    photos = null,
+    customer_id = null,
+    customer_order_status = null
   } = orderData;
   
   const stmt = db.prepare(`
     INSERT INTO orders (
       date, customer, description, status,
       order_type, delivery_type, delivery_time, delivery_address, goods_type, photos,
+      customer_id, customer_order_status,
       created_by, updated_by,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
   
   const photosJson = photos ? JSON.stringify(photos) : null;
   const info = stmt.run(
     date, customer, description, status,
     order_type, delivery_type, delivery_time, delivery_address, goods_type, photosJson,
+    customer_id, customer_order_status,
     username, username
   );
   return getOrderById(info.lastInsertRowid);
@@ -816,6 +883,226 @@ const deletePreventivo = (id) => {
   return stmt.run(id);
 };
 
+// ============================================
+// CUSTOMERS (portale clienti)
+// ============================================
+
+const crypto = require('crypto');
+
+function generateCustomerToken() {
+  return crypto.randomBytes(24).toString('hex'); // 48 caratteri hex
+}
+
+function mapCustomerRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name || '',
+    contact_name: row.contact_name || '',
+    email: row.email || '',
+    phone: row.phone || '',
+    login_token: row.login_token || '',
+    active: !!row.active,
+    notes: row.notes || '',
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+    last_login: row.last_login || null
+  };
+}
+
+const getAllCustomers = () => {
+  const rows = db.prepare(`
+    SELECT id, name, contact_name, email, phone, login_token, active, notes,
+           created_at, updated_at, last_login
+    FROM customers
+    ORDER BY name COLLATE NOCASE
+  `).all();
+  return rows.map(mapCustomerRow);
+};
+
+const getCustomerById = (id) => {
+  const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+  return mapCustomerRow(row);
+};
+
+const getCustomerByToken = (token) => {
+  if (!token) return null;
+  const row = db.prepare('SELECT * FROM customers WHERE login_token = ? AND active = 1').get(token);
+  return mapCustomerRow(row);
+};
+
+const createCustomer = (c) => {
+  const name = (c.name || '').trim();
+  if (!name) throw new Error('Nome cliente obbligatorio');
+  const token = c.login_token || generateCustomerToken();
+  const stmt = db.prepare(`
+    INSERT INTO customers (name, contact_name, email, phone, login_token, active, notes)
+    VALUES (?, ?, ?, ?, ?, 1, ?)
+  `);
+  const info = stmt.run(
+    name,
+    (c.contact_name || '').trim(),
+    (c.email || '').trim(),
+    (c.phone || '').trim(),
+    token,
+    (c.notes || '').trim()
+  );
+  return getCustomerById(info.lastInsertRowid);
+};
+
+const updateCustomer = (id, c) => {
+  const existing = getCustomerById(id);
+  if (!existing) return null;
+  const stmt = db.prepare(`
+    UPDATE customers SET
+      name = ?,
+      contact_name = ?,
+      email = ?,
+      phone = ?,
+      active = ?,
+      notes = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  stmt.run(
+    c.name !== undefined ? (c.name || '').trim() : existing.name,
+    c.contact_name !== undefined ? (c.contact_name || '').trim() : existing.contact_name,
+    c.email !== undefined ? (c.email || '').trim() : existing.email,
+    c.phone !== undefined ? (c.phone || '').trim() : existing.phone,
+    c.active !== undefined ? (c.active ? 1 : 0) : (existing.active ? 1 : 0),
+    c.notes !== undefined ? (c.notes || '').trim() : existing.notes,
+    id
+  );
+  return getCustomerById(id);
+};
+
+const regenerateCustomerToken = (id) => {
+  const token = generateCustomerToken();
+  const stmt = db.prepare('UPDATE customers SET login_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  stmt.run(token, id);
+  return getCustomerById(id);
+};
+
+const touchCustomerLogin = (id) => {
+  try {
+    db.prepare('UPDATE customers SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+  } catch (e) { /* no-op */ }
+};
+
+const deleteCustomer = (id) => {
+  // SET NULL su ordini collegati per preservare storico
+  try {
+    db.prepare('UPDATE orders SET customer_id = NULL WHERE customer_id = ?').run(id);
+  } catch (e) { /* no-op */ }
+  const stmt = db.prepare('DELETE FROM customers WHERE id = ?');
+  return stmt.run(id);
+};
+
+// Indirizzi
+
+const getCustomerAddresses = (customerId) => {
+  return db.prepare(`
+    SELECT id, customer_id, label, street, city, notes, is_default, created_at
+    FROM customer_addresses
+    WHERE customer_id = ?
+    ORDER BY is_default DESC, id ASC
+  `).all(customerId).map(a => ({ ...a, is_default: !!a.is_default }));
+};
+
+const addCustomerAddress = (customerId, a) => {
+  if (a.is_default) {
+    db.prepare('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?').run(customerId);
+  }
+  const stmt = db.prepare(`
+    INSERT INTO customer_addresses (customer_id, label, street, city, notes, is_default)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const info = stmt.run(
+    customerId,
+    (a.label || '').trim(),
+    (a.street || '').trim(),
+    (a.city || '').trim(),
+    (a.notes || '').trim(),
+    a.is_default ? 1 : 0
+  );
+  const row = db.prepare('SELECT * FROM customer_addresses WHERE id = ?').get(info.lastInsertRowid);
+  return row ? { ...row, is_default: !!row.is_default } : null;
+};
+
+const updateCustomerAddress = (customerId, addressId, a) => {
+  const existing = db.prepare('SELECT * FROM customer_addresses WHERE id = ? AND customer_id = ?').get(addressId, customerId);
+  if (!existing) return null;
+  if (a.is_default) {
+    db.prepare('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?').run(customerId);
+  }
+  const stmt = db.prepare(`
+    UPDATE customer_addresses SET
+      label = ?, street = ?, city = ?, notes = ?, is_default = ?
+    WHERE id = ? AND customer_id = ?
+  `);
+  stmt.run(
+    a.label !== undefined ? (a.label || '').trim() : existing.label,
+    a.street !== undefined ? (a.street || '').trim() : existing.street,
+    a.city !== undefined ? (a.city || '').trim() : existing.city,
+    a.notes !== undefined ? (a.notes || '').trim() : existing.notes,
+    a.is_default !== undefined ? (a.is_default ? 1 : 0) : existing.is_default,
+    addressId,
+    customerId
+  );
+  const row = db.prepare('SELECT * FROM customer_addresses WHERE id = ?').get(addressId);
+  return row ? { ...row, is_default: !!row.is_default } : null;
+};
+
+const deleteCustomerAddress = (customerId, addressId) => {
+  const stmt = db.prepare('DELETE FROM customer_addresses WHERE id = ? AND customer_id = ?');
+  return stmt.run(addressId, customerId);
+};
+
+// Ordini del cliente
+
+const getOrdersByCustomerId = (customerId) => {
+  return db.prepare(`
+    SELECT * FROM orders WHERE customer_id = ?
+    ORDER BY date DESC, id DESC
+  `).all(customerId).map(r => ({
+    ...r,
+    photos: r.photos ? (() => { try { return JSON.parse(r.photos); } catch { return []; } })() : []
+  }));
+};
+
+const getPendingCustomerOrders = () => {
+  return db.prepare(`
+    SELECT o.*, c.name AS customer_name
+    FROM orders o
+    LEFT JOIN customers c ON c.id = o.customer_id
+    WHERE o.customer_order_status = 'pending'
+    ORDER BY o.created_at DESC
+  `).all();
+};
+
+const approveCustomerOrder = (id, username) => {
+  const stmt = db.prepare(`
+    UPDATE orders SET
+      customer_order_status = 'approved',
+      updated_by = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND customer_order_status = 'pending'
+  `);
+  return stmt.run(username || '', id);
+};
+
+const rejectCustomerOrder = (id, reason, username) => {
+  const stmt = db.prepare(`
+    UPDATE orders SET
+      customer_order_status = 'rejected',
+      customer_reject_reason = ?,
+      updated_by = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  return stmt.run((reason || '').trim(), username || '', id);
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -847,6 +1134,23 @@ module.exports = {
   getPreventivoById,
   createPreventivo,
   updatePreventivo,
-  deletePreventivo
+  deletePreventivo,
+  // Customers & portale clienti
+  getAllCustomers,
+  getCustomerById,
+  getCustomerByToken,
+  createCustomer,
+  updateCustomer,
+  regenerateCustomerToken,
+  touchCustomerLogin,
+  deleteCustomer,
+  getCustomerAddresses,
+  addCustomerAddress,
+  updateCustomerAddress,
+  deleteCustomerAddress,
+  getOrdersByCustomerId,
+  getPendingCustomerOrders,
+  approveCustomerOrder,
+  rejectCustomerOrder
 };
 
