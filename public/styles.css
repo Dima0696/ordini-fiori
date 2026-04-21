@@ -913,6 +913,130 @@ body {
   transform: translateY(-1px) scale(0.98);
 }
 
+/* ============================================
+   HEADER HOME — barra integrata con azioni rapide
+   Layout: [Logo] · [Nav rapida centrale] · [Refresh + Logout]
+   ============================================ */
+.app-header-home {
+  gap: 1rem;
+  flex-wrap: nowrap;
+  padding: 0.7rem 1rem;
+  min-height: 66px;
+}
+
+.app-header-home .app-header-left {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.app-header-home .app-logo {
+  height: 34px;
+}
+
+.app-header-home .app-header-right {
+  flex: 0 0 auto;
+}
+
+/* Nav centrale delle azioni rapide dentro l'header */
+.app-header-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0 0.25rem;
+  scroll-snap-type: x proximity;
+}
+.app-header-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Riadatta i bottoni quick-action quando sono dentro la nav dell'header:
+   passano da layout a colonna (icona+label sotto) a pillola orizzontale compatta */
+.app-header-nav .quick-action-btn {
+  flex: 0 0 auto;
+  flex-direction: row;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 11px;
+  border-width: 1.5px;
+  font-size: 0.82rem;
+  box-shadow: 0 2px 8px rgba(11, 93, 82, 0.22);
+  scroll-snap-align: start;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-header-nav .quick-action-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.app-header-nav .quick-action-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.4px;
+}
+.app-header-nav .quick-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(11, 93, 82, 0.32);
+}
+.app-header-nav .quick-action-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Accentuazione: primo bottone (Ordine) più incisivo per richiamo visivo */
+.app-header-nav .quick-action-btn#quick-nuovo-ordine {
+  box-shadow: 0 3px 12px rgba(11, 93, 82, 0.35);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Responsive: solo icone sotto una certa larghezza, per non affollare */
+@media (max-width: 900px) {
+  .app-header-nav .quick-action-label {
+    display: none;
+  }
+  .app-header-nav .quick-action-btn {
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+  }
+  .app-header-nav .quick-action-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header-home {
+    padding: 0.55rem 0.7rem;
+    gap: 0.55rem;
+  }
+  .app-header-home .app-logo {
+    height: 30px;
+  }
+  .app-header-nav {
+    gap: 0.35rem;
+    justify-content: flex-start;
+  }
+  .app-header-nav .quick-action-btn {
+    padding: 0.5rem 0.6rem;
+  }
+  /* Nascondi username (resta l'icona logout) per recuperare spazio */
+  .app-header-home #username-display {
+    display: none;
+  }
+  .app-header-home .btn-logout {
+    padding: 0.45rem 0.55rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-header-home #btn-refresh-calendar {
+    display: none;
+  }
+}
+
 /* Barra di ricerca - RIDOTTA */
 .search-container {
   margin: 1rem 1.5rem;
