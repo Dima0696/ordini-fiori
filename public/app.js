@@ -4373,6 +4373,8 @@ function openPreventivoEditor(id) {
     document.getElementById('prev-luogo').value = '';
     document.getElementById('prev-data-consegna').value = '';
     document.getElementById('prev-indirizzo').value = '';
+    const oggEl = document.getElementById('prev-oggetto');
+    if (oggEl) oggEl.value = 'Preventivo offerta';
     document.getElementById('prev-note').value = '';
     addPrevRow(PREV_EMPTY_ROW());
     recalcPreventivoTotale();
@@ -4398,6 +4400,8 @@ function openPreventivoEditor(id) {
       document.getElementById('prev-luogo').value = p.luogo_consegna || '';
       document.getElementById('prev-data-consegna').value = p.data_consegna || '';
       document.getElementById('prev-indirizzo').value = p.indirizzo_consegna || '';
+      const oggEl2 = document.getElementById('prev-oggetto');
+      if (oggEl2) oggEl2.value = p.oggetto || 'Preventivo offerta';
       document.getElementById('prev-note').value = p.note || '';
       
       const items = Array.isArray(p.items) ? p.items : [];
@@ -4492,6 +4496,9 @@ function collectPreventivoFormData() {
   
   const totale = items.reduce((s, it) => s + (it.qt * it.prezzo), 0);
   
+  const oggettoEl = document.getElementById('prev-oggetto');
+  const oggettoVal = oggettoEl ? oggettoEl.value.trim() : '';
+  
   return {
     numero: document.getElementById('prev-numero').value.trim(),
     cliente: document.getElementById('prev-cliente').value.trim(),
@@ -4500,6 +4507,7 @@ function collectPreventivoFormData() {
     indirizzo_consegna: document.getElementById('prev-indirizzo').value.trim(),
     data_preventivo: document.getElementById('prev-data').value || new Date().toISOString().slice(0, 10),
     data_consegna: document.getElementById('prev-data-consegna').value || '',
+    oggetto: oggettoVal || 'Preventivo offerta',
     items,
     totale,
     note: document.getElementById('prev-note').value.trim()
@@ -4611,7 +4619,7 @@ function showMiniToast(msg, type = 'info') {
 // PREVENTIVO PDF (jsPDF) — download & share
 // ============================================
 
-const LOMBARDA_FOOTER = 'LombardaFlor S.r.l. · Via Enrico De Nicola 20, Cesano Boscone (MI) · P.IVA 00000000000';
+const LOMBARDA_FOOTER = 'LombardaFlor S.r.l. · Via Enrico De Nicola 20, Cesano Boscone (MI)';
 
 let _logoDataUrlCache = null;
 async function getLogoDataUrl() {
@@ -4658,7 +4666,19 @@ async function generatePreventivoPDFBlob(p) {
   // ---------- HEADER ----------
   const logo = await getLogoDataUrl();
   if (logo) {
-    try { doc.addImage(logo, 'PNG', margin, 14, 45, 18, undefined, 'FAST'); } catch(e) {}
+    try {
+      // Mantieni aspect ratio originale del logo
+      const props = doc.getImageProperties(logo);
+      const maxW = 50;  // larghezza massima in mm
+      const maxH = 22;  // altezza massima in mm
+      const ratio = props.width / props.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      doc.addImage(logo, 'PNG', margin, 14, w, h, undefined, 'FAST');
+    } catch (e) {
+      console.warn('Errore inserimento logo:', e);
+    }
   }
   
   const dataPrev = p.data_preventivo ? formatDateItalianShort(p.data_preventivo) : '';
@@ -4706,7 +4726,8 @@ async function generatePreventivoPDFBlob(p) {
   doc.setFontSize(10);
   doc.text('OGGETTO:', margin, y);
   doc.setFont('helvetica', 'normal');
-  doc.text('Preventivo offerta', margin + 21, y);
+  const oggettoTxt = (p.oggetto && p.oggetto.trim()) ? p.oggetto.trim() : 'Preventivo offerta';
+  doc.text(oggettoTxt, margin + 21, y);
   y += 7;
   
   // ---------- INTRO ----------

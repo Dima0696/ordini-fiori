@@ -102,6 +102,7 @@ const initDb = () => {
       indirizzo_consegna TEXT DEFAULT '',
       data_preventivo TEXT NOT NULL,
       data_consegna TEXT DEFAULT '',
+      oggetto TEXT DEFAULT 'Preventivo offerta',
       items TEXT NOT NULL DEFAULT '[]',
       totale REAL DEFAULT 0,
       note TEXT DEFAULT '',
@@ -174,6 +175,16 @@ const initDb = () => {
       console.log('✅ Aggiunta colonna: supplier (fabbisogno_checks)');
     } catch (error) {
       console.error('⚠️ Errore aggiungendo supplier:', error.message);
+    }
+  }
+  
+  // Migrazione: aggiunge colonna 'oggetto' a preventivi (testo editabile)
+  if (!columnExists('preventivi', 'oggetto')) {
+    try {
+      db.exec("ALTER TABLE preventivi ADD COLUMN oggetto TEXT DEFAULT 'Preventivo offerta'");
+      console.log('✅ Aggiunta colonna: oggetto (preventivi)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo oggetto:', error.message);
     }
   }
   
@@ -694,6 +705,7 @@ function mapPreventivoRow(row) {
     indirizzo_consegna: row.indirizzo_consegna || '',
     data_preventivo: row.data_preventivo || '',
     data_consegna: row.data_consegna || '',
+    oggetto: row.oggetto || 'Preventivo offerta',
     items,
     totale: Number(row.totale) || 0,
     note: row.note || '',
@@ -736,8 +748,8 @@ const createPreventivo = (p, username) => {
   const stmt = db.prepare(`
     INSERT INTO preventivi
       (numero, cliente, ragione_sociale, luogo_consegna, indirizzo_consegna,
-       data_preventivo, data_consegna, items, totale, note, created_by, updated_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       data_preventivo, data_consegna, oggetto, items, totale, note, created_by, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const info = stmt.run(
     numero,
@@ -747,6 +759,7 @@ const createPreventivo = (p, username) => {
     p.indirizzo_consegna || '',
     data,
     p.data_consegna || '',
+    (p.oggetto && p.oggetto.trim()) ? p.oggetto.trim() : 'Preventivo offerta',
     items,
     Number(p.totale) || 0,
     p.note || '',
@@ -769,6 +782,7 @@ const updatePreventivo = (id, p, username) => {
       indirizzo_consegna = ?,
       data_preventivo = ?,
       data_consegna = ?,
+      oggetto = ?,
       items = ?,
       totale = ?,
       note = ?,
@@ -776,6 +790,9 @@ const updatePreventivo = (id, p, username) => {
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
+  const oggetto = (p.oggetto !== undefined)
+    ? ((p.oggetto && p.oggetto.trim()) ? p.oggetto.trim() : 'Preventivo offerta')
+    : (existing.oggetto || 'Preventivo offerta');
   stmt.run(
     p.numero !== undefined ? p.numero : existing.numero,
     p.cliente !== undefined ? p.cliente : existing.cliente,
@@ -784,6 +801,7 @@ const updatePreventivo = (id, p, username) => {
     p.indirizzo_consegna !== undefined ? p.indirizzo_consegna : existing.indirizzo_consegna,
     p.data_preventivo !== undefined ? p.data_preventivo : existing.data_preventivo,
     p.data_consegna !== undefined ? p.data_consegna : existing.data_consegna,
+    oggetto,
     items,
     p.totale !== undefined ? Number(p.totale) || 0 : existing.totale,
     p.note !== undefined ? p.note : existing.note,
