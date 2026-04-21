@@ -1219,17 +1219,65 @@ app.get('/api/c/orders/:id', customerAuth, (req, res) => {
 });
 
 // Crea nuovo ordine (sempre in stato customer_order_status = 'pending')
+// Accetta due formati:
+//  1) { items: [{ catalog_item_id, name, quantity, unit_price, ... }] }  (formato catalogo)
+//  2) { description: "...testo libero..." }                              (fallback)
 app.post('/api/c/orders', customerAuth, (req, res) => {
   try {
-    const { date, description, delivery_type, delivery_time, delivery_address } = req.body || {};
-    if (!date || !description || String(description).trim() === '') {
-      return res.status(400).json({ error: 'Data e descrizione ordine obbligatori' });
+    const { date, delivery_type, delivery_time, delivery_address, items, description } = req.body || {};
+    if (!date) {
+      return res.status(400).json({ error: 'Data ordine obbligatoria' });
+    }
+    
+    // Validazione input: devo avere items valido oppure description testuale
+    const hasItems = Array.isArray(items) && items.length > 0;
+    const hasDesc = description && String(description).trim() !== '';
+    if (!hasItems && !hasDesc) {
+      return res.status(400).json({ error: 'Aggiungi almeno un articolo al tuo ordine' });
+    }
+    
+    // Costruzione description testuale leggibile + totale + righe strutturate
+    let descText = '';
+    let total = 0;
+    let orderItems = [];
+    
+    if (hasItems) {
+      const lines = [];
+      items.forEach(it => {
+        const qty = parseInt(it.quantity) || 0;
+        if (qty <= 0) return;
+        const unit = Number(it.unit_price) || 0;
+        const name = String(it.name || '').trim();
+        if (!name) return;
+        const rowTotal = qty * unit;
+        total += rowTotal;
+        orderItems.push({
+          catalog_item_id: it.catalog_item_id || null,
+          name,
+          category: String(it.category || '').trim(),
+          photo_url: String(it.photo_url || '').trim(),
+          quantity: qty,
+          unit_price: unit
+        });
+        if (unit > 0) {
+          lines.push(`${qty} × ${name} — € ${unit.toFixed(2)}/cad = € ${rowTotal.toFixed(2)}`);
+        } else {
+          lines.push(`${qty} × ${name}`);
+        }
+      });
+      if (orderItems.length === 0) {
+        return res.status(400).json({ error: 'Aggiungi almeno un articolo con quantità > 0' });
+      }
+      descText = lines.join('\n');
+      if (total > 0) descText += `\n\nTotale indicativo: € ${total.toFixed(2)}`;
+    } else {
+      descText = String(description).trim();
     }
     
     const orderData = {
       date,
       customer: req.customer.name,
-      description: String(description).trim(),
+      description: descText,
       status: 'da_preparare',
       order_type: 'cliente',
       delivery_type: delivery_type === 'consegna' ? 'consegna' : 'ritiro',
@@ -1243,16 +1291,29 @@ app.post('/api/c/orders', customerAuth, (req, res) => {
     
     const order = db.createOrder(orderData, `cliente:${req.customer.name}`);
     
+    // Salva righe strutturate + totale (best effort)
+    if (orderItems.length > 0) {
+      try {
+        db.addOrderItems(order.id, orderItems);
+        db.setOrderTotal(order.id, total);
+      } catch (e) {
+        console.error('Errore salvataggio order_items:', e);
+      }
+    }
+    
     // Notifica push allo staff (non-bloccante)
     setImmediate(() => {
+      const countLabel = orderItems.length > 0
+        ? `${orderItems.length} ${orderItems.length === 1 ? 'articolo' : 'articoli'}`
+        : 'ordine';
       sendNotificationToAll(
         '🆕 Nuovo ordine cliente',
-        `${req.customer.name} · consegna ${date}`,
+        `${req.customer.name} · ${countLabel} · consegna ${date}`,
         'customer-order-new'
       );
     });
     
-    res.status(201).json(order);
+    res.status(201).json({ ...order, total_price: total });
   } catch (error) {
     console.error('Errore POST ordine cliente:', error);
     res.status(500).json({ error: 'Errore creazione ordine' });
@@ -1354,6 +1415,133 @@ app.post('/api/orders/:id/reject', authenticate, (req, res) => {
   } catch (error) {
     console.error('Errore reject order:', error);
     res.status(500).json({ error: 'Errore rifiuto ordine' });
+  }
+});
+
+// ============================================
+// CATALOGO GIORNALIERO (staff)
+// ============================================
+
+// Helper: data di oggi YYYY-MM-DD
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// GET /api/catalog?date=YYYY-MM-DD → articoli per quella data (vuoto se nessuno)
+app.get('/api/catalog', authenticate, (req, res) => {
+  try {
+    const date = req.query.date || todayIso();
+    res.json({ date, items: db.getCatalogByDate(date) });
+  } catch (error) {
+    console.error('Errore GET catalog:', error);
+    res.status(500).json({ error: 'Errore recupero catalogo' });
+  }
+});
+
+// GET /api/catalog/dates → storico date catalogo
+app.get('/api/catalog/dates', authenticate, (req, res) => {
+  try {
+    res.json(db.getCatalogDates());
+  } catch (error) {
+    console.error('Errore GET catalog dates:', error);
+    res.status(500).json({ error: 'Errore recupero date' });
+  }
+});
+
+// POST /api/catalog/items → crea nuovo articolo
+app.post('/api/catalog/items', authenticate, (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.name || String(body.name).trim() === '') {
+      return res.status(400).json({ error: 'Nome articolo obbligatorio' });
+    }
+    if (!body.catalog_date) body.catalog_date = todayIso();
+    const item = db.createCatalogItem(body, req.user.username);
+    res.status(201).json(item);
+  } catch (error) {
+    console.error('Errore POST catalog item:', error);
+    res.status(500).json({ error: 'Errore creazione articolo' });
+  }
+});
+
+// PUT /api/catalog/items/:id → aggiorna articolo
+app.put('/api/catalog/items/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const item = db.updateCatalogItem(id, req.body || {}, req.user.username);
+    if (!item) return res.status(404).json({ error: 'Articolo non trovato' });
+    res.json(item);
+  } catch (error) {
+    console.error('Errore PUT catalog item:', error);
+    res.status(500).json({ error: 'Errore aggiornamento' });
+  }
+});
+
+// DELETE /api/catalog/items/:id → elimina articolo (e foto se locale)
+app.delete('/api/catalog/items/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const item = db.getCatalogItemById(id);
+    if (!item) return res.status(404).json({ error: 'Articolo non trovato' });
+    // Elimina foto fisica se è un /uploads locale
+    if (item.photo_url && item.photo_url.startsWith('/uploads/')) {
+      const filename = path.basename(item.photo_url);
+      const filePath = path.join(uploadsDir, filename);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch { /* no-op */ }
+      }
+    }
+    db.deleteCatalogItem(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Errore DELETE catalog item:', error);
+    res.status(500).json({ error: 'Errore eliminazione' });
+  }
+});
+
+// POST /api/catalog/duplicate → duplica catalogo da una data ad un'altra
+// body: { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
+app.post('/api/catalog/duplicate', authenticate, (req, res) => {
+  try {
+    const { from, to } = req.body || {};
+    if (!from || !to) return res.status(400).json({ error: 'Parametri from e to richiesti' });
+    const copied = db.duplicateCatalog(from, to, req.user.username);
+    if (copied === 0) {
+      return res.status(400).json({ error: 'Nessun articolo duplicato (sorgente vuota o destinazione già popolata)' });
+    }
+    res.json({ success: true, copied });
+  } catch (error) {
+    console.error('Errore duplica catalogo:', error);
+    res.status(500).json({ error: 'Errore duplicazione' });
+  }
+});
+
+// POST /api/catalog/upload-photo → upload foto singola, ritorna URL
+app.post('/api/catalog/upload-photo', authenticate, upload.single('photo'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Nessuna foto caricata' });
+    res.json({ photo_url: `/uploads/${req.file.filename}` });
+  } catch (error) {
+    console.error('Errore upload foto catalogo:', error);
+    res.status(500).json({ error: 'Errore upload' });
+  }
+});
+
+// ============================================
+// CATALOGO PUBBLICO (cliente, nessuna auth staff)
+// ============================================
+
+// GET /api/c/catalog → catalogo corrente (data più recente pubblicata)
+app.get('/api/c/catalog', customerAuth, (req, res) => {
+  try {
+    const requestedDate = req.query.date;
+    const date = requestedDate || db.getLatestCatalogDate() || todayIso();
+    const items = db.getActiveCatalogByDate(date);
+    res.json({ date, items });
+  } catch (error) {
+    console.error('Errore GET catalog cliente:', error);
+    res.status(500).json({ error: 'Errore recupero catalogo' });
   }
 });
 

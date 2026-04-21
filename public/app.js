@@ -98,6 +98,7 @@ const pageOrders = document.getElementById('page-orders');
 const pageListini = document.getElementById('page-listini');
 const pagePreventivi = document.getElementById('page-preventivi');
 const pageClienti = document.getElementById('page-clienti');
+const pageCatalogo = document.getElementById('page-catalogo');
 const modalOrder = document.getElementById('modal-order');
 const modalConfirm = document.getElementById('modal-confirm');
 const daysList = document.getElementById('days-list');
@@ -715,6 +716,17 @@ function setupEventListeners() {
   const btnLogoutCli = document.getElementById('btn-logout-clienti');
   if (btnLogoutCli) btnLogoutCli.addEventListener('click', logout);
   setupClientiListeners();
+  
+  // Catalogo del giorno
+  const quickCat = document.getElementById('quick-catalogo');
+  if (quickCat) quickCat.addEventListener('click', () => openCatalogoPage());
+  const btnBackCat = document.getElementById('btn-back-catalogo');
+  if (btnBackCat) btnBackCat.addEventListener('click', () => showPage('calendar'));
+  const btnHomeCat = document.getElementById('btn-home-catalogo');
+  if (btnHomeCat) btnHomeCat.addEventListener('click', () => showPage('calendar'));
+  const btnLogoutCat = document.getElementById('btn-logout-catalogo');
+  if (btnLogoutCat) btnLogoutCat.addEventListener('click', logout);
+  setupCatalogoListeners();
   
   // Pulsanti pagina Listini
   document.getElementById('btn-back-listini').addEventListener('click', () => {
@@ -2862,6 +2874,7 @@ function showPage(page) {
   pageListini.classList.remove('active');
   if (pagePreventivi) pagePreventivi.classList.remove('active');
   if (pageClienti) pageClienti.classList.remove('active');
+  if (pageCatalogo) pageCatalogo.classList.remove('active');
   
   if (page === 'calendar') {
     pageCalendar.classList.add('active');
@@ -2873,6 +2886,8 @@ function showPage(page) {
     if (pagePreventivi) pagePreventivi.classList.add('active');
   } else if (page === 'clienti') {
     if (pageClienti) pageClienti.classList.add('active');
+  } else if (page === 'catalogo') {
+    if (pageCatalogo) pageCatalogo.classList.add('active');
   }
   
   // Scroll in alto
@@ -5466,3 +5481,349 @@ function setupClientiListeners() {
 
 window.openClientiPage = openClientiPage;
 window.refreshPendingBadgeOnly = refreshPendingBadgeOnly;
+
+// =========================================================
+// PAGINA CATALOGO DEL GIORNO (staff)
+// =========================================================
+
+let catalogoCurrentDate = null;
+let catalogoItemsCache = [];
+let catalogoCategoriesCache = new Set();
+let currentCatalogItem = null; // in editing
+
+function todayIsoStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function yesterdayIsoStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function catalogoDayLabel(isoDate) {
+  try {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const today = todayIsoStr();
+    const yesterday = yesterdayIsoStr();
+    const tomorrow = (() => {
+      const t = new Date(); t.setDate(t.getDate() + 1);
+      return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    })();
+    let prefix = '';
+    if (isoDate === today) prefix = '· Oggi';
+    else if (isoDate === yesterday) prefix = '· Ieri';
+    else if (isoDate === tomorrow) prefix = '· Domani';
+    const txt = dt.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+    return `${txt.charAt(0).toUpperCase() + txt.slice(1)} ${prefix}`.trim();
+  } catch { return isoDate; }
+}
+
+async function openCatalogoPage() {
+  showPage('catalogo');
+  const unameEl = document.getElementById('username-display-catalogo');
+  if (unameEl) unameEl.textContent = currentUser || '';
+  catalogoCurrentDate = todayIsoStr();
+  const inp = document.getElementById('catalogo-date');
+  if (inp) inp.value = catalogoCurrentDate;
+  await loadCatalogo(catalogoCurrentDate);
+}
+
+async function loadCatalogo(date) {
+  try {
+    const res = await fetch(`/api/catalog?date=${encodeURIComponent(date)}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore catalogo');
+    const data = await res.json();
+    catalogoItemsCache = data.items || [];
+    catalogoCurrentDate = data.date;
+    updateCatalogoCategorySuggestions();
+    renderCatalogoStaff();
+  } catch (e) {
+    console.error('loadCatalogo', e);
+    showMiniToast('Errore caricamento catalogo', 'error');
+  }
+}
+
+function updateCatalogoCategorySuggestions() {
+  catalogoCategoriesCache = new Set();
+  catalogoItemsCache.forEach(i => { if (i.category) catalogoCategoriesCache.add(i.category); });
+  const dl = document.getElementById('catalog-cat-suggestions');
+  if (dl) {
+    dl.innerHTML = '';
+    [...catalogoCategoriesCache].sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      dl.appendChild(opt);
+    });
+  }
+}
+
+function renderCatalogoStaff() {
+  const grid = document.getElementById('catalogo-grid');
+  const empty = document.getElementById('catalogo-empty');
+  const summary = document.getElementById('catalogo-summary');
+  const dayLabel = document.getElementById('catalogo-day-label');
+  if (dayLabel) dayLabel.textContent = catalogoDayLabel(catalogoCurrentDate);
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  if (!catalogoItemsCache.length) {
+    empty.style.display = 'flex';
+    if (summary) summary.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  
+  // Summary
+  const active = catalogoItemsCache.filter(i => i.active).length;
+  const cats = [...new Set(catalogoItemsCache.map(i => i.category).filter(Boolean))];
+  if (summary) {
+    summary.innerHTML = `
+      <span class="pill"><strong>${catalogoItemsCache.length}</strong> articoli · <strong>${active}</strong> attivi</span>
+      ${cats.length ? `<span class="pill">${cats.length} ${cats.length === 1 ? 'categoria' : 'categorie'}: ${cats.slice(0, 4).map(escapeHtml).join(', ')}${cats.length > 4 ? '…' : ''}</span>` : ''}
+    `;
+  }
+  
+  catalogoItemsCache.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'catalog-card' + (item.active ? '' : ' is-inactive');
+    const photoHtml = item.photo_url
+      ? `<div class="catalog-card-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy">
+           ${item.category ? `<span class="catalog-card-cat">${escapeHtml(item.category)}</span>` : ''}
+           ${!item.active ? `<span class="catalog-card-badge-inactive">NASCOSTO</span>` : ''}
+         </div>`
+      : `<div class="catalog-card-photo no-photo">
+           <svg class="no-photo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+             <rect x="3" y="3" width="18" height="18" rx="2"/>
+             <circle cx="8.5" cy="8.5" r="1.5"/>
+             <polyline points="21 15 16 10 5 21"/>
+           </svg>
+           ${item.category ? `<span class="catalog-card-cat">${escapeHtml(item.category)}</span>` : ''}
+           ${!item.active ? `<span class="catalog-card-badge-inactive">NASCOSTO</span>` : ''}
+         </div>`;
+    card.innerHTML = `
+      ${photoHtml}
+      <div class="catalog-card-body">
+        <div class="catalog-card-name">${escapeHtml(item.name)}</div>
+        ${item.description ? `<div class="catalog-card-desc">${escapeHtml(item.description)}</div>` : ''}
+        <div class="catalog-card-meta">
+          <span class="catalog-card-price">${item.price > 0 ? '€ ' + Number(item.price).toFixed(2) : '—'}</span>
+          <span class="catalog-card-qty">min ${item.min_quantity}</span>
+        </div>
+        ${item.availability ? `<div class="catalog-card-avail">📦 ${escapeHtml(item.availability)}</div>` : ''}
+      </div>
+    `;
+    card.addEventListener('click', () => openCatalogItemEditor(item));
+    grid.appendChild(card);
+  });
+}
+
+// Editor articolo
+let uploadedPhotoUrl = null;
+
+function openCatalogItemEditor(item) {
+  currentCatalogItem = item || null;
+  uploadedPhotoUrl = item?.photo_url || null;
+  const titleEl = document.getElementById('catalog-item-title');
+  if (titleEl) titleEl.textContent = item ? 'Modifica articolo' : 'Nuovo articolo';
+  
+  document.getElementById('catalog-name').value = item?.name || '';
+  document.getElementById('catalog-category').value = item?.category || '';
+  document.getElementById('catalog-description').value = item?.description || '';
+  document.getElementById('catalog-price').value = item?.price ?? '';
+  document.getElementById('catalog-min-qty').value = item?.min_quantity || 1;
+  document.getElementById('catalog-availability').value = item?.availability || '';
+  document.getElementById('catalog-active').checked = item ? !!item.active : true;
+  document.getElementById('btn-delete-catalog-item').style.display = item ? 'inline-block' : 'none';
+  
+  updateCatalogPhotoPreview();
+  document.getElementById('modal-catalog-item').classList.add('active');
+}
+
+function closeCatalogItemEditor() {
+  document.getElementById('modal-catalog-item').classList.remove('active');
+  currentCatalogItem = null;
+  uploadedPhotoUrl = null;
+}
+
+function updateCatalogPhotoPreview() {
+  const prev = document.getElementById('catalog-photo-preview');
+  const removeBtn = document.getElementById('btn-catalog-remove-photo');
+  if (!prev) return;
+  if (uploadedPhotoUrl) {
+    prev.innerHTML = `<img src="${uploadedPhotoUrl}" alt="preview">`;
+    if (removeBtn) removeBtn.style.display = 'inline-block';
+  } else {
+    prev.innerHTML = `
+      <div class="catalog-photo-placeholder">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Tocca "Scegli foto" per caricare</span>
+      </div>`;
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+async function uploadCatalogPhoto(file) {
+  if (!file) return;
+  const btn = document.getElementById('btn-catalog-upload-photo');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Caricamento...'; }
+  try {
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch('/api/catalog/upload-photo', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: fd
+    });
+    if (!res.ok) throw new Error('Errore upload');
+    const data = await res.json();
+    uploadedPhotoUrl = data.photo_url;
+    updateCatalogPhotoPreview();
+    showMiniToast('Foto caricata', 'success');
+  } catch (e) {
+    console.error('uploadCatalogPhoto', e);
+    showMiniToast('Errore upload foto', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📷 Scegli foto'; }
+  }
+}
+
+async function saveCatalogItem() {
+  const name = document.getElementById('catalog-name').value.trim();
+  if (!name) { showMiniToast('Nome articolo obbligatorio', 'error'); return; }
+  
+  const body = {
+    catalog_date: catalogoCurrentDate || todayIsoStr(),
+    name,
+    category: document.getElementById('catalog-category').value.trim(),
+    description: document.getElementById('catalog-description').value.trim(),
+    price: parseFloat(document.getElementById('catalog-price').value) || 0,
+    min_quantity: parseInt(document.getElementById('catalog-min-qty').value) || 1,
+    availability: document.getElementById('catalog-availability').value.trim(),
+    photo_url: uploadedPhotoUrl || '',
+    active: document.getElementById('catalog-active').checked
+  };
+  
+  try {
+    const url = currentCatalogItem ? `/api/catalog/items/${currentCatalogItem.id}` : '/api/catalog/items';
+    const method = currentCatalogItem ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Errore salvataggio');
+    }
+    showMiniToast(currentCatalogItem ? 'Articolo aggiornato' : 'Articolo aggiunto', 'success');
+    closeCatalogItemEditor();
+    await loadCatalogo(catalogoCurrentDate);
+  } catch (e) {
+    console.error('saveCatalogItem', e);
+    showMiniToast(e.message || 'Errore', 'error');
+  }
+}
+
+async function deleteCatalogItem() {
+  if (!currentCatalogItem) return;
+  if (!confirm(`Eliminare "${currentCatalogItem.name}"?`)) return;
+  try {
+    const res = await fetch(`/api/catalog/items/${currentCatalogItem.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('Errore eliminazione');
+    showMiniToast('Articolo eliminato', 'success');
+    closeCatalogItemEditor();
+    await loadCatalogo(catalogoCurrentDate);
+  } catch (e) { showMiniToast(e.message, 'error'); }
+}
+
+async function duplicateFromYesterday() {
+  const from = yesterdayIsoStr();
+  const to = catalogoCurrentDate;
+  if (from === to) {
+    showMiniToast('Seleziona una data diversa da ieri', 'error');
+    return;
+  }
+  if (catalogoItemsCache.length > 0) {
+    if (!confirm('La data corrente ha già articoli. La duplicazione funziona solo su date vuote. Vuoi comunque procedere?')) return;
+  }
+  if (!confirm(`Copiare tutti gli articoli del ${from} nel catalogo di ${to}?`)) return;
+  try {
+    const res = await fetch('/api/catalog/duplicate', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Errore duplicazione');
+    }
+    const data = await res.json();
+    showMiniToast(`${data.copied} articoli duplicati`, 'success');
+    await loadCatalogo(to);
+  } catch (e) { showMiniToast(e.message, 'error'); }
+}
+
+function setupCatalogoListeners() {
+  const dateInput = document.getElementById('catalogo-date');
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      catalogoCurrentDate = e.target.value;
+      loadCatalogo(catalogoCurrentDate);
+    });
+  }
+  const btnNew = document.getElementById('btn-new-catalog-item');
+  if (btnNew) btnNew.addEventListener('click', () => openCatalogItemEditor(null));
+  const btnDup = document.getElementById('btn-duplicate-yesterday');
+  if (btnDup) btnDup.addEventListener('click', duplicateFromYesterday);
+  const btnClose = document.getElementById('btn-close-catalog-item');
+  if (btnClose) btnClose.addEventListener('click', closeCatalogItemEditor);
+  const btnSave = document.getElementById('btn-save-catalog-item');
+  if (btnSave) btnSave.addEventListener('click', saveCatalogItem);
+  const btnDel = document.getElementById('btn-delete-catalog-item');
+  if (btnDel) btnDel.addEventListener('click', deleteCatalogItem);
+  
+  // Foto
+  const photoInput = document.getElementById('catalog-photo-input');
+  const btnUpload = document.getElementById('btn-catalog-upload-photo');
+  const btnRemove = document.getElementById('btn-catalog-remove-photo');
+  const preview = document.getElementById('catalog-photo-preview');
+  if (btnUpload && photoInput) {
+    btnUpload.addEventListener('click', () => photoInput.click());
+    photoInput.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) uploadCatalogPhoto(f);
+      e.target.value = '';
+    });
+  }
+  if (preview && photoInput) {
+    preview.addEventListener('click', () => { if (!uploadedPhotoUrl) photoInput.click(); });
+  }
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      uploadedPhotoUrl = null;
+      updateCatalogPhotoPreview();
+    });
+  }
+  
+  const modal = document.getElementById('modal-catalog-item');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeCatalogItemEditor();
+    });
+  }
+}
+
+window.openCatalogoPage = openCatalogoPage;

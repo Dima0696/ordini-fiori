@@ -92,6 +92,42 @@ const initDb = () => {
     )
   `;
   
+  const createCatalogItemsTableQuery = `
+    CREATE TABLE IF NOT EXISTS catalog_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      catalog_date TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT '',
+      photo_url TEXT DEFAULT '',
+      price REAL DEFAULT 0,
+      min_quantity INTEGER DEFAULT 1,
+      availability TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_by TEXT,
+      updated_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
+  const createOrderItemsTableQuery = `
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      catalog_item_id INTEGER,
+      name TEXT NOT NULL,
+      category TEXT DEFAULT '',
+      photo_url TEXT DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unit_price REAL DEFAULT 0,
+      total_price REAL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    )
+  `;
+  
   const createCustomersTableQuery = `
     CREATE TABLE IF NOT EXISTS customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,6 +187,8 @@ const initDb = () => {
   db.exec(createPreventiviTableQuery);
   db.exec(createCustomersTableQuery);
   db.exec(createCustomerAddressesTableQuery);
+  db.exec(createCatalogItemsTableQuery);
+  db.exec(createOrderItemsTableQuery);
   
   // Crea indici per performance
   try {
@@ -167,6 +205,9 @@ const initDb = () => {
     db.exec('CREATE INDEX IF NOT EXISTS idx_customer_addresses_cust ON customer_addresses(customer_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer_status ON orders(customer_order_status)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_catalog_items_date ON catalog_items(catalog_date)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_catalog_items_active ON catalog_items(active)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)');
     console.log('✓ Indici database creati per performance');
   } catch (error) {
     console.log('⚠️ Indici già esistenti');
@@ -248,6 +289,14 @@ const initDb = () => {
       console.log('✅ Aggiunta colonna: customer_reject_reason (orders)');
     } catch (error) {
       console.error('⚠️ Errore aggiungendo customer_reject_reason:', error.message);
+    }
+  }
+  if (!columnExists('orders', 'total_price')) {
+    try {
+      db.exec('ALTER TABLE orders ADD COLUMN total_price REAL DEFAULT 0');
+      console.log('✅ Aggiunta colonna: total_price (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo total_price:', error.message);
     }
   }
   
@@ -1103,6 +1152,222 @@ const rejectCustomerOrder = (id, reason, username) => {
   return stmt.run((reason || '').trim(), username || '', id);
 };
 
+// ============================================
+// CATALOGO GIORNALIERO (articoli + foto)
+// ============================================
+
+function mapCatalogRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    catalog_date: row.catalog_date,
+    name: row.name || '',
+    description: row.description || '',
+    category: row.category || '',
+    photo_url: row.photo_url || '',
+    price: row.price != null ? Number(row.price) : 0,
+    min_quantity: row.min_quantity != null ? Number(row.min_quantity) : 1,
+    availability: row.availability || '',
+    sort_order: row.sort_order || 0,
+    active: !!row.active,
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || ''
+  };
+}
+
+const getCatalogByDate = (date) => {
+  const rows = db.prepare(`
+    SELECT * FROM catalog_items
+    WHERE catalog_date = ?
+    ORDER BY sort_order ASC, id ASC
+  `).all(date);
+  return rows.map(mapCatalogRow);
+};
+
+// Restituisce la data del catalogo più recente (oggi o giorni passati)
+const getLatestCatalogDate = () => {
+  const row = db.prepare(`
+    SELECT catalog_date FROM catalog_items
+    WHERE active = 1
+    GROUP BY catalog_date
+    ORDER BY catalog_date DESC
+    LIMIT 1
+  `).get();
+  return row ? row.catalog_date : null;
+};
+
+// Articoli attivi del catalogo per una data (per il cliente)
+const getActiveCatalogByDate = (date) => {
+  const rows = db.prepare(`
+    SELECT * FROM catalog_items
+    WHERE catalog_date = ? AND active = 1
+    ORDER BY sort_order ASC, id ASC
+  `).all(date);
+  return rows.map(mapCatalogRow);
+};
+
+const getCatalogItemById = (id) => {
+  const row = db.prepare('SELECT * FROM catalog_items WHERE id = ?').get(id);
+  return mapCatalogRow(row);
+};
+
+const createCatalogItem = (data, username) => {
+  const date = data.catalog_date || new Date().toISOString().slice(0, 10);
+  const name = (data.name || '').trim();
+  if (!name) throw new Error('Nome articolo obbligatorio');
+  const stmt = db.prepare(`
+    INSERT INTO catalog_items
+      (catalog_date, name, description, category, photo_url, price, min_quantity, availability, sort_order, active, created_by, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const info = stmt.run(
+    date,
+    name,
+    (data.description || '').trim(),
+    (data.category || '').trim(),
+    (data.photo_url || '').trim(),
+    Number(data.price) || 0,
+    Math.max(1, parseInt(data.min_quantity) || 1),
+    (data.availability || '').trim(),
+    Number(data.sort_order) || 0,
+    data.active === false ? 0 : 1,
+    username || '',
+    username || ''
+  );
+  return getCatalogItemById(info.lastInsertRowid);
+};
+
+const updateCatalogItem = (id, data, username) => {
+  const existing = getCatalogItemById(id);
+  if (!existing) return null;
+  const stmt = db.prepare(`
+    UPDATE catalog_items SET
+      name = ?,
+      description = ?,
+      category = ?,
+      photo_url = ?,
+      price = ?,
+      min_quantity = ?,
+      availability = ?,
+      sort_order = ?,
+      active = ?,
+      updated_by = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  stmt.run(
+    data.name !== undefined ? String(data.name).trim() : existing.name,
+    data.description !== undefined ? String(data.description).trim() : existing.description,
+    data.category !== undefined ? String(data.category).trim() : existing.category,
+    data.photo_url !== undefined ? String(data.photo_url).trim() : existing.photo_url,
+    data.price !== undefined ? (Number(data.price) || 0) : existing.price,
+    data.min_quantity !== undefined ? Math.max(1, parseInt(data.min_quantity) || 1) : existing.min_quantity,
+    data.availability !== undefined ? String(data.availability).trim() : existing.availability,
+    data.sort_order !== undefined ? (Number(data.sort_order) || 0) : existing.sort_order,
+    data.active !== undefined ? (data.active ? 1 : 0) : (existing.active ? 1 : 0),
+    username || '',
+    id
+  );
+  return getCatalogItemById(id);
+};
+
+const deleteCatalogItem = (id) => {
+  return db.prepare('DELETE FROM catalog_items WHERE id = ?').run(id);
+};
+
+// Duplica un catalogo intero da una data ad un'altra
+const duplicateCatalog = (fromDate, toDate, username) => {
+  const sourceItems = getCatalogByDate(fromDate);
+  if (sourceItems.length === 0) return 0;
+  // Se la data di destinazione ha già articoli, non duplicare (idempotenza)
+  const existingAtDest = getCatalogByDate(toDate);
+  if (existingAtDest.length > 0) return 0;
+  
+  const insert = db.prepare(`
+    INSERT INTO catalog_items
+      (catalog_date, name, description, category, photo_url, price, min_quantity, availability, sort_order, active, created_by, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const tx = db.transaction((items) => {
+    for (const it of items) {
+      insert.run(
+        toDate, it.name, it.description, it.category, it.photo_url,
+        it.price, it.min_quantity, it.availability, it.sort_order, it.active ? 1 : 0,
+        username || '', username || ''
+      );
+    }
+  });
+  tx(sourceItems);
+  return sourceItems.length;
+};
+
+// Lista tutte le date di catalogo esistenti (per selezione)
+const getCatalogDates = () => {
+  return db.prepare(`
+    SELECT catalog_date, COUNT(*) AS items, SUM(active) AS active_items
+    FROM catalog_items
+    GROUP BY catalog_date
+    ORDER BY catalog_date DESC
+    LIMIT 90
+  `).all();
+};
+
+// ============================================
+// ORDER ITEMS (righe strutturate degli ordini)
+// ============================================
+
+function mapOrderItemRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    order_id: row.order_id,
+    catalog_item_id: row.catalog_item_id || null,
+    name: row.name || '',
+    category: row.category || '',
+    photo_url: row.photo_url || '',
+    quantity: row.quantity || 0,
+    unit_price: row.unit_price != null ? Number(row.unit_price) : 0,
+    total_price: row.total_price != null ? Number(row.total_price) : 0
+  };
+}
+
+const addOrderItems = (orderId, items) => {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const insert = db.prepare(`
+    INSERT INTO order_items
+      (order_id, catalog_item_id, name, category, photo_url, quantity, unit_price, total_price)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const tx = db.transaction((rows) => {
+    for (const r of rows) {
+      const qty = parseInt(r.quantity) || 0;
+      const unit = Number(r.unit_price) || 0;
+      insert.run(
+        orderId,
+        r.catalog_item_id || null,
+        (r.name || '').trim(),
+        (r.category || '').trim(),
+        (r.photo_url || '').trim(),
+        qty,
+        unit,
+        qty * unit
+      );
+    }
+  });
+  tx(items);
+};
+
+const getOrderItems = (orderId) => {
+  const rows = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC').all(orderId);
+  return rows.map(mapOrderItemRow);
+};
+
+const setOrderTotal = (orderId, total) => {
+  try {
+    db.prepare('UPDATE orders SET total_price = ? WHERE id = ?').run(Number(total) || 0, orderId);
+  } catch (e) { /* no-op */ }
+};
+
 module.exports = {
   initDb,
   getAllOrders,
@@ -1151,6 +1416,20 @@ module.exports = {
   getOrdersByCustomerId,
   getPendingCustomerOrders,
   approveCustomerOrder,
-  rejectCustomerOrder
+  rejectCustomerOrder,
+  // Catalogo giornaliero
+  getCatalogByDate,
+  getLatestCatalogDate,
+  getActiveCatalogByDate,
+  getCatalogItemById,
+  createCatalogItem,
+  updateCatalogItem,
+  deleteCatalogItem,
+  duplicateCatalog,
+  getCatalogDates,
+  // Righe ordine strutturate
+  addOrderItems,
+  getOrderItems,
+  setOrderTotal
 };
 

@@ -14,6 +14,11 @@ const ordersEmpty = document.getElementById('orders-empty');
 let me = null;
 let addresses = [];
 
+// Catalogo + carrello
+let catalog = { date: null, items: [] };
+let activeCategory = '__all';
+let cart = new Map(); // key = catalog_item_id, value = { item, quantity }
+
 // ============ UTILITY ============
 
 function showToast(message, type = '') {
@@ -187,14 +192,18 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-// ============ NUOVO ORDINE ============
+// ============ NUOVO ORDINE (CATALOGO + CARRELLO) ============
 function openNewOrderModal() {
   document.getElementById('form-order').reset();
   document.getElementById('order-date').min = todayIso();
   document.getElementById('order-date').value = todayIso();
   refreshAddressSelect();
   toggleDeliveryFields();
+  cart.clear();
+  activeCategory = '__all';
+  updateCartUI();
   document.getElementById('modal-order').classList.remove('hidden');
+  loadCatalogClient();
 }
 
 function closeNewOrderModal() {
@@ -219,37 +228,253 @@ function toggleDeliveryFields() {
   document.getElementById('delivery-fields').classList.toggle('hidden', type !== 'consegna');
 }
 
+async function loadCatalogClient() {
+  try {
+    const data = await api('/api/c/catalog');
+    catalog = data || { date: null, items: [] };
+    const lbl = document.getElementById('catalog-date-label');
+    if (lbl) lbl.textContent = catalog.date ? `Aggiornato al ${formatDateHuman(catalog.date)}` : '';
+    renderCatalogClient();
+  } catch (e) {
+    if (e.message !== 'unauth') {
+      showToast('Errore caricamento catalogo', 'error');
+    }
+  }
+}
+
+function renderCatalogClient() {
+  const grid = document.getElementById('catalog-grid-c');
+  const empty = document.getElementById('catalog-empty-c');
+  const catsBar = document.getElementById('catalog-categories');
+  
+  if (!catalog.items || catalog.items.length === 0) {
+    grid.innerHTML = '';
+    catsBar.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  
+  // Categorie (chip)
+  const cats = [...new Set(catalog.items.map(i => i.category || '').filter(Boolean))].sort();
+  catsBar.innerHTML = '';
+  const allChip = document.createElement('button');
+  allChip.type = 'button';
+  allChip.className = 'cat-chip' + (activeCategory === '__all' ? ' active' : '');
+  allChip.textContent = 'Tutti';
+  allChip.addEventListener('click', () => { activeCategory = '__all'; renderCatalogClient(); });
+  catsBar.appendChild(allChip);
+  cats.forEach(c => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'cat-chip' + (activeCategory === c ? ' active' : '');
+    chip.textContent = c;
+    chip.addEventListener('click', () => { activeCategory = c; renderCatalogClient(); });
+    catsBar.appendChild(chip);
+  });
+  
+  // Grid articoli filtrati
+  const visible = activeCategory === '__all'
+    ? catalog.items
+    : catalog.items.filter(i => i.category === activeCategory);
+  
+  grid.innerHTML = '';
+  visible.forEach(item => {
+    const inCart = cart.get(item.id);
+    const qty = inCart ? inCart.quantity : 0;
+    const card = document.createElement('div');
+    card.className = 'c-prod-card' + (qty > 0 ? ' in-cart' : '');
+    const photoHtml = item.photo_url
+      ? `<div class="c-prod-photo"><img src="${item.photo_url}" alt="${escapeHtml(item.name)}" loading="lazy">
+          ${qty > 0 ? `<span class="c-prod-qty-chip">${qty}</span>` : ''}
+        </div>`
+      : `<div class="c-prod-photo no-photo">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          ${qty > 0 ? `<span class="c-prod-qty-chip">${qty}</span>` : ''}
+        </div>`;
+    
+    const controlsHtml = qty > 0
+      ? `<div class="c-prod-controls">
+          <button type="button" class="c-qty-btn" data-act="dec" data-id="${item.id}" aria-label="Diminuisci">−</button>
+          <span class="c-qty-value">${qty}</span>
+          <button type="button" class="c-qty-btn" data-act="inc" data-id="${item.id}" aria-label="Aumenta">+</button>
+        </div>`
+      : `<button type="button" class="c-prod-add-first" data-act="add" data-id="${item.id}">Aggiungi</button>`;
+    
+    card.innerHTML = `
+      ${photoHtml}
+      <div class="c-prod-body">
+        <div class="c-prod-name">${escapeHtml(item.name)}</div>
+        <div class="c-prod-meta">
+          <span class="c-prod-price">${item.price > 0 ? '€ ' + Number(item.price).toFixed(2) : 'Prezzo a richiesta'}</span>
+          <span>min ${item.min_quantity}</span>
+        </div>
+        ${item.availability ? `<div class="c-prod-avail">📦 ${escapeHtml(item.availability)}</div>` : ''}
+        ${controlsHtml}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  // Wire event sui bottoni
+  grid.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = parseInt(btn.dataset.id);
+      const act = btn.dataset.act;
+      const item = catalog.items.find(i => i.id === id);
+      if (!item) return;
+      if (act === 'add' || act === 'inc') addToCart(item);
+      else if (act === 'dec') removeFromCart(item);
+    });
+  });
+}
+
+function addToCart(item) {
+  const existing = cart.get(item.id);
+  if (existing) {
+    existing.quantity += 1; // +1 per tap (già raggiunto il minimo)
+  } else {
+    cart.set(item.id, { item, quantity: Math.max(1, item.min_quantity || 1) });
+  }
+  updateCartUI();
+  renderCatalogClient();
+}
+
+function removeFromCart(item) {
+  const existing = cart.get(item.id);
+  if (!existing) return;
+  const min = Math.max(1, item.min_quantity || 1);
+  // Se il cliente va sotto il minimo, si rimuove l'articolo dal carrello
+  if (existing.quantity <= min) {
+    cart.delete(item.id);
+  } else {
+    existing.quantity -= 1;
+  }
+  updateCartUI();
+  renderCatalogClient();
+}
+
+function cartTotal() {
+  let total = 0;
+  let count = 0;
+  cart.forEach(v => {
+    total += (Number(v.item.price) || 0) * v.quantity;
+    count += 1;
+  });
+  return { total, count };
+}
+
+function updateCartUI() {
+  const bar = document.getElementById('cart-bar');
+  const { total, count } = cartTotal();
+  if (count === 0) {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+  document.getElementById('cart-count').textContent = count;
+  const totalFmt = '€ ' + total.toFixed(2).replace('.', ',');
+  document.getElementById('cart-total').textContent = total > 0 ? totalFmt : '—';
+  // Riga sommario (primi nomi)
+  const names = [...cart.values()].map(v => `${v.quantity}× ${v.item.name}`);
+  document.getElementById('cart-summary-line').textContent = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '');
+}
+
+function openCartModal() {
+  const { total } = cartTotal();
+  const list = document.getElementById('cart-list');
+  list.innerHTML = '';
+  if (cart.size === 0) {
+    list.innerHTML = '<p class="muted" style="text-align:center;padding:1rem;">Il carrello è vuoto</p>';
+  } else {
+    cart.forEach(entry => {
+      const { item, quantity } = entry;
+      const row = document.createElement('div');
+      row.className = 'cart-row';
+      const lineTotal = (Number(item.price) || 0) * quantity;
+      row.innerHTML = `
+        <div class="cart-row-photo">
+          ${item.photo_url ? `<img src="${item.photo_url}" alt="">` : ''}
+        </div>
+        <div class="cart-row-body">
+          <div class="cart-row-name">${escapeHtml(item.name)}</div>
+          <div class="cart-row-meta">${item.price > 0 ? '€ ' + Number(item.price).toFixed(2) + '/cad · tot € ' + lineTotal.toFixed(2) : 'Prezzo a richiesta'}</div>
+        </div>
+        <div class="cart-row-qty">
+          <button type="button" class="c-qty-btn" data-act="dec" data-id="${item.id}">−</button>
+          <span class="cart-row-qty-value">${quantity}</span>
+          <button type="button" class="c-qty-btn" data-act="inc" data-id="${item.id}">+</button>
+        </div>
+      `;
+      row.querySelectorAll('[data-act]').forEach(b => {
+        b.addEventListener('click', () => {
+          const act = b.dataset.act;
+          if (act === 'inc') addToCart(item);
+          else removeFromCart(item);
+          openCartModal(); // re-render
+        });
+      });
+      list.appendChild(row);
+    });
+  }
+  document.getElementById('cart-footer-total').textContent = total > 0 ? '€ ' + total.toFixed(2).replace('.', ',') : '—';
+  document.getElementById('modal-cart').classList.remove('hidden');
+}
+
+function closeCartModal() {
+  document.getElementById('modal-cart').classList.add('hidden');
+}
+
 async function submitOrder(e) {
-  e.preventDefault();
-  const btn = e.submitter;
-  if (btn) btn.disabled = true;
+  if (e) e.preventDefault();
+  
+  if (cart.size === 0) {
+    showToast('Aggiungi almeno un articolo al carrello', 'error');
+    return;
+  }
+  
+  const date = document.getElementById('order-date').value;
+  if (!date) {
+    showToast('Seleziona la data di consegna/ritiro', 'error');
+    return;
+  }
+  
+  const delivery_type = document.querySelector('input[name="delivery_type"]:checked').value;
+  const delivery_time = document.getElementById('order-time').value || null;
+  const addrSel = document.getElementById('order-address-select').value;
+  const addrManual = document.getElementById('order-address-manual').value.trim();
+  const delivery_address = delivery_type === 'consegna' ? (addrManual || addrSel || null) : null;
+  
+  const items = [...cart.values()].map(v => ({
+    catalog_item_id: v.item.id,
+    name: v.item.name,
+    category: v.item.category || '',
+    photo_url: v.item.photo_url || '',
+    quantity: v.quantity,
+    unit_price: Number(v.item.price) || 0
+  }));
+  
+  const submitBtns = document.querySelectorAll('#btn-cart-submit, #btn-cart-confirm');
+  submitBtns.forEach(b => b.disabled = true);
   
   try {
-    const date = document.getElementById('order-date').value;
-    const delivery_type = document.querySelector('input[name="delivery_type"]:checked').value;
-    const delivery_time = document.getElementById('order-time').value || null;
-    const addrSel = document.getElementById('order-address-select').value;
-    const addrManual = document.getElementById('order-address-manual').value.trim();
-    const delivery_address = delivery_type === 'consegna' ? (addrManual || addrSel || null) : null;
-    const description = document.getElementById('order-description').value.trim();
-    
-    if (!date || !description) {
-      showToast('Compila data e articoli', 'error');
-      return;
-    }
-    
     await api('/api/c/orders', {
       method: 'POST',
-      body: JSON.stringify({ date, description, delivery_type, delivery_time, delivery_address })
+      body: JSON.stringify({ date, delivery_type, delivery_time, delivery_address, items })
     });
     
+    closeCartModal();
     closeNewOrderModal();
     showToast('Ordine inviato! Ti confermeremo al più presto.', 'success');
     await loadOrders();
   } catch (err) {
     showToast(err.message || 'Errore invio ordine', 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    submitBtns.forEach(b => b.disabled = false);
   }
 }
 
@@ -386,8 +611,22 @@ function bindEvents() {
   const ne = document.getElementById('btn-new-order-empty');
   if (ne) ne.addEventListener('click', openNewOrderModal);
   document.getElementById('btn-close-order').addEventListener('click', closeNewOrderModal);
-  document.getElementById('btn-cancel-order').addEventListener('click', closeNewOrderModal);
-  document.getElementById('form-order').addEventListener('submit', submitOrder);
+  const btnCancelOrder = document.getElementById('btn-cancel-order');
+  if (btnCancelOrder) btnCancelOrder.addEventListener('click', closeNewOrderModal);
+  const formOrder = document.getElementById('form-order');
+  if (formOrder) formOrder.addEventListener('submit', (e) => { e.preventDefault(); });
+  
+  // Carrello
+  const btnCartView = document.getElementById('btn-cart-view');
+  if (btnCartView) btnCartView.addEventListener('click', openCartModal);
+  const btnCartSubmit = document.getElementById('btn-cart-submit');
+  if (btnCartSubmit) btnCartSubmit.addEventListener('click', submitOrder);
+  const btnCartConfirm = document.getElementById('btn-cart-confirm');
+  if (btnCartConfirm) btnCartConfirm.addEventListener('click', submitOrder);
+  const btnCartKeep = document.getElementById('btn-cart-keep');
+  if (btnCartKeep) btnCartKeep.addEventListener('click', closeCartModal);
+  const btnCloseCart = document.getElementById('btn-close-cart');
+  if (btnCloseCart) btnCloseCart.addEventListener('click', closeCartModal);
   document.querySelectorAll('input[name="delivery_type"]').forEach(r => {
     r.addEventListener('change', toggleDeliveryFields);
   });

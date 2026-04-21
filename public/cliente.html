@@ -124,17 +124,65 @@
           </label>
         </div>
         
-        <label class="field">
-          <span class="field-label">Articoli ordine *</span>
-          <textarea id="order-description" rows="8" required placeholder="Es.&#10;25 rose freedom&#10;10 mazzi eustoma bianco&#10;5 bouquet misti"></textarea>
-          <span class="field-hint">Scrivi un articolo per riga (quantità + descrizione)</span>
-        </label>
-        
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="btn-cancel-order">Annulla</button>
-          <button type="submit" class="btn-primary">Invia ordine</button>
+        <div class="catalog-section">
+          <div class="catalog-section-head">
+            <span class="field-label">Scegli dal catalogo *</span>
+            <span id="catalog-date-label" class="catalog-date-label"></span>
+          </div>
+          
+          <div id="catalog-categories" class="catalog-categories"></div>
+          
+          <div id="catalog-grid-c" class="catalog-grid-c"></div>
+          
+          <div id="catalog-empty-c" class="catalog-empty-c hidden">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/>
+              <path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
+            </svg>
+            <p>Catalogo non ancora disponibile</p>
+            <p class="muted">Torna più tardi o contatta LombardaFlor.</p>
+          </div>
         </div>
       </form>
+      
+      <!-- Carrello sticky -->
+      <div id="cart-bar" class="cart-bar hidden">
+        <div class="cart-bar-info">
+          <span id="cart-count" class="cart-count">0</span>
+          <div>
+            <div class="cart-bar-title">Il tuo ordine</div>
+            <div id="cart-summary-line" class="cart-bar-sub">Nessun articolo</div>
+          </div>
+          <div id="cart-total" class="cart-total">€ 0,00</div>
+        </div>
+        <div class="cart-bar-actions">
+          <button type="button" id="btn-cart-view" class="btn-secondary">Riepilogo</button>
+          <button type="button" id="btn-cart-submit" class="btn-primary">Invia ordine</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal carrello / riepilogo -->
+  <div id="modal-cart" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2>Riepilogo ordine</h2>
+        <button class="icon-btn" id="btn-close-cart" aria-label="Chiudi">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+      <div id="cart-list" class="cart-list"></div>
+      <div class="cart-footer">
+        <div class="cart-footer-total">
+          <span>Totale indicativo</span>
+          <strong id="cart-footer-total">€ 0,00</strong>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btn-cart-keep">Continua</button>
+          <button type="button" class="btn-primary" id="btn-cart-confirm">Conferma ordine</button>
+        </div>
+      </div>
     </div>
   </div>
 
