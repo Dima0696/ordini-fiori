@@ -7387,12 +7387,31 @@ button {
   margin-right: auto;
 }
 .btn-print-prev,
-.btn-save-prev {
+.btn-save-prev,
+.btn-share-prev {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.7rem 1rem;
   font-weight: 700;
+}
+
+.btn-share-prev {
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+  box-shadow: 0 4px 12px rgba(18, 140, 126, 0.25);
+}
+.btn-share-prev:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(18, 140, 126, 0.35);
+  filter: brightness(1.05);
+}
+.btn-share-prev:active {
+  transform: translateY(0);
 }
 
 /* Hide print view during normal display */

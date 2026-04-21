@@ -4340,7 +4340,10 @@ function setupPreventiviListeners() {
   if (btnSave) btnSave.addEventListener('click', savePreventivo);
   
   const btnPrint = document.getElementById('btn-print-preventivo');
-  if (btnPrint) btnPrint.addEventListener('click', printPreventivo);
+  if (btnPrint) btnPrint.addEventListener('click', downloadPreventivoPDF);
+  
+  const btnShare = document.getElementById('btn-share-preventivo');
+  if (btnShare) btnShare.addEventListener('click', sharePreventivoPDF);
   
   const btnDel = document.getElementById('btn-delete-preventivo');
   if (btnDel) btnDel.addEventListener('click', () => {
@@ -4605,32 +4608,298 @@ function showMiniToast(msg, type = 'info') {
 }
 
 // ============================================
-// STAMPA PREVENTIVO (PDF via window.print)
+// PREVENTIVO PDF (jsPDF) — download & share
 // ============================================
 
-function printPreventivo() {
-  const data = collectPreventivoFormData();
-  if (!data.cliente) {
-    alert('Inserisci almeno l\'intestazione cliente prima di stampare.');
-    return;
+const LOMBARDA_FOOTER = 'LombardaFlor S.r.l. · Via Enrico De Nicola 20, Cesano Boscone (MI) · P.IVA 00000000000';
+
+let _logoDataUrlCache = null;
+async function getLogoDataUrl() {
+  if (_logoDataUrlCache) return _logoDataUrlCache;
+  try {
+    const res = await fetch('logo.png', { cache: 'force-cache' });
+    if (!res.ok) throw new Error('logo fetch failed: ' + res.status);
+    const blob = await res.blob();
+    _logoDataUrlCache = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+    return _logoDataUrlCache;
+  } catch (err) {
+    console.warn('Impossibile caricare logo per PDF:', err);
+    return null;
   }
-  
-  // Rendi HTML fedele al layout richiesto (logo a sx, data a dx, ecc.)
-  const printView = document.getElementById('preventivo-print-view');
-  printView.innerHTML = renderPreventivoPrintHtml(data);
-  
-  // Nascondi editor, mostra print view
-  document.body.classList.add('printing-preventivo');
-  
-  const onAfter = () => {
-    document.body.classList.remove('printing-preventivo');
-    window.removeEventListener('afterprint', onAfter);
-  };
-  window.addEventListener('afterprint', onAfter);
-  
-  setTimeout(() => window.print(), 150);
 }
 
+function buildPreventivoFilename(p) {
+  const parts = [];
+  if (p.numero) parts.push(p.numero);
+  const who = (p.ragione_sociale || p.cliente || 'cliente')
+    .replace(/[^a-zA-Z0-9àèìòùÀÈÌÒÙ ]+/g, '')
+    .trim().replace(/\s+/g, '-')
+    .slice(0, 40);
+  parts.push(who || 'cliente');
+  return `Preventivo-${parts.join('-')}.pdf`;
+}
+
+async function generatePreventivoPDFBlob(p) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    throw new Error('Libreria PDF non caricata. Controlla la connessione e riprova.');
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  
+  // ---------- HEADER ----------
+  const logo = await getLogoDataUrl();
+  if (logo) {
+    try { doc.addImage(logo, 'PNG', margin, 14, 45, 18, undefined, 'FAST'); } catch(e) {}
+  }
+  
+  const dataPrev = p.data_preventivo ? formatDateItalianShort(p.data_preventivo) : '';
+  const citta = p.luogo_consegna || 'Cesano Boscone';
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(42, 122, 46);
+  if (p.numero) doc.text(`N° ${p.numero}`, pageW - margin, 20, { align: 'right' });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  if (dataPrev) doc.text(`${citta}, ${dataPrev}`, pageW - margin, 26, { align: 'right' });
+  
+  // ---------- INTESTAZIONE ----------
+  let y = 44;
+  doc.setTextColor(26, 26, 26);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  const intestazione = (p.cliente || '') + (p.ragione_sociale ? ' - ' + p.ragione_sociale : '');
+  doc.text(intestazione, margin, y);
+  y += 6;
+  
+  doc.setFontSize(9.5);
+  if (p.data_consegna) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONSEGNA:', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatDateItalianShort(p.data_consegna), margin + 23, y);
+    y += 5;
+  }
+  if (p.indirizzo_consegna) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('LUOGO:', margin, y);
+    doc.setFont('helvetica', 'normal');
+    const luogoLines = doc.splitTextToSize(p.indirizzo_consegna, pageW - margin - (margin + 18));
+    doc.text(luogoLines, margin + 18, y);
+    y += 5 * luogoLines.length;
+  }
+  y += 3;
+  
+  // ---------- OGGETTO ----------
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('OGGETTO:', margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Preventivo offerta', margin + 21, y);
+  y += 7;
+  
+  // ---------- INTRO ----------
+  doc.setFontSize(9.5);
+  doc.text('Con la presente Vi inoltriamo preventivo come da Vostra richiesta.', margin, y);
+  y += 5;
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(192, 57, 43);
+  const warn = 'I prezzi indicati si intendono esclusi di Iva e sono orientativi, in quanto potrebbero subire variazioni di mercato.';
+  const warnLines = doc.splitTextToSize(warn, pageW - margin * 2);
+  doc.text(warnLines, margin, y);
+  y += 4.5 * warnLines.length + 3;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(26, 26, 26);
+  
+  // ---------- TABELLA ARTICOLI ----------
+  const body = (p.items || []).map(it => {
+    const qt = Number(it.qt) || 0;
+    const qtMin = Number(it.qt_min) || 0;
+    const prezzo = Number(it.prezzo) || 0;
+    const totale = qt * prezzo;
+    return [
+      qt ? String(qt) : '',
+      qtMin ? String(qtMin) : '—',
+      it.desc || '',
+      prezzo > 0 ? prezzo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+      totale > 0 ? totale.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+    ];
+  });
+  
+  const totale = (p.items || []).reduce((s, it) => s + ((Number(it.qt) || 0) * (Number(it.prezzo) || 0)), 0);
+  const totaleFmt = totale.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  doc.autoTable({
+    startY: y,
+    head: [['Qt', 'Qt min.', 'Descrizione', 'Prezzo\nunitario (€)', 'Prezzo\ncomplessivo']],
+    body: body.length ? body : [['', '', '—', '', '']],
+    foot: [['', '', '', 'Totale', `€ ${totaleFmt}`]],
+    theme: 'grid',
+    styles: {
+      font: 'helvetica', fontSize: 9, cellPadding: 2,
+      textColor: [26, 26, 26], lineColor: [150, 150, 150], lineWidth: 0.15,
+      valign: 'middle'
+    },
+    headStyles: {
+      fillColor: [238, 238, 238], textColor: [26, 26, 26],
+      fontStyle: 'bold', fontSize: 8.5, halign: 'center'
+    },
+    footStyles: {
+      fillColor: [249, 249, 249], textColor: [26, 26, 26],
+      fontStyle: 'bold', fontSize: 10, halign: 'right'
+    },
+    columnStyles: {
+      0: { cellWidth: 14, halign: 'center' },
+      1: { cellWidth: 16, halign: 'center', textColor: [90, 90, 90], fontStyle: 'italic' },
+      2: { halign: 'left' },
+      3: { cellWidth: 24, halign: 'right' },
+      4: { cellWidth: 26, halign: 'right' }
+    },
+    margin: { left: margin, right: margin, bottom: 22 },
+    didDrawPage: () => drawFooter(doc, pageW, pageH, margin)
+  });
+  
+  y = doc.lastAutoTable.finalY + 8;
+  
+  // ---------- CLOSING ----------
+  const ensureSpace = (needed) => {
+    if (y + needed > pageH - 22) {
+      doc.addPage();
+      drawFooter(doc, pageW, pageH, margin);
+      y = margin;
+    }
+  };
+  
+  doc.setFontSize(9.5);
+  const closing = 'Restiamo in attesa di ricevere Vs conferma al più presto, in modo tale da poterVi dare disponibilità e prezzi effettivi fiori.';
+  const closingLines = doc.splitTextToSize(closing, pageW - margin * 2);
+  ensureSpace(closingLines.length * 4.5 + 20);
+  doc.text(closingLines, margin, y);
+  y += 4.5 * closingLines.length + 6;
+  
+  doc.text('Cordiali saluti,', margin, y);
+  y += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(42, 122, 46);
+  doc.text('LOMBARDA FLOR SRL', margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(26, 26, 26);
+  y += 6;
+  
+  if (p.note) {
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(90, 90, 90);
+    doc.setFontSize(9);
+    const noteLines = doc.splitTextToSize(p.note, pageW - margin * 2);
+    ensureSpace(noteLines.length * 4 + 6);
+    doc.text(noteLines, margin, y);
+    y += 4 * noteLines.length;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(26, 26, 26);
+  }
+  
+  // Assicura footer su tutte le pagine
+  const total = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    drawFooter(doc, pageW, pageH, margin);
+  }
+  
+  return doc.output('blob');
+}
+
+function drawFooter(doc, pageW, pageH, margin) {
+  const y = pageH - 12;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.15);
+  doc.line(margin, y - 3, pageW - margin, y - 3);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(110, 110, 110);
+  doc.text(LOMBARDA_FOOTER, pageW / 2, y, { align: 'center' });
+  doc.setTextColor(26, 26, 26);
+}
+
+async function buildPreventivoBlobOrFail() {
+  const data = collectPreventivoFormData();
+  if (!data.cliente) {
+    alert('Inserisci almeno l\'intestazione cliente prima di esportare.');
+    document.getElementById('prev-cliente').focus();
+    return null;
+  }
+  try {
+    const blob = await generatePreventivoPDFBlob(data);
+    return { blob, data };
+  } catch (err) {
+    console.error('Errore generazione PDF:', err);
+    alert('Errore generazione PDF: ' + err.message);
+    return null;
+  }
+}
+
+async function downloadPreventivoPDF() {
+  const res = await buildPreventivoBlobOrFail();
+  if (!res) return;
+  const filename = buildPreventivoFilename(res.data);
+  const url = URL.createObjectURL(res.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 1000);
+  showMiniToast('PDF scaricato', 'success');
+}
+
+async function sharePreventivoPDF() {
+  const res = await buildPreventivoBlobOrFail();
+  if (!res) return;
+  const filename = buildPreventivoFilename(res.data);
+  const file = new File([res.blob], filename, { type: 'application/pdf' });
+  
+  const shareData = {
+    files: [file],
+    title: `Preventivo ${res.data.numero || ''}`.trim(),
+    text: `Preventivo ${res.data.numero ? 'N° ' + res.data.numero + ' ' : ''}- LombardaFlor`
+  };
+  
+  if (navigator.canShare && navigator.canShare(shareData) && navigator.share) {
+    try {
+      await navigator.share(shareData);
+      showMiniToast('Preventivo condiviso', 'success');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      console.warn('share fallita, fallback a download:', err);
+    }
+  }
+  
+  // Fallback: scarica il PDF e avvisa
+  const url = URL.createObjectURL(res.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  alert('La condivisione diretta non è supportata su questo dispositivo o browser.\nIl PDF è stato scaricato: puoi allegarlo manualmente su WhatsApp.');
+}
+
+// (Funzione storica, ora non più usata; mantenuta per retrocompatibilità)
 function renderPreventivoPrintHtml(p) {
   const dataPrev = p.data_preventivo ? formatDateItalianShort(p.data_preventivo) : '';
   const dataCons = p.data_consegna ? formatDateItalianShort(p.data_consegna) : '';
@@ -4707,7 +4976,7 @@ function renderPreventivoPrintHtml(p) {
       
       <div class="ppv-footer">
         <span>LombardaFlor S.r.l.</span> · 
-        <span>Via Dante Alighieri, Cesano Boscone (MI)</span> · 
+        <span>Via Enrico De Nicola 20, Cesano Boscone (MI)</span> · 
         <span>P.IVA 00000000000</span>
       </div>
     </div>
