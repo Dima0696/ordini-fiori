@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
 // v130 - Portale clienti: account self-service + approvazione ordini
-const CACHE_NAME = 'lombardaflor-orders-v132-catalogo-landing';
-const STATIC_CACHE = 'lombardaflor-static-v132-catalogo-landing';
-const API_CACHE = 'lombardaflor-api-v132-catalogo-landing';
+const CACHE_NAME = 'lombardaflor-orders-v133-photo-compress';
+const STATIC_CACHE = 'lombardaflor-static-v133-photo-compress';
+const API_CACHE = 'lombardaflor-api-v133-photo-compress';
 
 const urlsToCache = [
   '/',

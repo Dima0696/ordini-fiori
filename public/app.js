@@ -5672,28 +5672,102 @@ function updateCatalogPhotoPreview() {
   }
 }
 
+// Ridimensiona + comprime una foto lato client prima dell'upload.
+// Una foto iPhone 8-12MB diventa tipicamente 150-350 KB senza perdita visibile.
+async function compressImageFile(file, { maxDim = 1400, quality = 0.82 } = {}) {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+  
+  // Strategia 1: createImageBitmap (rapido, nativo, gestisce orientamento EXIF)
+  let bitmap = null;
+  try {
+    if (typeof createImageBitmap === 'function') {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    }
+  } catch { /* fallback sotto */ }
+  
+  // Strategia 2: via Image + URL.createObjectURL (fallback universale)
+  if (!bitmap) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      bitmap = img;
+    } catch {
+      URL.revokeObjectURL(url);
+      return file; // impossibile decodificare: invia l'originale
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  }
+  
+  const srcW = bitmap.width || bitmap.naturalWidth;
+  const srcH = bitmap.height || bitmap.naturalHeight;
+  if (!srcW || !srcH) return file;
+  
+  const ratio = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const w = Math.max(1, Math.round(srcW * ratio));
+  const h = Math.max(1, Math.round(srcH * ratio));
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return file;
+  ctx.fillStyle = '#ffffff'; // sfondo bianco per eventuali PNG trasparenti → JPEG
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  if (typeof bitmap.close === 'function') { try { bitmap.close(); } catch {} }
+  
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+  if (!blob) return file;
+  
+  // Se la "compressione" è risultata più grande dell'originale (raro), uso l'originale
+  if (blob.size >= file.size && file.size < 2 * 1024 * 1024) return file;
+  
+  const compressed = new File([blob], 'photo.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+  return compressed;
+}
+
 async function uploadCatalogPhoto(file) {
   if (!file) return;
   const btn = document.getElementById('btn-catalog-upload-photo');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Caricamento...'; }
+  const setBtn = (txt, disabled) => {
+    if (btn) { btn.disabled = !!disabled; btn.textContent = txt; }
+  };
+  
   try {
+    setBtn('⏳ Ottimizzazione...', true);
+    const originalSize = file.size;
+    const optimized = await compressImageFile(file, { maxDim: 1400, quality: 0.82 });
+    const savedPct = originalSize > 0 ? Math.round((1 - optimized.size / originalSize) * 100) : 0;
+    
+    setBtn('⏳ Caricamento...', true);
     const fd = new FormData();
-    fd.append('photo', file);
+    fd.append('photo', optimized, optimized.name || 'photo.jpg');
+    
     const res = await fetch('/api/catalog/upload-photo', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${authToken}` },
       body: fd
     });
-    if (!res.ok) throw new Error('Errore upload');
+    
+    if (!res.ok) {
+      if (res.status === 413) throw new Error('Foto troppo grande');
+      throw new Error('Errore upload');
+    }
     const data = await res.json();
     uploadedPhotoUrl = data.photo_url;
     updateCatalogPhotoPreview();
-    showMiniToast('Foto caricata', 'success');
+    showMiniToast(savedPct > 0 ? `Foto caricata (–${savedPct}%)` : 'Foto caricata', 'success');
   } catch (e) {
     console.error('uploadCatalogPhoto', e);
-    showMiniToast('Errore upload foto', 'error');
+    showMiniToast(e.message || 'Errore upload foto', 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📷 Scegli foto'; }
+    setBtn('📷 Scegli foto', false);
   }
 }
 
