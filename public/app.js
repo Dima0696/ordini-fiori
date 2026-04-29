@@ -1403,6 +1403,37 @@ async function openOrderByCustomerAndDate(customer, date) {
   }
 }
 
+// Aggiorna il titolo della pagina ordini in base alla data passata.
+// Usato sia da openDayOrders sia dopo lo spostamento di un ordine
+// con cambio data (handleOrderSubmit), per evitare che il titolo
+// resti "fermo" sul giorno precedente.
+function updateOrdersDateTitle(date) {
+  const titleEl = document.getElementById('orders-date-title');
+  if (!titleEl || !date) return;
+
+  const dateObj = new Date(date + 'T00:00:00');
+  const dayOfWeek = dateObj.getDay();
+  const dayName = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][dayOfWeek];
+  const day = dateObj.getDate();
+  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+  const month = monthNames[dateObj.getMonth()];
+
+  let titleText = `${dayName} ${day} ${month}`;
+
+  const monthDay = String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+  const isHoliday = holidays.includes(monthDay);
+  const isSunday = dayOfWeek === 0;
+
+  if (isSunday) {
+    titleText += ' 🔒 Domenica';
+  } else if (isHoliday) {
+    titleText += ' 🎉 Festività';
+  }
+
+  titleEl.textContent = titleText;
+}
+
 // Apri ordini del giorno
 async function openDayOrders(date) {
   currentDate = date;
@@ -1412,34 +1443,7 @@ async function openDayOrders(date) {
   extraDayOrders = {};
   extraDayChecks = {};
   
-  // Aggiorna titolo
-  const dateObj = new Date(date + 'T00:00:00');
-  const dayOfWeek = dateObj.getDay();
-  const dayName = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][dayOfWeek];
-  const day = dateObj.getDate();
-  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-  const month = monthNames[dateObj.getMonth()];
-  
-  // Controlla se è oggi
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isToday = formatDate(dateObj) === formatDate(today);
-  
-  let titleText = `${dayName} ${day} ${month}`;
-  
-  // Controlla se è domenica o festività
-  const monthDay = String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-  const isHoliday = holidays.includes(monthDay);
-  const isSunday = dayOfWeek === 0;
-  
-  if (isSunday) {
-    titleText += ' 🔒 Domenica';
-  } else if (isHoliday) {
-    titleText += ' 🎉 Festività';
-  }
-  
-  document.getElementById('orders-date-title').textContent = titleText;
+  updateOrdersDateTitle(date);
   
   // Carica ordini
   await loadOrders(date);
@@ -2726,7 +2730,15 @@ async function handleOrderSubmit(e) {
     }
     
     // Switcha alla data dell'ordine salvato e ricarica
+    // Reset giorni extra: se l'ordine è stato spostato in un giorno diverso,
+    // i giorni extra di prima non hanno più senso e devono essere ripuliti
+    if (currentDate !== date) {
+      selectedExtraDays = new Set();
+      extraDayOrders = {};
+      extraDayChecks = {};
+    }
     currentDate = date;
+    updateOrdersDateTitle(date);
     await loadOrders(date);
     await loadCalendar(true);
   } catch (error) {
@@ -3672,19 +3684,51 @@ function renderOrderDetail(order) {
       <div class="detail-goods-content">${escapeHtml(order.description)}</div>
     </div>
     
-    <!-- MERCE STAMPA: con checkbox per ogni riga (SOLO IN STAMPA) -->
+    <!-- MERCE STAMPA: con checkbox per ogni riga + stato corrente (SOLO IN STAMPA) -->
     <div class="print-merce-section">
       <div class="print-checklist">
-        ${order.description.split('\n').map(line => {
-          const trimmed = line.trim();
-          if (trimmed === '') return '<div class="print-checklist-spacer"></div>';
-          return `
-            <div class="print-checklist-item">
-              <span class="print-checkbox-square"></span>
-              <span class="print-checklist-text">${escapeHtml(trimmed)}</span>
-            </div>
-          `;
-        }).join('')}
+        ${(() => {
+          const checks = allOrderChecks[order.id] || {};
+          const lines = order.description.split('\n');
+          // Indice degli articoli "veri" (saltando le righe vuote) per allineare
+          // con allOrderChecks che indicizza solo le righe non vuote
+          let itemIndex = 0;
+          return lines.map(line => {
+            const trimmed = line.trim();
+            if (trimmed === '') return '<div class="print-checklist-spacer"></div>';
+            const lineData = checks[itemIndex] || { checked: false, prepared: false, supplier: '' };
+            itemIndex++;
+            const isOrdered = lineData.checked === true;
+            const isPrepared = lineData.prepared === true;
+            const supplier = (lineData.supplier || '').toUpperCase();
+            
+            // Stato visivo:
+            // - prepared = merce pronta in cella → check pieno + scritta PRONTO
+            // - ordered (non prepared) = ordinata al fornitore → quadrato con punto + tag fornitore
+            // - nessuno = da fare → quadrato vuoto
+            let stateClass = 'state-todo';
+            let stateBadge = '';
+            if (isPrepared) {
+              stateClass = 'state-prepared';
+              stateBadge = `<span class="print-state-badge badge-prepared">✓ PRONTO</span>`;
+            } else if (isOrdered) {
+              stateClass = 'state-ordered';
+              const supplierLabel = supplier ? ` ${supplier}` : '';
+              stateBadge = `<span class="print-state-badge badge-ordered">ORD${supplierLabel}</span>`;
+            } else if (supplier) {
+              // Caso raro: fornitore segnato ma non ancora "ordinata"
+              stateBadge = `<span class="print-state-badge badge-supplier">${supplier}</span>`;
+            }
+            
+            return `
+              <div class="print-checklist-item ${stateClass}">
+                <span class="print-checkbox-square"></span>
+                <span class="print-checklist-text">${escapeHtml(trimmed)}</span>
+                ${stateBadge}
+              </div>
+            `;
+          }).join('');
+        })()}
       </div>
       
       <div class="print-checkbox-area">
