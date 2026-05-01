@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v137 - Toast salvataggio ordini + errori server non più silenziosi
-const CACHE_NAME = 'lombardaflor-orders-v137-save-feedback';
-const STATIC_CACHE = 'lombardaflor-static-v137-save-feedback';
-const API_CACHE = 'lombardaflor-api-v137-save-feedback';
+// v138 - Backup bozza ordine in localStorage + recovery al login
+const CACHE_NAME = 'lombardaflor-orders-v138-draft-recovery';
+const STATIC_CACHE = 'lombardaflor-static-v138-draft-recovery';
+const API_CACHE = 'lombardaflor-api-v138-draft-recovery';
 
 const urlsToCache = [
   '/',

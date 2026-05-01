@@ -182,6 +182,12 @@ async function initializeApp() {
       if (typeof refreshPendingBadgeOnly === 'function') refreshPendingBadgeOnly();
     }, 60000);
   }
+  
+  // Recupero bozza ordine non salvata (sessione scaduta, server giù, etc).
+  // Aspetta un momento per non sovrapporsi con altre modali iniziali.
+  setTimeout(() => {
+    try { checkDraftOrderRecovery(); } catch (e) { console.warn('[DRAFT] Recovery error:', e); }
+  }, 1500);
 }
 
 // Auto-refresh ogni 3 minuti
@@ -2565,6 +2571,97 @@ async function tryCopy(text, textareaEl) {
   }
 }
 
+// ============================================================
+// BACKUP BOZZA ORDINE
+// ============================================================
+// Con la optimistic UI la modal si chiude prima che il server confermi.
+// Se la sessione è scaduta, il server crasha, la rete cade o l'utente
+// ricarica la pagina, l'ordine inserito a mano andrebbe perso.
+// Salviamo una bozza in localStorage prima della fetch e la cancelliamo
+// solo dopo conferma del server. Al prossimo accesso, se trovata, l'app
+// propone il recupero.
+const DRAFT_ORDER_KEY = 'lf_draft_new_order_v1';
+
+function saveDraftOrder(draft) {
+  try {
+    const payload = {
+      ...draft,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(DRAFT_ORDER_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn('[DRAFT] Impossibile salvare bozza:', e);
+  }
+}
+
+function clearDraftOrder() {
+  try {
+    localStorage.removeItem(DRAFT_ORDER_KEY);
+  } catch (e) {
+    console.warn('[DRAFT] Impossibile cancellare bozza:', e);
+  }
+}
+
+function getDraftOrder() {
+  try {
+    const raw = localStorage.getItem(DRAFT_ORDER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Scarta bozze più vecchie di 7 giorni (sono ormai obsolete)
+    const savedAt = new Date(parsed.savedAt || 0);
+    if (Date.now() - savedAt.getTime() > 7 * 24 * 60 * 60 * 1000) {
+      clearDraftOrder();
+      return null;
+    }
+    return parsed;
+  } catch (e) {
+    console.warn('[DRAFT] Bozza corrotta, scarto:', e);
+    clearDraftOrder();
+    return null;
+  }
+}
+
+// Chiamata all'avvio dopo il login: se c'è una bozza non salvata,
+// chiede all'utente se vuole recuperarla.
+async function checkDraftOrderRecovery() {
+  const draft = getDraftOrder();
+  if (!draft) return;
+  
+  const dateObj = new Date(draft.date + 'T00:00:00');
+  const dateFmt = dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+  const customer = (draft.customer || '').slice(0, 60);
+  const desc = (draft.description || '').split('\n')[0].slice(0, 80);
+  
+  const msg = `Hai un ordine NON salvato dal precedente accesso.\n\n` +
+              `Cliente: ${customer}\n` +
+              `Data: ${dateFmt}\n` +
+              `Inizio merce: ${desc}\n\n` +
+              `Vuoi recuperarlo e salvarlo adesso?`;
+  
+  if (confirm(msg)) {
+    // Apri modal nuovo ordine pre-compilato con i dati della bozza
+    if (typeof currentDate === 'undefined' || !currentDate) {
+      currentDate = draft.date;
+    }
+    openNewOrderModal();
+    // Pre-compila campi
+    document.getElementById('order-date').value = draft.date;
+    document.getElementById('order-customer').value = draft.customer || '';
+    document.getElementById('order-description').value = draft.description || '';
+    if (draft.goodsType) {
+      document.getElementById('goods-type').value = draft.goodsType;
+      document.querySelectorAll('.btn-goods').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-goods') === draft.goodsType);
+      });
+    }
+    if (draft.hasPhotos) {
+      showToast('Le foto vanno ricaricate', 'info');
+    }
+  } else {
+    clearDraftOrder();
+  }
+}
+
 // Mini toast (se non esiste già un helper analogo, crea uno qui)
 function showToast(message, type = 'info') {
   let toast = document.getElementById('mini-toast');
@@ -2692,6 +2789,21 @@ async function handleOrderSubmit(e) {
     photos: uploadedPhotos
   };
   
+  // BACKUP BOZZA: solo per nuovi ordini.
+  // Per le modifiche, l'ordine originale è già sul server: se la modifica
+  // fallisce, il toast rosso avvisa e si può rifare manualmente. Salvare
+  // una bozza per le modifiche rischierebbe di sovrascrivere modifiche
+  // legittime fatte da un altro operatore nel frattempo.
+  if (!orderId) {
+    saveDraftOrder({
+      customer,
+      description,
+      date,
+      goodsType,
+      hasPhotos: (uploadedPhotos && uploadedPhotos.length > 0)
+    });
+  }
+  
   // ✨ OPTIMISTIC UI UPDATE ✨
   // Chiudi modal IMMEDIATAMENTE (non aspettare il server!)
   closeOrderModal();
@@ -2782,13 +2894,22 @@ async function handleOrderSubmit(e) {
     await loadOrders(date);
     await loadCalendar(true);
     
+    // Successo confermato dal server: cancella la bozza.
+    if (!orderId) clearDraftOrder();
+    
     // Conferma visibile dentro l'app: la notifica push è "fuori" dall'app
     // e con notifiche disattivate o desktop browser non si vede nulla.
     // Toast in-app per fugare ogni dubbio sul salvataggio.
     showToast(orderId ? 'Ordine modificato' : 'Ordine salvato', 'success');
   } catch (error) {
     console.error('❌ Errore salvataggio ordine:', error);
-    showToast('Ordine NON salvato — riprova', 'error');
+    // La bozza resta in localStorage: al prossimo accesso (login o refresh)
+    // l'app proporrà di recuperarla.
+    if (!orderId) {
+      showToast('Ordine NON salvato — verrà ripristinato al prossimo accesso', 'error');
+    } else {
+      showToast('Modifica NON salvata — riprova', 'error');
+    }
     alert('Errore nel salvataggio dell\'ordine: ' + error.message);
   }
 }
