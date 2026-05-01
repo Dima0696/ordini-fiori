@@ -340,14 +340,37 @@ async function authenticatedFetch(url, options = {}) {
   }
   
   const response = await fetch(url, { ...options, headers });
-  
+
   if (response.status === 401) {
     // Sessione scaduta - passa flag per evitare chiamata API logout
     console.warn('[AUTH] Sessione scaduta, reindirizzamento a login');
     logout(true); // true = sessione scaduta, non chiamare API
     throw new Error('Sessione scaduta');
   }
-  
+
+  // Se il server risponde con errore (4xx/5xx diversi da 401), non passare
+  // in silenzio: con la optimistic UI la modal è già chiusa, l'utente è
+  // convinto di aver salvato → senza questo, errori server-side restavano
+  // invisibili. Lasciamo passare le risposte ok (2xx/3xx) e quelle 4xx
+  // "soft" che il chiamante vuole gestire da sé (es. 409 conflict).
+  if (!response.ok && response.status >= 500) {
+    let serverMsg = '';
+    try {
+      const ct = (response.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) {
+        const data = await response.clone().json();
+        serverMsg = data && (data.error || data.message) ? `: ${data.error || data.message}` : '';
+      } else {
+        const txt = await response.clone().text();
+        if (txt) serverMsg = `: ${txt.slice(0, 120)}`;
+      }
+    } catch (_) { /* ignora */ }
+    const err = new Error(`Errore server (${response.status})${serverMsg}`);
+    err.status = response.status;
+    err.response = response;
+    throw err;
+  }
+
   return response;
 }
 
@@ -2758,8 +2781,14 @@ async function handleOrderSubmit(e) {
     updateOrdersDateTitle(date);
     await loadOrders(date);
     await loadCalendar(true);
+    
+    // Conferma visibile dentro l'app: la notifica push è "fuori" dall'app
+    // e con notifiche disattivate o desktop browser non si vede nulla.
+    // Toast in-app per fugare ogni dubbio sul salvataggio.
+    showToast(orderId ? 'Ordine modificato' : 'Ordine salvato', 'success');
   } catch (error) {
     console.error('❌ Errore salvataggio ordine:', error);
+    showToast('Ordine NON salvato — riprova', 'error');
     alert('Errore nel salvataggio dell\'ordine: ' + error.message);
   }
 }

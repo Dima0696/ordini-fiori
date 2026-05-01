@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v136 - Copia fornitore in ordine alfabetico (ignorando quantità)
-const CACHE_NAME = 'lombardaflor-orders-v136-supplier-sort';
-const STATIC_CACHE = 'lombardaflor-static-v136-supplier-sort';
-const API_CACHE = 'lombardaflor-api-v136-supplier-sort';
+// v137 - Toast salvataggio ordini + errori server non più silenziosi
+const CACHE_NAME = 'lombardaflor-orders-v137-save-feedback';
+const STATIC_CACHE = 'lombardaflor-static-v137-save-feedback';
+const API_CACHE = 'lombardaflor-api-v137-save-feedback';
 
 const urlsToCache = [
   '/',
