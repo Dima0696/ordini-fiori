@@ -2347,6 +2347,19 @@ function collectOrdersAndChecks() {
   return items;
 }
 
+// Estrae la chiave di ordinamento alfabetico da una riga d'ordine,
+// ignorando la quantità iniziale (e le unità di misura più comuni)
+// così righe come "10 rose avalanche" e "2 mazzi rose avalanche"
+// finiscono vicine quando si ordina alfabeticamente.
+function articleSortKey(line) {
+  let s = (line || '').trim().toLowerCase();
+  // Rimuovi prefisso numerico (anche con punti/virgole/range tipo "10-12 ")
+  s = s.replace(/^[\d.,\-\s]+/, '');
+  // Rimuovi unità di misura comuni (italiano + qualche abbreviazione)
+  s = s.replace(/^(mazzi|mazzo|mazz|pacchetti|pacchetto|pacc|steli|stelo|pezzi|pezzo|pz|kg|gr|grammi|cassette|cassetta|cass|cartoni|cartone|cart|conf|confezioni|confezione|scatole|scatola|vasi|vaso)\b\s*(di\s+)?/i, '');
+  return s.trim();
+}
+
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
 // supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
 function copySupplierItems(supplier) {
@@ -2378,6 +2391,10 @@ function copySupplierItems(supplier) {
       }
     });
   });
+  
+  // Ordina alfabeticamente per nome articolo (ignorando la quantità iniziale).
+  // Locale italiano per gestire accenti/varianti.
+  lines.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
   
   console.log('[COPY] Trovati', lines.length, 'articoli su', pool.length, 'ordini');
   

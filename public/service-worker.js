@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v135 - Stampa con stato per riga + fix titolo data dopo edit
-const CACHE_NAME = 'lombardaflor-orders-v135-print-state';
-const STATIC_CACHE = 'lombardaflor-static-v135-print-state';
-const API_CACHE = 'lombardaflor-api-v135-print-state';
+// v136 - Copia fornitore in ordine alfabetico (ignorando quantità)
+const CACHE_NAME = 'lombardaflor-orders-v136-supplier-sort';
+const STATIC_CACHE = 'lombardaflor-static-v136-supplier-sort';
+const API_CACHE = 'lombardaflor-api-v136-supplier-sort';
 
 const urlsToCache = [
   '/',
