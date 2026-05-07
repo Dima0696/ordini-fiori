@@ -2175,6 +2175,9 @@ function resetPendingOrderLineState() {
 
 // Pre-carica lo stato pendente da allOrderChecks quando si apre la modal
 // di Modifica ordine, così l'utente vede chip e provenienze già impostati.
+// Importante: registra SOLO le proprietà valorizzate. Una proprietà
+// `undefined` significa "non toccata, non inviare al flush" e quindi
+// preserva quanto già in DB (es. auto-match server).
 function loadPendingOrderLineStateFromOrder(orderId) {
   pendingOrderLineState = {};
   const checks = allOrderChecks[orderId];
@@ -2183,8 +2186,11 @@ function loadPendingOrderLineStateFromOrder(orderId) {
     const c = checks[idx];
     const supplier = (c && c.supplier) || '';
     const matchKey = (c && c.matchKey) || '';
-    if (supplier || matchKey) {
-      pendingOrderLineState[idx] = { supplier, matchKey };
+    const entry = {};
+    if (supplier) entry.supplier = supplier;
+    if (matchKey) entry.matchKey = matchKey;
+    if (Object.keys(entry).length > 0) {
+      pendingOrderLineState[idx] = entry;
     }
   });
 }
@@ -2256,6 +2262,8 @@ function renderOrderRowMatchChip(rowIdx, matchKey) {
 
 // Apre il picker articolo per una riga della modal Nuovo/Modifica ordine.
 // Salva localmente in pendingOrderLineState, NON chiama il server.
+// Tocca SOLO il campo matchKey: lascia supplier intatto (può essere
+// `undefined` = non toccato e quindi preservato in DB al flush).
 async function openOrderRowMatchPicker(rowIdx) {
   const ta = document.getElementById('order-description');
   const text = (ta && ta.value) || '';
@@ -2265,15 +2273,17 @@ async function openOrderRowMatchPicker(rowIdx) {
   
   const result = await openMatchPickerUI({ lineText, currentMatchKey });
   if (!result) return;
-  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = { supplier: '', matchKey: '' };
+  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = {};
   pendingOrderLineState[rowIdx].matchKey = result.matchKey;
   renderOrderRowsPreview();
 }
 
 // Toggle provenienza per una riga della modal: tap sullo stesso bottone già
-// attivo lo deseleziona (provenienza vuota).
+// attivo lo deseleziona (provenienza vuota = "rimuovi"). Tocca SOLO il
+// campo supplier: lascia matchKey intatta (può essere `undefined` = non
+// toccata e quindi preservata in DB al flush — protegge l'auto-match).
 function toggleOrderRowSupplier(rowIdx, code) {
-  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = { supplier: '', matchKey: '' };
+  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = {};
   const cur = pendingOrderLineState[rowIdx].supplier || '';
   pendingOrderLineState[rowIdx].supplier = (cur === code) ? '' : code;
   renderOrderRowsPreview();
