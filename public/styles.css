@@ -2161,6 +2161,113 @@ body {
 }
 
 /* ============================================
+   ANTEPRIMA RIGHE NEL FORM ORDINE (Nuovo/Modifica)
+   ============================================ */
+.order-rows-preview {
+  margin-top: 10px;
+}
+.order-rows-preview.has-rows {
+  border: 1px solid rgba(38, 122, 108, 0.18);
+  border-radius: 12px;
+  background: rgba(42, 157, 143, 0.04);
+  padding: 8px 8px 6px;
+}
+.order-rows-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #267A6C;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px dashed rgba(38, 122, 108, 0.18);
+  margin-bottom: 6px;
+}
+.order-rows-hint {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 0.68rem;
+}
+.order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.order-row:last-child { margin-bottom: 0; }
+.order-row-text {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+  color: #222;
+  word-break: break-word;
+  min-width: 0;
+}
+.order-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.order-row-suppliers {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.row-supplier-btn {
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 4px 7px;
+  height: 24px;
+  min-width: 32px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  background: white;
+  color: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.row-supplier-btn:active { transform: scale(0.93); }
+.row-supplier-btn.active.row-supplier-imp {
+  background: #C62828; color: white; border-color: #B71C1C;
+  box-shadow: 0 1px 3px rgba(198, 40, 40, 0.35);
+}
+.row-supplier-btn.active.row-supplier-ita {
+  background: #2E7D32; color: white; border-color: #1B5E20;
+  box-shadow: 0 1px 3px rgba(46, 125, 50, 0.35);
+}
+.row-supplier-btn.active.row-supplier-nl {
+  background: #1565C0; color: white; border-color: #0D47A1;
+  box-shadow: 0 1px 3px rgba(21, 101, 192, 0.35);
+}
+
+@media (max-width: 480px) {
+  .order-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .order-row-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .order-row-text { font-size: 0.9rem; }
+  .order-rows-hint { display: none; }
+}
+
+/* ============================================
    CHIP DI ABBINAMENTO ARTICOLO ANAGRAFICA
    ============================================ */
 .match-chip {

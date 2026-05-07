@@ -644,6 +644,52 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber/supplier', authenticate, (
   }
 });
 
+// POST /api/fabbisogno-checks/batch-state/:orderId - Set in batch supplier e/o match_key
+// per più righe in una sola chiamata. Usato dalla modal Nuovo/Modifica ordine
+// quando l'utente assegna provenienza e abbinamento articolo direttamente
+// durante la scrittura.
+//
+// Body: { lines: [{ index, supplier?, matchKey? }, ...] }
+// Solo i campi presenti vengono aggiornati.
+app.post('/api/fabbisogno-checks/batch-state/:orderId', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const lines = (req.body && Array.isArray(req.body.lines)) ? req.body.lines : [];
+    
+    let supplierUpdates = 0;
+    let matchUpdates = 0;
+    const errors = [];
+    
+    for (const l of lines) {
+      const idx = parseInt(l.index);
+      if (Number.isNaN(idx) || idx < 0) continue;
+      
+      if (typeof l.supplier === 'string') {
+        try {
+          db.setFabbisognoSupplier(orderId, idx, l.supplier);
+          supplierUpdates++;
+        } catch (e) {
+          errors.push({ index: idx, field: 'supplier', error: e.message });
+        }
+      }
+      
+      if (typeof l.matchKey === 'string') {
+        try {
+          db.setFabbisognoMatchKey(orderId, idx, l.matchKey);
+          matchUpdates++;
+        } catch (e) {
+          errors.push({ index: idx, field: 'matchKey', error: e.message });
+        }
+      }
+    }
+    
+    res.json({ supplierUpdates, matchUpdates, errors });
+  } catch (error) {
+    console.error('❌ Errore batch-state:', error);
+    res.status(500).json({ error: 'Errore: ' + error.message });
+  }
+});
+
 // POST /api/fabbisogno-checks/:orderId/:lineNumber/match - Set match_key (aggancio anagrafica)
 // body: { matchKey: "NOME|QUALITA" oppure "" per scollegare }
 app.post('/api/fabbisogno-checks/:orderId/:lineNumber/match', authenticate, (req, res) => {

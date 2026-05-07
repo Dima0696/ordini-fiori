@@ -35,6 +35,10 @@ let currentDetailOrder = null;
 let currentEditOrder = null;
 let orderStats = {};
 let uploadedPhotos = []; // Array di URL foto caricate
+// Stato temporaneo righe ordine (chip articolo + provenienza) per il form
+// Nuovo/Modifica ordine: { [rowIndex]: { matchKey, supplier } }.
+// Viene applicato al server SOLO al submit, dopo che l'ordine è stato creato/aggiornato.
+let pendingOrderLineState = {};
 let authToken = null;
 let currentUser = null;
 let autoRefreshInterval = null;
@@ -1972,13 +1976,131 @@ function renderMatchChip(matchKey) {
   return `<button type="button" class="match-chip match-chip-empty" data-match-key="" title="Abbina a un articolo dell'anagrafica" aria-label="Abbina articolo">+</button>`;
 }
 
-// Modal di selezione articolo dall'anagrafica.
-// Apre una piccola dialog con un campo cerca + lista risultati.
-// Al tap su un risultato salva la matchKey via API e aggiorna il chip + cache.
+// UI generica del picker articolo. Restituisce una promise che si risolve a
+// `null` se l'utente chiude senza scegliere, oppure a `{ matchKey }` su
+// scelta o scollegamento (matchKey vuoto).
+//   options.lineText        → testo della riga (prepopola la ricerca)
+//   options.currentMatchKey → matchKey attuale (per evidenziare e mostrare "Scollega")
 let _matchSearchTimer = null;
 let _matchSearchAbort = null;
+function openMatchPickerUI({ lineText = '', currentMatchKey = '' } = {}) {
+  return new Promise((resolve) => {
+    const existing = document.getElementById('match-picker-modal');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'match-picker-modal';
+    modal.className = 'modal active match-picker-modal';
+    modal.innerHTML = `
+      <div class="modal-content match-picker-content">
+        <div class="match-picker-header">
+          <h2>Abbina articolo</h2>
+          <button type="button" class="btn-close match-picker-close" aria-label="Chiudi">&times;</button>
+        </div>
+        <div class="match-picker-body">
+          <p class="match-picker-line"><span class="match-picker-line-prefix">Riga:</span> ${escapeHtml(lineText)}</p>
+          <div class="match-picker-search-wrap">
+            <input type="search" class="match-picker-search" placeholder="Cerca per nome o parte di nome..." autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="match-picker-clear" aria-label="Pulisci campo">&times;</button>
+          </div>
+          <div class="match-picker-results" role="listbox"></div>
+          ${currentMatchKey ? `<button type="button" class="match-picker-unlink">Scollega da anagrafica</button>` : ''}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const closeBtn = modal.querySelector('.match-picker-close');
+    const searchInput = modal.querySelector('.match-picker-search');
+    const clearBtn = modal.querySelector('.match-picker-clear');
+    const resultsBox = modal.querySelector('.match-picker-results');
+    const unlinkBtn = modal.querySelector('.match-picker-unlink');
+    
+    let resolved = false;
+    const close = (value = null) => {
+      if (resolved) return;
+      resolved = true;
+      modal.remove();
+      document.removeEventListener('keydown', escHandler);
+      resolve(value);
+    };
+    function escHandler(e) {
+      if (e.key === 'Escape') close(null);
+    }
+    
+    closeBtn.addEventListener('click', () => close(null));
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(null); });
+    document.addEventListener('keydown', escHandler);
+    
+    const updateClearVisibility = () => {
+      if (clearBtn) clearBtn.style.display = searchInput.value ? 'flex' : 'none';
+    };
+    
+    const doSearch = async (q) => {
+      if (_matchSearchAbort) _matchSearchAbort.abort();
+      _matchSearchAbort = new AbortController();
+      if (!q || q.trim().length < 1) {
+        resultsBox.innerHTML = '<p class="match-picker-empty">Inizia a scrivere per cercare</p>';
+        return;
+      }
+      try {
+        const res = await authenticatedFetch(`${API_URL}/articoli/search?q=${encodeURIComponent(q)}`, { signal: _matchSearchAbort.signal });
+        const rows = await res.json();
+        if (!Array.isArray(rows) || rows.length === 0) {
+          resultsBox.innerHTML = '<p class="match-picker-empty">Nessun articolo trovato</p>';
+          return;
+        }
+        resultsBox.innerHTML = rows.map(r => {
+          const isCurrent = r.matchKey === currentMatchKey;
+          const qLabel = r.qualita ? `<span class="match-result-quality">${escapeHtml(r.qualita)}</span>` : '';
+          return `<button type="button" class="match-result ${isCurrent ? 'is-current' : ''}" data-match-key="${escapeHtml(r.matchKey)}">
+            <span class="match-result-name">${escapeHtml(r.nome)}</span>
+            ${qLabel}
+          </button>`;
+        }).join('');
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('Errore ricerca articoli:', err);
+        resultsBox.innerHTML = '<p class="match-picker-empty">Errore: ' + escapeHtml(err.message || 'rete') + '</p>';
+      }
+    };
+    
+    searchInput.addEventListener('input', (e) => {
+      updateClearVisibility();
+      if (_matchSearchTimer) clearTimeout(_matchSearchTimer);
+      _matchSearchTimer = setTimeout(() => doSearch(e.target.value), 150);
+    });
+    
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        updateClearVisibility();
+        doSearch('');
+        searchInput.focus();
+      });
+    }
+    
+    resultsBox.addEventListener('click', (e) => {
+      const btn = e.target.closest('.match-result');
+      if (!btn) return;
+      close({ matchKey: btn.dataset.matchKey || '' });
+    });
+    
+    if (unlinkBtn) {
+      unlinkBtn.addEventListener('click', () => close({ matchKey: '' }));
+    }
+    
+    searchInput.value = lineText;
+    updateClearVisibility();
+    searchInput.focus();
+    try { searchInput.setSelectionRange(0, searchInput.value.length); } catch (e) {}
+    if (lineText.trim().length >= 1) doSearch(lineText);
+  });
+}
+
+// Apertura picker in modalità "live" su una riga di un ordine già salvato.
+// Salva subito al server e aggiorna cache + chip nella card.
 async function openMatchPicker(orderId, lineNumber) {
-  // Pre-popola il campo cerca con la riga (così la prima query è istantanea)
   const order = findDisplayedOrder(orderId);
   let lineText = '';
   if (order && order.description) {
@@ -1986,122 +2108,9 @@ async function openMatchPicker(orderId, lineNumber) {
     lineText = lines[lineNumber] || '';
   }
   const currentMatchKey = (allOrderChecks[orderId] && allOrderChecks[orderId][lineNumber] && allOrderChecks[orderId][lineNumber].matchKey) || '';
-  
-  // Rimuovi eventuale modal precedente
-  const existing = document.getElementById('match-picker-modal');
-  if (existing) existing.remove();
-  
-  const modal = document.createElement('div');
-  modal.id = 'match-picker-modal';
-  modal.className = 'modal active match-picker-modal';
-  modal.innerHTML = `
-    <div class="modal-content match-picker-content">
-      <div class="match-picker-header">
-        <h2>Abbina articolo</h2>
-        <button type="button" class="btn-close match-picker-close" aria-label="Chiudi">&times;</button>
-      </div>
-      <div class="match-picker-body">
-        <p class="match-picker-line"><span class="match-picker-line-prefix">Riga:</span> ${escapeHtml(lineText)}</p>
-        <div class="match-picker-search-wrap">
-          <input type="search" class="match-picker-search" placeholder="Cerca per nome o parte di nome..." autocomplete="off" autocapitalize="off" spellcheck="false">
-          <button type="button" class="match-picker-clear" aria-label="Pulisci campo">&times;</button>
-        </div>
-        <div class="match-picker-results" role="listbox"></div>
-        ${currentMatchKey ? `<button type="button" class="match-picker-unlink">Scollega da anagrafica</button>` : ''}
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  
-  const closeBtn = modal.querySelector('.match-picker-close');
-  const searchInput = modal.querySelector('.match-picker-search');
-  const clearBtn = modal.querySelector('.match-picker-clear');
-  const resultsBox = modal.querySelector('.match-picker-results');
-  const unlinkBtn = modal.querySelector('.match-picker-unlink');
-  
-  const close = () => modal.remove();
-  closeBtn.addEventListener('click', close);
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  document.addEventListener('keydown', function escHandler(e) {
-    if (e.key === 'Escape') {
-      close();
-      document.removeEventListener('keydown', escHandler);
-    }
-  });
-  
-  const updateClearVisibility = () => {
-    if (clearBtn) clearBtn.style.display = searchInput.value ? 'flex' : 'none';
-  };
-  
-  const doSearch = async (q) => {
-    if (_matchSearchAbort) _matchSearchAbort.abort();
-    _matchSearchAbort = new AbortController();
-    if (!q || q.trim().length < 1) {
-      resultsBox.innerHTML = '<p class="match-picker-empty">Inizia a scrivere per cercare</p>';
-      return;
-    }
-    try {
-      const res = await authenticatedFetch(`${API_URL}/articoli/search?q=${encodeURIComponent(q)}`, { signal: _matchSearchAbort.signal });
-      const rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0) {
-        resultsBox.innerHTML = '<p class="match-picker-empty">Nessun articolo trovato</p>';
-        return;
-      }
-      resultsBox.innerHTML = rows.map(r => {
-        const isCurrent = r.matchKey === currentMatchKey;
-        const qLabel = r.qualita ? `<span class="match-result-quality">${escapeHtml(r.qualita)}</span>` : '';
-        return `<button type="button" class="match-result ${isCurrent ? 'is-current' : ''}" data-match-key="${escapeHtml(r.matchKey)}">
-          <span class="match-result-name">${escapeHtml(r.nome)}</span>
-          ${qLabel}
-        </button>`;
-      }).join('');
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.error('Errore ricerca articoli:', err);
-      resultsBox.innerHTML = '<p class="match-picker-empty">Errore: ' + escapeHtml(err.message || 'rete') + '</p>';
-    }
-  };
-  
-  searchInput.addEventListener('input', (e) => {
-    updateClearVisibility();
-    if (_matchSearchTimer) clearTimeout(_matchSearchTimer);
-    _matchSearchTimer = setTimeout(() => doSearch(e.target.value), 150);
-  });
-  
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      updateClearVisibility();
-      doSearch('');
-      searchInput.focus();
-    });
-  }
-  
-  resultsBox.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.match-result');
-    if (!btn) return;
-    const matchKey = btn.dataset.matchKey || '';
-    await applyMatchKey(orderId, lineNumber, matchKey);
-    close();
-  });
-  
-  if (unlinkBtn) {
-    unlinkBtn.addEventListener('click', async () => {
-      await applyMatchKey(orderId, lineNumber, '');
-      close();
-    });
-  }
-  
-  // Pre-popola la ricerca con il testo della riga e fai partire una prima
-  // ricerca. Il testo è già selezionato, così l'utente può digitare per
-  // sostituirlo (cercare per parola singola o termine diverso).
-  searchInput.value = lineText;
-  updateClearVisibility();
-  searchInput.focus();
-  // Selezione totale del testo prepopolato (su mobile può non funzionare
-  // sempre, ma con il pulsante × è comunque ripulibile in un tap).
-  try { searchInput.setSelectionRange(0, searchInput.value.length); } catch (e) {}
-  if (lineText.trim().length >= 1) doSearch(lineText);
+  const result = await openMatchPickerUI({ lineText, currentMatchKey });
+  if (!result) return;
+  await applyMatchKey(orderId, lineNumber, result.matchKey);
 }
 
 // Salva la matchKey al server e aggiorna cache + UI ottimisticamente.
@@ -2141,6 +2150,196 @@ async function applyMatchKey(orderId, lineNumber, matchKey) {
     }
     showToast('Errore salvataggio articolo', 'error');
     console.error(err);
+  }
+}
+
+// =====================================================================
+// ANTEPRIMA RIGHE NEL FORM ORDINE (Nuovo/Modifica)
+// =====================================================================
+// Sotto la textarea Merce mostriamo una mini-card per ogni riga, con
+// chip articolo e bottoni provenienza (IMP/ITA/NL). Lo stato è
+// SOLO temporaneo (pendingOrderLineState) finché non si salva l'ordine.
+// Al submit si chiama POST /api/fabbisogno-checks/batch-state/:orderId
+// per scrivere tutto in una volta.
+
+// Stesse provenienze accettate dall'API: IMPORT (label "IMP"), ITA, NL.
+// L'ordine qui sotto è quello di rendering.
+const ORDER_ROW_SUPPLIERS = ['IMPORT', 'ITA', 'NL'];
+const ORDER_ROW_SUPPLIER_LABELS = { IMPORT: 'IMP', ITA: 'ITA', NL: 'NL' };
+const ORDER_ROW_SUPPLIER_CLASS = { IMPORT: 'imp', ITA: 'ita', NL: 'nl' };
+
+// Reset dello stato pendente all'apertura della modal Nuovo ordine.
+function resetPendingOrderLineState() {
+  pendingOrderLineState = {};
+}
+
+// Pre-carica lo stato pendente da allOrderChecks quando si apre la modal
+// di Modifica ordine, così l'utente vede chip e provenienze già impostati.
+function loadPendingOrderLineStateFromOrder(orderId) {
+  pendingOrderLineState = {};
+  const checks = allOrderChecks[orderId];
+  if (!checks) return;
+  Object.keys(checks).forEach(idx => {
+    const c = checks[idx];
+    const supplier = (c && c.supplier) || '';
+    const matchKey = (c && c.matchKey) || '';
+    if (supplier || matchKey) {
+      pendingOrderLineState[idx] = { supplier, matchKey };
+    }
+  });
+}
+
+// Renderizza un singolo bottone provenienza (chiuso o aperto).
+function renderRowSupplierBtn(rowIdx, code, active) {
+  const tone = ORDER_ROW_SUPPLIER_CLASS[code] || code.toLowerCase();
+  const cls = active ? `row-supplier-btn active row-supplier-${tone}` : 'row-supplier-btn';
+  return `<button type="button" class="${cls}" data-row="${rowIdx}" data-supplier="${code}" aria-pressed="${active}">${ORDER_ROW_SUPPLIER_LABELS[code]}</button>`;
+}
+
+// Renderizza tutta l'anteprima righe sotto la textarea.
+// Preserva lo scroll della preview (utile quando l'utente sta editando in fondo).
+function renderOrderRowsPreview() {
+  const preview = document.getElementById('order-rows-preview');
+  if (!preview) return;
+  const ta = document.getElementById('order-description');
+  const text = (ta && ta.value) || '';
+  
+  const allLines = text.split('\n');
+  const rows = [];
+  allLines.forEach((line, originalIdx) => {
+    const trimmed = line.trim();
+    if (trimmed === '') return;
+    rows.push({ idx: rows.length, text: trimmed });
+  });
+  
+  if (rows.length === 0) {
+    preview.innerHTML = '';
+    preview.classList.remove('has-rows');
+    return;
+  }
+  
+  preview.classList.add('has-rows');
+  preview.innerHTML = `
+    <div class="order-rows-preview-header">
+      <span>Righe (${rows.length})</span>
+      <span class="order-rows-hint">Tocca per abbinare e scegliere provenienza</span>
+    </div>
+    ${rows.map(r => {
+      const state = pendingOrderLineState[r.idx] || {};
+      const matchKey = state.matchKey || '';
+      const supplier = state.supplier || '';
+      const supplierBtns = ORDER_ROW_SUPPLIERS.map(code => renderRowSupplierBtn(r.idx, code, supplier === code)).join('');
+      const chip = renderOrderRowMatchChip(r.idx, matchKey);
+      return `
+        <div class="order-row" data-row="${r.idx}">
+          <div class="order-row-text">${escapeHtml(r.text)}</div>
+          <div class="order-row-controls">
+            ${chip}
+            <div class="order-row-suppliers">${supplierBtns}</div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+// Variante locale del chip di abbinamento per le righe della modal: stesso
+// stile di renderMatchChip ma con classe extra `order-row-match-chip` e
+// data-row, così il delegato click sa quale riga è stata toccata.
+function renderOrderRowMatchChip(rowIdx, matchKey) {
+  if (matchKey) {
+    const label = shortChipLabel(matchKey);
+    return `<button type="button" class="match-chip match-chip-linked order-row-match-chip" data-row="${rowIdx}" data-match-key="${escapeHtml(matchKey)}" title="${escapeHtml(label)} — tocca per cambiare" aria-label="Articolo abbinato: ${escapeHtml(label)}">${escapeHtml(label)}</button>`;
+  }
+  return `<button type="button" class="match-chip match-chip-empty order-row-match-chip" data-row="${rowIdx}" data-match-key="" title="Abbina a un articolo dell'anagrafica" aria-label="Abbina articolo">+</button>`;
+}
+
+// Apre il picker articolo per una riga della modal Nuovo/Modifica ordine.
+// Salva localmente in pendingOrderLineState, NON chiama il server.
+async function openOrderRowMatchPicker(rowIdx) {
+  const ta = document.getElementById('order-description');
+  const text = (ta && ta.value) || '';
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+  const lineText = lines[rowIdx] || '';
+  const currentMatchKey = (pendingOrderLineState[rowIdx] && pendingOrderLineState[rowIdx].matchKey) || '';
+  
+  const result = await openMatchPickerUI({ lineText, currentMatchKey });
+  if (!result) return;
+  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = { supplier: '', matchKey: '' };
+  pendingOrderLineState[rowIdx].matchKey = result.matchKey;
+  renderOrderRowsPreview();
+}
+
+// Toggle provenienza per una riga della modal: tap sullo stesso bottone già
+// attivo lo deseleziona (provenienza vuota).
+function toggleOrderRowSupplier(rowIdx, code) {
+  if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = { supplier: '', matchKey: '' };
+  const cur = pendingOrderLineState[rowIdx].supplier || '';
+  pendingOrderLineState[rowIdx].supplier = (cur === code) ? '' : code;
+  renderOrderRowsPreview();
+}
+
+// Bind eventi sull'anteprima (delegato sul container, una volta sola).
+function setupOrderRowsPreviewEvents() {
+  const preview = document.getElementById('order-rows-preview');
+  if (!preview || preview._eventsBound) return;
+  preview._eventsBound = true;
+  
+  preview.addEventListener('click', (e) => {
+    const matchChip = e.target.closest('.order-row-match-chip');
+    if (matchChip) {
+      e.preventDefault();
+      const rowIdx = parseInt(matchChip.dataset.row);
+      if (!Number.isNaN(rowIdx)) openOrderRowMatchPicker(rowIdx);
+      return;
+    }
+    const supBtn = e.target.closest('.row-supplier-btn');
+    if (supBtn) {
+      e.preventDefault();
+      const rowIdx = parseInt(supBtn.dataset.row);
+      const code = supBtn.dataset.supplier;
+      if (!Number.isNaN(rowIdx) && code) toggleOrderRowSupplier(rowIdx, code);
+      return;
+    }
+  });
+}
+
+// Bind dell'input listener sulla textarea (una volta sola).
+function setupOrderDescriptionLiveRender() {
+  const ta = document.getElementById('order-description');
+  if (!ta || ta._previewBound) return;
+  ta._previewBound = true;
+  
+  let timer = null;
+  ta.addEventListener('input', () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(renderOrderRowsPreview, 80);
+  });
+}
+
+// Dopo il salvataggio (POST/PUT) di un ordine, applichiamo lo stato pendente
+// (chip + provenienze) al server in una sola chiamata batch.
+async function flushPendingOrderLineState(orderId) {
+  if (!orderId) return;
+  const lines = [];
+  Object.keys(pendingOrderLineState).forEach(idx => {
+    const s = pendingOrderLineState[idx] || {};
+    const item = { index: parseInt(idx) };
+    let any = false;
+    if (typeof s.matchKey === 'string') { item.matchKey = s.matchKey; any = true; }
+    if (typeof s.supplier === 'string') { item.supplier = s.supplier; any = true; }
+    if (any) lines.push(item);
+  });
+  if (lines.length === 0) return;
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/batch-state/${orderId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lines })
+    });
+  } catch (err) {
+    console.error('❌ Errore batch-state:', err);
+    showToast('Provenienze/abbinamenti non salvati — riprova dalla card', 'error');
   }
 }
 
@@ -3077,6 +3276,11 @@ function openNewOrderModal() {
   
   document.getElementById('btn-delete-order').style.display = 'none';
   
+  resetPendingOrderLineState();
+  setupOrderRowsPreviewEvents();
+  setupOrderDescriptionLiveRender();
+  renderOrderRowsPreview();
+  
   renderPhotoPreview();
   modalOrder.classList.add('active');
 }
@@ -3108,6 +3312,11 @@ function openEditOrderModal(order) {
   
   document.getElementById('btn-delete-order').style.display = 'block';
   
+  loadPendingOrderLineStateFromOrder(order.id);
+  setupOrderRowsPreviewEvents();
+  setupOrderDescriptionLiveRender();
+  renderOrderRowsPreview();
+  
   renderPhotoPreview();
   modalOrder.classList.add('active');
 }
@@ -3115,6 +3324,13 @@ function openEditOrderModal(order) {
 // Chiudi modal ordine
 function closeOrderModal() {
   modalOrder.classList.remove('active');
+  // Pulisci anteprima righe (lo stato pendente verrà comunque resettato
+  // alla prossima apertura, ma l'HTML è meglio non lasciarlo cached).
+  const preview = document.getElementById('order-rows-preview');
+  if (preview) {
+    preview.innerHTML = '';
+    preview.classList.remove('has-rows');
+  }
 }
 
 // Gestisci submit form ordine
@@ -3189,6 +3405,11 @@ async function handleOrderSubmit(e) {
         }
       }
       
+      // Applica stato pendente righe (chip + provenienza) inserito in modal.
+      // L'ordine delle chiamate è importante: dopo applyGoodsTypeToChecks,
+      // così le scelte manuali sulle provenienze sopravvivono.
+      await flushPendingOrderLineState(parseInt(orderId));
+      
       // Notifica modifica
       if (Notification.permission === 'granted') {
         try {
@@ -3211,15 +3432,32 @@ async function handleOrderSubmit(e) {
         body: JSON.stringify({ ...orderData, date })
       });
       
-      // Se la disponibilità è diversa da "da_ordinare", sincronizza le spunte sul nuovo ordine
-      if (goodsType !== GOODS_TYPE.DA_ORDINARE && createRes && createRes.ok) {
+      // Recupera l'ordine appena creato (riusabile per goods-type sync e
+      // batch-state pendente). createRes.json() può essere chiamato solo
+      // una volta, quindi lo facciamo qui.
+      let newOrderId = null;
+      if (createRes && createRes.ok) {
         try {
           const newOrder = await createRes.json();
+          if (newOrder && newOrder.id) newOrderId = newOrder.id;
+        } catch (e) { /* no-op */ }
+      }
+      
+      // Se la disponibilità è diversa da "da_ordinare", sincronizza le spunte sul nuovo ordine
+      if (goodsType !== GOODS_TYPE.DA_ORDINARE && newOrderId) {
+        try {
           const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
-          if (newOrder && newOrder.id && totalLines > 0) {
-            await applyGoodsTypeToChecks(newOrder.id, goodsType, totalLines);
+          if (totalLines > 0) {
+            await applyGoodsTypeToChecks(newOrderId, goodsType, totalLines);
           }
         } catch (e) { /* no-op */ }
+      }
+      
+      // Applica stato pendente righe (chip + provenienza). L'auto-match
+      // server è già stato eseguito dentro POST /api/orders; le scelte
+      // dell'utente vengono dopo, quindi vincono.
+      if (newOrderId) {
+        await flushPendingOrderLineState(newOrderId);
       }
       
       // Notifica creazione
