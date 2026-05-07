@@ -2842,7 +2842,7 @@ function collectOrdersAndChecks() {
 // così righe come "10 rose avalanche" e "2 mazzi rose avalanche"
 // finiscono vicine quando si ordina alfabeticamente.
 function articleSortKey(line) {
-  let s = (line || '').trim().toLowerCase();
+  let s = stripLineNoise(line || '').toLowerCase();
   // Rimuovi prefisso numerico (anche con punti/virgole/range tipo "10-12 ")
   s = s.replace(/^[\d.,\-\s]+/, '');
   // Rimuovi unità di misura comuni (italiano + qualche abbreviazione)
@@ -2850,13 +2850,26 @@ function articleSortKey(line) {
   return s.trim();
 }
 
+// Pulisce i caratteri "rumore" all'inizio di una riga proveniente da
+// copia-incolla WhatsApp/Notes: bullet (•·●○*-–—▪▫►▶◦), trattini, spazi
+// non-standard (NBSP, tab, ecc), parentesi tonde aperte. Lascia
+// inalterato il resto.
+function stripLineNoise(line) {
+  if (!line) return '';
+  // \u00B7 = ·  \u2022 = •  \u2023 = ‣  \u25CF = ●  \u25CB = ○
+  // \u25E6 = ◦  \u25AA = ▪  \u25AB = ▫  \u25B6 = ▶  \u25BA = ►
+  // \u2013 = –  \u2014 = —  \u00A0 = NBSP
+  return line.replace(/^[\s\u00A0\u2022\u2023\u25CF\u25CB\u25E6\u25AA\u25AB\u25B6\u25BA\u00B7\*\-\u2013\u2014\u2192>>\(\[]+/u, '').trim();
+}
+
 // Estrae quantità + unità di misura dall'inizio di una riga d'ordine.
 // Esempi:
 //   "100 rose freedom"      → { qty: 100, unit: '' }
 //   "2 mazzi rose freedom"  → { qty: 2,   unit: 'mazzi' }
+//   "• 100 rose freedom"    → { qty: 100, unit: '' }
 //   "rose"                  → { qty: null, unit: '' }
 function parseLineQuantity(line) {
-  const s = (line || '').trim();
+  const s = stripLineNoise(line);
   const m = s.match(/^(\d+)(?:\s+(mazzi|mazzo|steli|stelo|pezzi|pezzo|pacchetti|pacchetto|pacchi|pacco|cassette|cassetta|casse|cassa|cartoni|cartone|conf|confezioni|confezione|scatole|scatola|vasi|vaso))?\b/i);
   if (!m) return { qty: null, unit: '' };
   const unit = m[2] ? m[2].toLowerCase() : '';
@@ -2896,7 +2909,7 @@ function buildSupplierCopyLines(items) {
   const free = [];
   
   for (const it of items) {
-    const line = it.line.trim();
+    const line = stripLineNoise(it.line);
     if (!line) continue;
     const { matchKey } = it;
     if (!matchKey) {
