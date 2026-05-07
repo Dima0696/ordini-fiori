@@ -31,7 +31,45 @@ class PullToRefresh {
     this.page.addEventListener('mouseup', this.handleMouseUp.bind(this));
   }
   
+  // Vero se il tocco/click parte da un campo modificabile o se c'è
+  // un modal aperto (in modal il refresh non ha senso e crea conflitti
+  // con il drag delle maniglie di selezione su iOS).
+  _isInteractiveTarget(target) {
+    if (!target) return false;
+    if (typeof target.closest !== 'function') return false;
+    if (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return true;
+    // Modal aperti = stop al pull-to-refresh
+    if (document.querySelector('.modal.active')) return true;
+    return false;
+  }
+  
+  // Vero se c'è una selezione di testo attualmente attiva (utente sta
+  // trascinando le maniglie nativi del browser).
+  _hasActiveSelection() {
+    const sel = window.getSelection && window.getSelection();
+    if (!sel) return false;
+    const txt = sel.toString();
+    return !!(txt && txt.length > 0);
+  }
+  
+  // Annulla lo stato del gesto in corso (ripristina il transform).
+  _abortGesture() {
+    if (this.startY === 0 && !this.isDragging) return;
+    this.page.style.transform = '';
+    this.page.style.transition = 'transform 0.2s ease';
+    document.body.classList.remove('pulling');
+    if (this.indicator) this.indicator.classList.remove('visible');
+    this.startY = 0;
+    this.currentY = 0;
+    this.isDragging = false;
+  }
+  
   handleTouchStart(e) {
+    // Ignora se il tocco parte da un input/textarea/contenteditable o
+    // dentro una modal, oppure se c'è già una selezione attiva.
+    if (this._isInteractiveTarget(e.target)) return;
+    if (this._hasActiveSelection()) return;
+    
     // Solo se siamo in cima alla pagina
     if (this.page.scrollTop === 0 && !this.isRefreshing) {
       this.startY = e.touches[0].pageY;
@@ -41,6 +79,13 @@ class PullToRefresh {
   
   handleTouchMove(e) {
     if (this.startY === 0 || this.isRefreshing) return;
+    
+    // Se durante il gesto compare una selezione di testo (l'utente sta
+    // trascinando una maniglia di selezione), abortisci subito.
+    if (this._hasActiveSelection()) {
+      this._abortGesture();
+      return;
+    }
     
     this.currentY = e.touches[0].pageY;
     const diff = this.currentY - this.startY;
@@ -70,6 +115,12 @@ class PullToRefresh {
   handleTouchEnd(e) {
     if (!this.isDragging || this.isRefreshing) return;
     
+    // Sicurezza: se nel frattempo è apparsa una selezione, non refreshare.
+    if (this._hasActiveSelection()) {
+      this._abortGesture();
+      return;
+    }
+    
     const diff = this.currentY - this.startY;
     
     // Reset transform
@@ -92,6 +143,8 @@ class PullToRefresh {
   
   // Mouse events per desktop testing
   handleMouseDown(e) {
+    if (this._isInteractiveTarget(e.target)) return;
+    if (this._hasActiveSelection()) return;
     if (this.page.scrollTop === 0 && !this.isRefreshing) {
       this.startY = e.pageY;
       this.isDragging = false;
@@ -100,6 +153,11 @@ class PullToRefresh {
   
   handleMouseMove(e) {
     if (this.startY === 0 || this.isRefreshing) return;
+    
+    if (this._hasActiveSelection()) {
+      this._abortGesture();
+      return;
+    }
     
     this.currentY = e.pageY;
     const diff = this.currentY - this.startY;
@@ -124,6 +182,11 @@ class PullToRefresh {
   
   handleMouseUp(e) {
     if (!this.isDragging || this.isRefreshing) return;
+    
+    if (this._hasActiveSelection()) {
+      this._abortGesture();
+      return;
+    }
     
     const diff = this.currentY - this.startY;
     
