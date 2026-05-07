@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v140 - Pull-to-refresh: ignora gesti su input/selezione testo (no refresh accidentali)
-const CACHE_NAME = 'lombardaflor-orders-v140-fix-selection';
-const STATIC_CACHE = 'lombardaflor-static-v140-fix-selection';
-const API_CACHE = 'lombardaflor-api-v140-fix-selection';
+// v141 - Ricerca anagrafica: prefisso parziale + ranking migliorato + 50 risultati
+const CACHE_NAME = 'lombardaflor-orders-v141-search-prefix';
+const STATIC_CACHE = 'lombardaflor-static-v141-search-prefix';
+const API_CACHE = 'lombardaflor-api-v141-search-prefix';
 
 const urlsToCache = [
   '/',

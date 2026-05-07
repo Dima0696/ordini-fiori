@@ -717,12 +717,12 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res)
 });
 
 // GET /api/articoli/search?q=... - Ricerca articoli nell'anagrafica master.
-// Ritorna fino a 20 candidati ordinati per rilevanza.
+// Ritorna fino a 100 candidati ordinati per rilevanza.
 app.get('/api/articoli/search', authenticate, (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
     if (q.length < 2) return res.json([]);
-    const limit = Math.min(50, parseInt(req.query.limit) || 20);
+    const limit = Math.min(100, parseInt(req.query.limit) || 50);
     const results = db.searchArticoli(q, limit);
     res.json(results);
   } catch (error) {

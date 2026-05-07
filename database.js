@@ -897,43 +897,86 @@ const clearArticoliMaster = () => {
 
 // Cerca articoli per nome (e opzionalmente qualità).
 // q può essere il testo che digita l'utente o una riga di ordine intera.
-// Ritorna fino a `limit` candidati ordinati per "rilevanza":
-//   - punteggio alto se TUTTI i token della query sono nel nome+qualità dell'articolo
-//   - punteggio extra se anche la qualità matcha esattamente
-const searchArticoli = (q, limit = 20) => {
+// Ritorna fino a `limit` candidati ordinati per "rilevanza".
+//
+// Logica:
+//  1. Filtro AND in SQL: ogni token della query deve essere SOSTRINGA del
+//     testo "nome + qualità" dell'articolo. Così cerca prefissi parziali
+//     (es. "schne" matcha "SCHNEEBALL"), accenti già rimossi nei _norm.
+//  2. Scoring per ranking:
+//     +1.0 per ogni token presente come parola intera
+//     +0.6 per ogni token presente come prefisso di una parola
+//     +0.3 per ogni token presente solo come substring nel testo
+//     +1.0 bonus se TUTTI i token sono parole intere
+//     -0.005*len bonus negativo per nomi molto lunghi (preferenza nomi corti)
+//  3. Fallback: se l'AND non trova nulla, prova OR sul token più lungo
+//     così la ricerca non resta vuota se l'utente sbaglia leggermente
+//     (e l'utente può cancellare e riscrivere altri termini).
+const searchArticoli = (q, limit = 50) => {
   const tokens = tokenize(q);
   if (tokens.length === 0) return [];
   
-  // Filtro grossolano via LIKE sul primo token (più selettivo: il più lungo)
-  const sorted = [...tokens].sort((a, b) => b.length - a.length);
-  const seedToken = sorted[0];
-  const rows = db.prepare(`
-    SELECT id, nome, qualita, nome_norm, qualita_norm, match_key
-    FROM articoli_master
-    WHERE nome_norm LIKE ? OR qualita_norm LIKE ?
-    LIMIT 500
-  `).all(`%${seedToken}%`, `%${seedToken}%`);
+  const allTextExpr = `(nome_norm || ' ' || qualita_norm)`;
+  const runQuery = (mode) => {
+    let where, params;
+    if (mode === 'AND') {
+      where = tokens.map(() => `${allTextExpr} LIKE ?`).join(' AND ');
+      params = tokens.map(t => `%${t}%`);
+    } else {
+      // OR sul token più lungo (fallback)
+      const longest = [...tokens].sort((a, b) => b.length - a.length)[0];
+      where = `${allTextExpr} LIKE ?`;
+      params = [`%${longest}%`];
+    }
+    return db.prepare(`
+      SELECT id, nome, qualita, nome_norm, qualita_norm, match_key
+      FROM articoli_master
+      WHERE ${where}
+      LIMIT 800
+    `).all(...params);
+  };
+  
+  let rows = runQuery('AND');
+  if (rows.length === 0) rows = runQuery('OR');
+  if (rows.length === 0) return [];
   
   const scored = [];
   for (const r of rows) {
     const allText = `${r.nome_norm} ${r.qualita_norm}`;
-    const articleTokens = new Set(tokenize(allText));
-    let matched = 0;
-    for (const t of tokens) if (articleTokens.has(t)) matched++;
-    if (matched === 0) continue;
-    // Score base: % di token query che matchano
-    let score = matched / tokens.length;
-    // Bonus se TUTTI i token della query sono presenti
-    if (matched === tokens.length) score += 1.0;
-    // Bonus per qualità presente
-    if (r.qualita_norm && tokens.some(t => r.qualita_norm.split(' ').includes(t))) score += 0.2;
-    // Penalità leggera per nomi molto lunghi (preferire nomi più stretti)
+    const articleTokens = tokenize(allText);
+    const articleTokenSet = new Set(articleTokens);
+    
+    let exactCount = 0;
+    let score = 0;
+    for (const t of tokens) {
+      if (articleTokenSet.has(t)) {
+        score += 1.0;
+        exactCount++;
+      } else if (articleTokens.some(at => at.startsWith(t))) {
+        score += 0.6;
+      } else if (allText.includes(t)) {
+        score += 0.3;
+      } else {
+        // Token assente del tutto: penalizza ma non escludere
+        score -= 0.4;
+      }
+    }
+    if (exactCount === tokens.length && tokens.length > 0) score += 1.0;
     score -= Math.min(0.3, (r.nome_norm.length / 200));
-    scored.push({ ...r, score, matchedTokens: matched });
+    scored.push({ ...r, score, exactCount });
   }
   
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit).map(r => ({
+  // Filtra solo i candidati con almeno qualche match (score positivo)
+  const positives = scored.filter(s => s.score > 0);
+  const ranked = positives.length > 0 ? positives : scored;
+  
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    // Tie-break: nome più corto prima (più specifico)
+    return a.nome_norm.length - b.nome_norm.length;
+  });
+  
+  return ranked.slice(0, limit).map(r => ({
     id: r.id,
     nome: r.nome,
     qualita: r.qualita,
