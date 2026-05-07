@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v141 - Ricerca anagrafica: prefisso parziale + ranking migliorato + 50 risultati
-const CACHE_NAME = 'lombardaflor-orders-v141-search-prefix';
-const STATIC_CACHE = 'lombardaflor-static-v141-search-prefix';
-const API_CACHE = 'lombardaflor-api-v141-search-prefix';
+// v142 - Selettore anagrafica: testo prepopolato selezionato + tasto pulisci + soglia 1 char
+const CACHE_NAME = 'lombardaflor-orders-v142-search-ux';
+const STATIC_CACHE = 'lombardaflor-static-v142-search-ux';
+const API_CACHE = 'lombardaflor-api-v142-search-ux';
 
 const urlsToCache = [
   '/',

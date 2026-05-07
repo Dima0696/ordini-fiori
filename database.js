@@ -913,7 +913,13 @@ const clearArticoliMaster = () => {
 //     così la ricerca non resta vuota se l'utente sbaglia leggermente
 //     (e l'utente può cancellare e riscrivere altri termini).
 const searchArticoli = (q, limit = 50) => {
-  const tokens = tokenize(q);
+  let tokens = tokenize(q);
+  // Fallback per query molto corte (es. 1 carattere, o solo stop-word):
+  // usa direttamente il testo normalizzato come singolo token.
+  if (tokens.length === 0) {
+    const raw = normalizeText(q);
+    if (raw.length >= 1) tokens = [raw];
+  }
   if (tokens.length === 0) return [];
   
   const allTextExpr = `(nome_norm || ' ' || qualita_norm)`;

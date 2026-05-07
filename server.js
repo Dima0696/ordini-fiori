@@ -721,7 +721,7 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res)
 app.get('/api/articoli/search', authenticate, (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.json([]);
+    if (q.length < 1) return res.json([]);
     const limit = Math.min(100, parseInt(req.query.limit) || 50);
     const results = db.searchArticoli(q, limit);
     res.json(results);

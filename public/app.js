@@ -2002,7 +2002,10 @@ async function openMatchPicker(orderId, lineNumber) {
       </div>
       <div class="match-picker-body">
         <p class="match-picker-line"><span class="match-picker-line-prefix">Riga:</span> ${escapeHtml(lineText)}</p>
-        <input type="search" class="match-picker-search" placeholder="Cerca nell'anagrafica..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="match-picker-search-wrap">
+          <input type="search" class="match-picker-search" placeholder="Cerca per nome o parte di nome..." autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button type="button" class="match-picker-clear" aria-label="Pulisci campo">&times;</button>
+        </div>
         <div class="match-picker-results" role="listbox"></div>
         ${currentMatchKey ? `<button type="button" class="match-picker-unlink">Scollega da anagrafica</button>` : ''}
       </div>
@@ -2012,6 +2015,7 @@ async function openMatchPicker(orderId, lineNumber) {
   
   const closeBtn = modal.querySelector('.match-picker-close');
   const searchInput = modal.querySelector('.match-picker-search');
+  const clearBtn = modal.querySelector('.match-picker-clear');
   const resultsBox = modal.querySelector('.match-picker-results');
   const unlinkBtn = modal.querySelector('.match-picker-unlink');
   
@@ -2025,11 +2029,15 @@ async function openMatchPicker(orderId, lineNumber) {
     }
   });
   
+  const updateClearVisibility = () => {
+    if (clearBtn) clearBtn.style.display = searchInput.value ? 'flex' : 'none';
+  };
+  
   const doSearch = async (q) => {
     if (_matchSearchAbort) _matchSearchAbort.abort();
     _matchSearchAbort = new AbortController();
-    if (!q || q.trim().length < 2) {
-      resultsBox.innerHTML = '<p class="match-picker-empty">Digita almeno 2 caratteri</p>';
+    if (!q || q.trim().length < 1) {
+      resultsBox.innerHTML = '<p class="match-picker-empty">Inizia a scrivere per cercare</p>';
       return;
     }
     try {
@@ -2055,9 +2063,19 @@ async function openMatchPicker(orderId, lineNumber) {
   };
   
   searchInput.addEventListener('input', (e) => {
+    updateClearVisibility();
     if (_matchSearchTimer) clearTimeout(_matchSearchTimer);
     _matchSearchTimer = setTimeout(() => doSearch(e.target.value), 150);
   });
+  
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      updateClearVisibility();
+      doSearch('');
+      searchInput.focus();
+    });
+  }
   
   resultsBox.addEventListener('click', async (e) => {
     const btn = e.target.closest('.match-result');
@@ -2074,10 +2092,16 @@ async function openMatchPicker(orderId, lineNumber) {
     });
   }
   
-  // Pre-popola e cerca
+  // Pre-popola la ricerca con il testo della riga e fai partire una prima
+  // ricerca. Il testo è già selezionato, così l'utente può digitare per
+  // sostituirlo (cercare per parola singola o termine diverso).
   searchInput.value = lineText;
+  updateClearVisibility();
   searchInput.focus();
-  if (lineText.trim().length >= 2) doSearch(lineText);
+  // Selezione totale del testo prepopolato (su mobile può non funzionare
+  // sempre, ma con il pulsante × è comunque ripulibile in un tap).
+  try { searchInput.setSelectionRange(0, searchInput.value.length); } catch (e) {}
+  if (lineText.trim().length >= 1) doSearch(lineText);
 }
 
 // Salva la matchKey al server e aggiorna cache + UI ottimisticamente.

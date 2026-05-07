@@ -2301,18 +2301,56 @@ body {
   font-weight: 600;
 }
 
+.match-picker-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .match-picker-search {
+  flex: 1;
   font-family: inherit;
   font-size: 1rem;
-  padding: 10px 12px;
+  padding: 10px 38px 10px 12px;
   border: 1.5px solid rgba(0, 0, 0, 0.12);
   border-radius: 10px;
   outline: none;
   transition: border-color 0.15s ease;
+  width: 100%;
 }
 
 .match-picker-search:focus {
   border-color: #2A9D8F;
+}
+
+/* Pulsante X per pulire il campo cerca */
+.match-picker-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+
+.match-picker-clear:hover {
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.match-picker-clear:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 .match-picker-results {
