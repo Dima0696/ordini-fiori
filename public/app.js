@@ -2883,13 +2883,15 @@ function splitMatchKey(matchKey) {
 }
 
 // Costruisce le righe del copy raggruppando per matchKey-name + unità di misura
-// sommando le quantità. Le righe non agganciate restano testuali, separate.
+// sommando le quantità. Le righe non agganciate (senza matchKey) restano
+// testuali in `free`. Le righe con matchKey ma SENZA quantità all'inizio
+// (es. "peonie bordeaux" senza numero) usano comunque il nome anagrafica
+// con qty=null: vengono raggruppate per nome ma mostrate con "?" al posto
+// della quantità, così l'utente sa che deve metterci una quantità a mano.
 //
 // items: [{ line, matchKey }]
 // Output: array di stringhe già ordinate alfabeticamente.
 function buildSupplierCopyLines(items) {
-  // Bucket per (matchKeyName + unit). Le righe senza matchKey o senza qty
-  // valida vanno nei "free" e mantengono il testo originale.
   const buckets = new Map();
   const free = [];
   
@@ -2907,45 +2909,54 @@ function buildSupplierCopyLines(items) {
       continue;
     }
     const { qty, unit } = parseLineQuantity(line);
-    if (qty === null) {
-      // Non posso sommare, lascio libera ma tag con il nome per ordinamento
-      free.push(line);
-      continue;
-    }
+    // Se non c'è quantità ma c'è matchKey, raggruppiamo comunque per
+    // nome+unit (con qty=null marker). Così "peonie bordeaux" abbinato
+    // a PEONIE RED CHARM appare come "? PEONIE RED CHARM" nel copy,
+    // invece di tornare al testo originale.
     const bucketKey = `${name}::${unit}`;
     if (!buckets.has(bucketKey)) {
       buckets.set(bucketKey, {
         name,
         unit,
         totalQty: 0,
+        hasUnknownQty: false,
         qualities: new Set(),
         count: 0,
       });
     }
     const b = buckets.get(bucketKey);
-    b.totalQty += qty;
+    if (qty === null) {
+      b.hasUnknownQty = true;
+    } else {
+      b.totalQty += qty;
+    }
     b.count += 1;
     if (quality) b.qualities.add(quality);
   }
   
-  // Render bucket → riga di output
   const grouped = [];
   for (const b of buckets.values()) {
     let qLabel = '';
     if (b.qualities.size === 1) {
-      // Tutti i membri del gruppo hanno la stessa qualità (oppure 1 ce l'ha
-      // e gli altri "famiglia" senza qualità) → mostro la qualità.
       qLabel = ' ' + [...b.qualities][0];
     } else if (b.qualities.size > 1) {
-      // Più qualità nel gruppo → ometto, l'utente nel messaggio al fornitore
-      // chiarisce a parte oppure è ovvia dal nome.
       qLabel = '';
     }
     const unitLabel = b.unit ? ' ' + b.unit : '';
-    grouped.push(`${b.totalQty}${unitLabel} ${b.name}${qLabel}`.trim());
+    
+    // Costruisci la quantità: somma + "?" se c'è almeno una riga senza qty
+    let qtyLabel;
+    if (b.totalQty > 0 && b.hasUnknownQty) {
+      qtyLabel = `${b.totalQty}+?`;
+    } else if (b.totalQty > 0) {
+      qtyLabel = `${b.totalQty}`;
+    } else {
+      qtyLabel = '?';
+    }
+    
+    grouped.push(`${qtyLabel}${unitLabel} ${b.name}${qLabel}`.trim());
   }
   
-  // Ordino tutto alfabeticamente per nome (ignorando quantità + unità)
   const all = [...grouped, ...free];
   all.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
   return all;
