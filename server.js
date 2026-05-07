@@ -300,7 +300,8 @@ app.post('/api/orders', authenticate, async (req, res) => {
       description,
       status,
       goods_type,
-      photos
+      photos,
+      lineStates
     } = req.body;
     
     if (!date || !customer || !description) {
@@ -324,6 +325,18 @@ app.post('/api/orders', authenticate, async (req, res) => {
       db.autoMatchOrderLines(order.id, order.description);
     } catch (e) {
       console.error('⚠️ autoMatch creazione ordine fallito:', e.message);
+    }
+    
+    // Applica le scelte manuali dell'utente (chip articolo + provenienza)
+    // fatte nella modal Nuovo ordine. Vengono dopo l'auto-match così le
+    // scelte dell'utente vincono. Atomico col POST per evitare race con
+    // chiamate separate.
+    if (lineStates && typeof lineStates === 'object') {
+      try {
+        applyLineStatesToFabbisogno(order.id, lineStates);
+      } catch (e) {
+        console.error('⚠️ applyLineStates POST ordine fallito:', e.message);
+      }
     }
     
     // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
@@ -387,7 +400,8 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       description,
       status,
       goods_type,
-      photos
+      photos,
+      lineStates
     } = req.body;
     
     if (!customer || !description || !status) {
@@ -421,6 +435,16 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
         db.autoMatchOrderLines(order.id, order.description);
       } catch (e) {
         console.error('⚠️ autoMatch update ordine fallito:', e.message);
+      }
+      
+      // Applica scelte manuali dell'utente (chip + provenienza) fatte nella
+      // modal Modifica ordine. Vengono dopo l'auto-match così vincono.
+      if (lineStates && typeof lineStates === 'object') {
+        try {
+          applyLineStatesToFabbisogno(order.id, lineStates);
+        } catch (e) {
+          console.error('⚠️ applyLineStates PUT ordine fallito:', e.message);
+        }
       }
       
       // Invia notifica modifica (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
@@ -644,46 +668,70 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber/supplier', authenticate, (
   }
 });
 
-// POST /api/fabbisogno-checks/batch-state/:orderId - Set in batch supplier e/o match_key
-// per più righe in una sola chiamata. Usato dalla modal Nuovo/Modifica ordine
-// quando l'utente assegna provenienza e abbinamento articolo direttamente
-// durante la scrittura.
-//
-// Body: { lines: [{ index, supplier?, matchKey? }, ...] }
-// Solo i campi presenti vengono aggiornati.
-app.post('/api/fabbisogno-checks/batch-state/:orderId', authenticate, (req, res) => {
-  try {
-    const orderId = parseInt(req.params.orderId);
-    const lines = (req.body && Array.isArray(req.body.lines)) ? req.body.lines : [];
+// Helper riusabile: applica una mappa { idx -> { supplier?, matchKey? } }
+// a fabbisogno_checks. Solo i campi presenti vengono toccati. Usato sia
+// dal batch endpoint sia da POST/PUT /api/orders quando il client invia
+// `lineStates` insieme all'ordine (modal Nuovo/Modifica).
+function applyLineStatesToFabbisogno(orderId, lineStates) {
+  if (!lineStates || typeof lineStates !== 'object') {
+    return { supplierUpdates: 0, matchUpdates: 0, errors: [] };
+  }
+  let supplierUpdates = 0;
+  let matchUpdates = 0;
+  const errors = [];
+  
+  Object.keys(lineStates).forEach(rawIdx => {
+    const idx = parseInt(rawIdx);
+    if (Number.isNaN(idx) || idx < 0) return;
+    const s = lineStates[rawIdx] || {};
     
-    let supplierUpdates = 0;
-    let matchUpdates = 0;
-    const errors = [];
-    
-    for (const l of lines) {
-      const idx = parseInt(l.index);
-      if (Number.isNaN(idx) || idx < 0) continue;
-      
-      if (typeof l.supplier === 'string') {
-        try {
-          db.setFabbisognoSupplier(orderId, idx, l.supplier);
-          supplierUpdates++;
-        } catch (e) {
-          errors.push({ index: idx, field: 'supplier', error: e.message });
-        }
-      }
-      
-      if (typeof l.matchKey === 'string') {
-        try {
-          db.setFabbisognoMatchKey(orderId, idx, l.matchKey);
-          matchUpdates++;
-        } catch (e) {
-          errors.push({ index: idx, field: 'matchKey', error: e.message });
-        }
+    if (typeof s.supplier === 'string') {
+      try {
+        db.setFabbisognoSupplier(orderId, idx, s.supplier);
+        supplierUpdates++;
+      } catch (e) {
+        errors.push({ index: idx, field: 'supplier', error: e.message });
       }
     }
     
-    res.json({ supplierUpdates, matchUpdates, errors });
+    if (typeof s.matchKey === 'string') {
+      try {
+        db.setFabbisognoMatchKey(orderId, idx, s.matchKey);
+        matchUpdates++;
+      } catch (e) {
+        console.error('⚠️ applyLineStates: matchKey fallita idx=' + idx + ' key="' + s.matchKey + '" err=' + e.message);
+        errors.push({ index: idx, field: 'matchKey', error: e.message });
+      }
+    }
+  });
+  
+  return { supplierUpdates, matchUpdates, errors };
+}
+
+// POST /api/fabbisogno-checks/batch-state/:orderId - Set in batch supplier e/o match_key
+// per più righe in una sola chiamata. Endpoint di fallback / retro-compatibilità,
+// usato anche dalla modal quando il flush avviene dopo POST/PUT ordine.
+//
+// Body: { lines: [{ index, supplier?, matchKey? }, ...] }
+//   oppure { lineStates: { "0": { supplier?, matchKey? }, ... } }
+app.post('/api/fabbisogno-checks/batch-state/:orderId', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    let lineStates = (req.body && req.body.lineStates) || null;
+    
+    if (!lineStates && req.body && Array.isArray(req.body.lines)) {
+      lineStates = {};
+      for (const l of req.body.lines) {
+        const idx = parseInt(l.index);
+        if (Number.isNaN(idx) || idx < 0) continue;
+        lineStates[idx] = {};
+        if (typeof l.supplier === 'string') lineStates[idx].supplier = l.supplier;
+        if (typeof l.matchKey === 'string') lineStates[idx].matchKey = l.matchKey;
+      }
+    }
+    
+    const result = applyLineStatesToFabbisogno(orderId, lineStates || {});
+    res.json(result);
   } catch (error) {
     console.error('❌ Errore batch-state:', error);
     res.status(500).json({ error: 'Errore: ' + error.message });

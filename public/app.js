@@ -2327,30 +2327,25 @@ function setupOrderDescriptionLiveRender() {
   });
 }
 
-// Dopo il salvataggio (POST/PUT) di un ordine, applichiamo lo stato pendente
-// (chip + provenienze) al server in una sola chiamata batch.
-async function flushPendingOrderLineState(orderId) {
-  if (!orderId) return;
-  const lines = [];
+// Costruisce l'oggetto `lineStates` da inviare insieme al POST/PUT
+// ordine. Solo le proprietà toccate dall'utente vengono incluse (così
+// undefined = non toccato, preserva quanto in DB).
+//
+// Restituisce null se non c'è nulla da inviare.
+function buildLineStatesPayload() {
+  const lineStates = {};
+  let count = 0;
   Object.keys(pendingOrderLineState).forEach(idx => {
     const s = pendingOrderLineState[idx] || {};
-    const item = { index: parseInt(idx) };
-    let any = false;
-    if (typeof s.matchKey === 'string') { item.matchKey = s.matchKey; any = true; }
-    if (typeof s.supplier === 'string') { item.supplier = s.supplier; any = true; }
-    if (any) lines.push(item);
+    const entry = {};
+    if (typeof s.matchKey === 'string') entry.matchKey = s.matchKey;
+    if (typeof s.supplier === 'string') entry.supplier = s.supplier;
+    if (Object.keys(entry).length > 0) {
+      lineStates[idx] = entry;
+      count++;
+    }
   });
-  if (lines.length === 0) return;
-  try {
-    await authenticatedFetch(`${API_URL}/fabbisogno-checks/batch-state/${orderId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lines })
-    });
-  } catch (err) {
-    console.error('❌ Errore batch-state:', err);
-    showToast('Provenienze/abbinamenti non salvati — riprova dalla card', 'error');
-  }
+  return count > 0 ? lineStates : null;
 }
 
 // Funzione admin (chiamabile da console DevTools dopo il deploy):
@@ -3364,6 +3359,11 @@ async function handleOrderSubmit(e) {
     return;
   }
   
+  // Snapshot dello stato pendente PRIMA di chiudere la modal: così se
+  // qualche side-effect dovesse pulire pendingOrderLineState, qui ne
+  // abbiamo già una copia stabile da mandare al server.
+  const lineStatesPayload = buildLineStatesPayload();
+  
   const orderData = {
     customer,
     description,
@@ -3371,6 +3371,7 @@ async function handleOrderSubmit(e) {
     goods_type: goodsType,
     photos: uploadedPhotos
   };
+  if (lineStatesPayload) orderData.lineStates = lineStatesPayload;
   
   // BACKUP BOZZA: solo per nuovi ordini.
   // Per le modifiche, l'ordine originale è già sul server: se la modifica
@@ -3407,18 +3408,14 @@ async function handleOrderSubmit(e) {
         body: JSON.stringify({ ...orderData, date })
       });
       
-      // Se la disponibilità è stata cambiata, sincronizza le spunte
+      // Se la disponibilità è stata cambiata, sincronizza le spunte.
+      // (lineStates è già stato applicato lato server dentro la PUT)
       if (goodsTypeDirty) {
         const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
         if (totalLines > 0) {
           await applyGoodsTypeToChecks(parseInt(orderId), goodsType, totalLines);
         }
       }
-      
-      // Applica stato pendente righe (chip + provenienza) inserito in modal.
-      // L'ordine delle chiamate è importante: dopo applyGoodsTypeToChecks,
-      // così le scelte manuali sulle provenienze sopravvivono.
-      await flushPendingOrderLineState(parseInt(orderId));
       
       // Notifica modifica
       if (Notification.permission === 'granted') {
@@ -3453,7 +3450,8 @@ async function handleOrderSubmit(e) {
         } catch (e) { /* no-op */ }
       }
       
-      // Se la disponibilità è diversa da "da_ordinare", sincronizza le spunte sul nuovo ordine
+      // Se la disponibilità è diversa da "da_ordinare", sincronizza le spunte sul nuovo ordine.
+      // (lineStates è già stato applicato lato server dentro la POST)
       if (goodsType !== GOODS_TYPE.DA_ORDINARE && newOrderId) {
         try {
           const totalLines = description.split('\n').filter(l => l.trim() !== '').length;
@@ -3461,13 +3459,6 @@ async function handleOrderSubmit(e) {
             await applyGoodsTypeToChecks(newOrderId, goodsType, totalLines);
           }
         } catch (e) { /* no-op */ }
-      }
-      
-      // Applica stato pendente righe (chip + provenienza). L'auto-match
-      // server è già stato eseguito dentro POST /api/orders; le scelte
-      // dell'utente vengono dopo, quindi vincono.
-      if (newOrderId) {
-        await flushPendingOrderLineState(newOrderId);
       }
       
       // Notifica creazione
