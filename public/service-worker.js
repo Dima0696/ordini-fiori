@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
-// v138 - Backup bozza ordine in localStorage + recovery al login
-const CACHE_NAME = 'lombardaflor-orders-v138-draft-recovery';
-const STATIC_CACHE = 'lombardaflor-static-v138-draft-recovery';
-const API_CACHE = 'lombardaflor-api-v138-draft-recovery';
+// v139 - Anagrafica articoli: chip abbinamento + raggruppamento copy fornitore
+const CACHE_NAME = 'lombardaflor-orders-v139-anagrafica';
+const STATIC_CACHE = 'lombardaflor-static-v139-anagrafica';
+const API_CACHE = 'lombardaflor-api-v139-anagrafica';
 
 const urlsToCache = [
   '/',

@@ -60,6 +60,12 @@ const uploadPdf = multer({
   }
 });
 
+// Configurazione multer per upload anagrafica (Excel/CSV) - in memoria
+const uploadAnagrafica = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -312,6 +318,14 @@ app.post('/api/orders', authenticate, async (req, res) => {
     
     const order = db.createOrder(orderData, req.user.username);
     
+    // Match automatico anagrafica (conservativo, solo righe ancora non collegate).
+    // Non blocca la creazione se fallisce: è un layer opzionale.
+    try {
+      db.autoMatchOrderLines(order.id, order.description);
+    } catch (e) {
+      console.error('⚠️ autoMatch creazione ordine fallito:', e.message);
+    }
+    
     // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
     // const deliveryInfo = delivery_type === 'consegna' && delivery_time 
     //   ? ` - Consegna ore ${delivery_time}`
@@ -402,6 +416,13 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
     
     const order = db.updateOrder(req.params.id, orderData, req.user.username);
     if (order) {
+      // Match automatico sulle righe nuove (preserva quelle già agganciate manualmente).
+      try {
+        db.autoMatchOrderLines(order.id, order.description);
+      } catch (e) {
+        console.error('⚠️ autoMatch update ordine fallito:', e.message);
+      }
+      
       // Invia notifica modifica (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
       // setImmediate(() => {
       //   sendNotificationToAll(
@@ -623,6 +644,22 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber/supplier', authenticate, (
   }
 });
 
+// POST /api/fabbisogno-checks/:orderId/:lineNumber/match - Set match_key (aggancio anagrafica)
+// body: { matchKey: "NOME|QUALITA" oppure "" per scollegare }
+app.post('/api/fabbisogno-checks/:orderId/:lineNumber/match', authenticate, (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const lineNumber = parseInt(req.params.lineNumber);
+    const matchKey = (req.body && typeof req.body.matchKey === 'string') ? req.body.matchKey : '';
+    
+    const result = db.setFabbisognoMatchKey(orderId, lineNumber, matchKey);
+    res.json({ matchKey: result });
+  } catch (error) {
+    console.error('❌ Errore salvataggio match_key:', error);
+    res.status(400).json({ error: 'Errore salvataggio: ' + error.message });
+  }
+});
+
 // POST /api/fabbisogno-checks/:orderId/:lineNumber/prepared - Set prepared
 app.post('/api/fabbisogno-checks/:orderId/:lineNumber/prepared', authenticate, (req, res) => {
   try {
@@ -676,6 +713,115 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber', authenticate, (req, res)
     console.error('❌ Errore salvataggio check:', error);
     console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Errore salvataggio: ' + error.message });
+  }
+});
+
+// GET /api/articoli/search?q=... - Ricerca articoli nell'anagrafica master.
+// Ritorna fino a 20 candidati ordinati per rilevanza.
+app.get('/api/articoli/search', authenticate, (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+    const limit = Math.min(50, parseInt(req.query.limit) || 20);
+    const results = db.searchArticoli(q, limit);
+    res.json(results);
+  } catch (error) {
+    console.error('❌ Errore ricerca articoli:', error);
+    res.status(500).json({ error: 'Errore ricerca' });
+  }
+});
+
+// GET /api/articoli/count - Numero totale articoli in anagrafica.
+app.get('/api/articoli/count', authenticate, (req, res) => {
+  try {
+    res.json({ count: db.countArticoliMaster() });
+  } catch (error) {
+    res.status(500).json({ error: 'Errore count' });
+  }
+});
+
+// POST /api/articoli/upload - Carica e importa anagrafica articoli da file Excel/CSV.
+// Body: multipart/form-data con campo "file".
+// Query opzionale: ?reset=1 per cancellare l'anagrafica esistente prima dell'import.
+app.post('/api/articoli/upload', authenticate, uploadAnagrafica.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nessun file ricevuto' });
+    }
+    const xlsx = require('xlsx');
+    const wb = xlsx.read(req.file.buffer, { type: 'buffer', raw: true });
+    const sheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    
+    if (rows.length < 2) {
+      return res.status(400).json({ error: 'File vuoto o senza dati' });
+    }
+    
+    // Salta la prima riga (header)
+    const items = [];
+    const seen = new Set();
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      const nome = String(r[0] || '').trim();
+      const qualita = String(r[1] || '').trim();
+      if (!nome) continue;
+      const key = `${nome}|${qualita}`.toUpperCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({ nome, qualita });
+    }
+    
+    if (req.query.reset === '1') {
+      db.clearArticoliMaster();
+    }
+    
+    const before = db.countArticoliMaster();
+    const result = db.upsertArticoliMaster(items);
+    const after = db.countArticoliMaster();
+    
+    res.json({
+      filename: req.file.originalname,
+      rowsRead: rows.length - 1,
+      uniqueItems: items.length,
+      inserted: result.inserted,
+      skipped: result.skipped,
+      totalBefore: before,
+      totalAfter: after,
+    });
+  } catch (error) {
+    console.error('❌ Errore upload anagrafica:', error);
+    res.status(500).json({ error: 'Errore: ' + error.message });
+  }
+});
+
+// POST /api/articoli/auto-match-existing - Applica match automatico a tutti gli ordini
+// dei giorni recenti (utility da chiamare una volta dopo l'import dell'anagrafica).
+// Body opzionale: { fromDate, toDate } in formato YYYY-MM-DD; default ultimi 30 giorni.
+app.post('/api/articoli/auto-match-existing', authenticate, (req, res) => {
+  try {
+    const today = new Date();
+    const past = new Date(today);
+    past.setDate(today.getDate() - 30);
+    const future = new Date(today);
+    future.setDate(today.getDate() + 30);
+    const toIso = (d) => d.toISOString().slice(0, 10);
+    const fromDate = (req.body && req.body.fromDate) || toIso(past);
+    const toDate = (req.body && req.body.toDate) || toIso(future);
+    
+    const orders = db.getOrdersByDateRange(fromDate, toDate);
+    let processed = 0;
+    let totalApplied = 0;
+    for (const o of orders) {
+      const applied = db.autoMatchOrderLines(o.id, o.description);
+      const n = Object.keys(applied).length;
+      if (n > 0) totalApplied += n;
+      processed++;
+    }
+    res.json({ processed, totalApplied, fromDate, toDate });
+  } catch (error) {
+    console.error('❌ Errore auto-match-existing:', error);
+    res.status(500).json({ error: 'Errore: ' + error.message });
   }
 });
 

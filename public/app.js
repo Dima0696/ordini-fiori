@@ -1787,6 +1787,18 @@ function createOrderCard(order, index) {
       });
     });
     
+    // Click sul chip di abbinamento articolo → apre il selettore manuale
+    orderCard.querySelectorAll('.match-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const checkLine = chip.closest('.check-line');
+        if (!checkLine) return;
+        const orderId = parseInt(checkLine.dataset.orderId);
+        const lineNumber = parseInt(checkLine.dataset.line);
+        openMatchPicker(orderId, lineNumber);
+      });
+    });
+    
     // Nota: il click sulla card NON apre più il dettaglio.
     // La modifica avviene solo tramite il bottone "Modifica" dedicato.
     
@@ -1900,10 +1912,11 @@ function renderDescriptionWithChecks(orderId, description) {
   let html = '';
   
   html += lines.map((line, index) => {
-    const lineData = checks[index] || { checked: false, prepared: false, supplier: '' };
+    const lineData = checks[index] || { checked: false, prepared: false, supplier: '', matchKey: '' };
     const isOrdered = lineData.checked === true;
     const isPrepared = lineData.prepared === true;
     const supplier = (lineData.supplier || '').toUpperCase();
+    const matchKey = lineData.matchKey || '';
     
     // Icone SVG per differenziare visivamente le due spunte
     const cartIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/></svg>`;
@@ -1913,6 +1926,7 @@ function renderDescriptionWithChecks(orderId, description) {
       <span class="check-box check-ordered ${isOrdered ? 'checked' : ''}" data-type="ordered" title="Ordinato (acquistato dal fornitore)" aria-label="Ordinato">${cartIcon}</span>
       <span class="check-box check-prepared ${isPrepared ? 'checked' : ''}" data-type="prepared" title="Preparato (pronto in negozio)" aria-label="Preparato">${boxIcon}</span>
       <span class="check-text ${isOrdered && isPrepared ? 'all-done' : ''}">${escapeHtml(line.trim())}</span>
+      ${renderMatchChip(matchKey)}
       <span class="supplier-group" data-order-id="${orderId}" data-line="${index}">
         <button type="button" class="supplier-btn supplier-import ${supplier === 'IMPORT' ? 'active' : ''}" data-supplier="IMPORT" title="Import">IMP</button>
         <button type="button" class="supplier-btn supplier-ita ${supplier === 'ITA' ? 'active' : ''}" data-supplier="ITA" title="Italia">ITA</button>
@@ -1923,6 +1937,225 @@ function renderDescriptionWithChecks(orderId, description) {
   
   return html;
 }
+
+// Spezza una matchKey "NOME|QUALITA" → { name, quality }.
+// Se qualità è vuota, è una match "famiglia" (qualunque qualità).
+function parseMatchKey(matchKey) {
+  if (!matchKey) return { name: '', quality: '' };
+  const idx = matchKey.indexOf('|');
+  if (idx < 0) return { name: matchKey, quality: '' };
+  return {
+    name: matchKey.slice(0, idx),
+    quality: matchKey.slice(idx + 1)
+  };
+}
+
+// Restituisce un'etichetta breve per il chip (es. "FREE SPIRIT 70" da "ROSE FREE SPIRIT|70 CM").
+// Per riga molto lunga riduce a sigle capendo bene del tipo "ROSE F.S. 70".
+function shortChipLabel(matchKey) {
+  const { name, quality } = parseMatchKey(matchKey);
+  if (!name) return '';
+  // Mostra il nome intero (è già breve di solito).
+  // La qualità in suffisso, senza "CM".
+  let q = quality.replace(/\s*CM\b/gi, '').trim();
+  return q ? `${name} ${q}` : name;
+}
+
+// Renderizza il chip di abbinamento articolo (visivo, sempre tappabile).
+//  - matchKey valorizzata → chip verde con label breve dell'articolo
+//  - matchKey vuota → chip grigio con icona "+" (silenzioso, opzionale)
+function renderMatchChip(matchKey) {
+  if (matchKey) {
+    const label = shortChipLabel(matchKey);
+    return `<button type="button" class="match-chip match-chip-linked" data-match-key="${escapeHtml(matchKey)}" title="${escapeHtml(label)} — tap per cambiare" aria-label="Articolo abbinato: ${escapeHtml(label)}">${escapeHtml(label)}</button>`;
+  }
+  return `<button type="button" class="match-chip match-chip-empty" data-match-key="" title="Abbina a un articolo dell'anagrafica" aria-label="Abbina articolo">+</button>`;
+}
+
+// Modal di selezione articolo dall'anagrafica.
+// Apre una piccola dialog con un campo cerca + lista risultati.
+// Al tap su un risultato salva la matchKey via API e aggiorna il chip + cache.
+let _matchSearchTimer = null;
+let _matchSearchAbort = null;
+async function openMatchPicker(orderId, lineNumber) {
+  // Pre-popola il campo cerca con la riga (così la prima query è istantanea)
+  const order = findDisplayedOrder(orderId);
+  let lineText = '';
+  if (order && order.description) {
+    const lines = order.description.split('\n').filter(l => l.trim() !== '');
+    lineText = lines[lineNumber] || '';
+  }
+  const currentMatchKey = (allOrderChecks[orderId] && allOrderChecks[orderId][lineNumber] && allOrderChecks[orderId][lineNumber].matchKey) || '';
+  
+  // Rimuovi eventuale modal precedente
+  const existing = document.getElementById('match-picker-modal');
+  if (existing) existing.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'match-picker-modal';
+  modal.className = 'modal active match-picker-modal';
+  modal.innerHTML = `
+    <div class="modal-content match-picker-content">
+      <div class="match-picker-header">
+        <h2>Abbina articolo</h2>
+        <button type="button" class="btn-close match-picker-close" aria-label="Chiudi">&times;</button>
+      </div>
+      <div class="match-picker-body">
+        <p class="match-picker-line"><span class="match-picker-line-prefix">Riga:</span> ${escapeHtml(lineText)}</p>
+        <input type="search" class="match-picker-search" placeholder="Cerca nell'anagrafica..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="match-picker-results" role="listbox"></div>
+        ${currentMatchKey ? `<button type="button" class="match-picker-unlink">Scollega da anagrafica</button>` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  const closeBtn = modal.querySelector('.match-picker-close');
+  const searchInput = modal.querySelector('.match-picker-search');
+  const resultsBox = modal.querySelector('.match-picker-results');
+  const unlinkBtn = modal.querySelector('.match-picker-unlink');
+  
+  const close = () => modal.remove();
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') {
+      close();
+      document.removeEventListener('keydown', escHandler);
+    }
+  });
+  
+  const doSearch = async (q) => {
+    if (_matchSearchAbort) _matchSearchAbort.abort();
+    _matchSearchAbort = new AbortController();
+    if (!q || q.trim().length < 2) {
+      resultsBox.innerHTML = '<p class="match-picker-empty">Digita almeno 2 caratteri</p>';
+      return;
+    }
+    try {
+      const res = await authenticatedFetch(`${API_URL}/articoli/search?q=${encodeURIComponent(q)}`, { signal: _matchSearchAbort.signal });
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        resultsBox.innerHTML = '<p class="match-picker-empty">Nessun articolo trovato</p>';
+        return;
+      }
+      resultsBox.innerHTML = rows.map(r => {
+        const isCurrent = r.matchKey === currentMatchKey;
+        const qLabel = r.qualita ? `<span class="match-result-quality">${escapeHtml(r.qualita)}</span>` : '';
+        return `<button type="button" class="match-result ${isCurrent ? 'is-current' : ''}" data-match-key="${escapeHtml(r.matchKey)}">
+          <span class="match-result-name">${escapeHtml(r.nome)}</span>
+          ${qLabel}
+        </button>`;
+      }).join('');
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('Errore ricerca articoli:', err);
+      resultsBox.innerHTML = '<p class="match-picker-empty">Errore: ' + escapeHtml(err.message || 'rete') + '</p>';
+    }
+  };
+  
+  searchInput.addEventListener('input', (e) => {
+    if (_matchSearchTimer) clearTimeout(_matchSearchTimer);
+    _matchSearchTimer = setTimeout(() => doSearch(e.target.value), 150);
+  });
+  
+  resultsBox.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.match-result');
+    if (!btn) return;
+    const matchKey = btn.dataset.matchKey || '';
+    await applyMatchKey(orderId, lineNumber, matchKey);
+    close();
+  });
+  
+  if (unlinkBtn) {
+    unlinkBtn.addEventListener('click', async () => {
+      await applyMatchKey(orderId, lineNumber, '');
+      close();
+    });
+  }
+  
+  // Pre-popola e cerca
+  searchInput.value = lineText;
+  searchInput.focus();
+  if (lineText.trim().length >= 2) doSearch(lineText);
+}
+
+// Salva la matchKey al server e aggiorna cache + UI ottimisticamente.
+async function applyMatchKey(orderId, lineNumber, matchKey) {
+  // Optimistic update cache
+  if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
+  if (!allOrderChecks[orderId][lineNumber]) {
+    allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '', matchKey: '' };
+  }
+  const prevKey = allOrderChecks[orderId][lineNumber].matchKey || '';
+  allOrderChecks[orderId][lineNumber].matchKey = matchKey;
+  
+  // Aggiorna chip nella card
+  const chipBtn = document.querySelector(`.check-line[data-order-id="${orderId}"][data-line="${lineNumber}"] .match-chip`);
+  if (chipBtn) {
+    const newHtml = renderMatchChip(matchKey);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = newHtml;
+    chipBtn.replaceWith(tmp.firstElementChild);
+  }
+  
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/match`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchKey })
+    });
+  } catch (err) {
+    // Rollback
+    allOrderChecks[orderId][lineNumber].matchKey = prevKey;
+    const chipBtn2 = document.querySelector(`.check-line[data-order-id="${orderId}"][data-line="${lineNumber}"] .match-chip`);
+    if (chipBtn2) {
+      const newHtml = renderMatchChip(prevKey);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = newHtml;
+      chipBtn2.replaceWith(tmp.firstElementChild);
+    }
+    showToast('Errore salvataggio articolo', 'error');
+    console.error(err);
+  }
+}
+
+// Funzione admin (chiamabile da console DevTools dopo il deploy):
+//   uploadAnagrafica()              → apre file picker, upload e merge con esistente
+//   uploadAnagrafica({ reset: true }) → reset totale prima dell'import
+// Mostra toast con il risultato.
+window.uploadAnagrafica = function(opts = {}) {
+  const reset = opts.reset === true;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls,.csv';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    showToast('Caricamento anagrafica...', 'info');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const url = `${API_URL}/articoli/upload${reset ? '?reset=1' : ''}`;
+      const res = await authenticatedFetch(url, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) {
+        showToast('Errore: ' + data.error, 'error');
+        return;
+      }
+      const msg = `✓ Anagrafica importata: ${data.totalAfter} articoli (era ${data.totalBefore}, +${data.inserted})`;
+      showToast(msg, 'success');
+      console.log('[ANAGRAFICA]', data);
+    } catch (err) {
+      console.error(err);
+      showToast('Errore upload: ' + err.message, 'error');
+    }
+  });
+  input.click();
+};
 
 // Calcola statistiche preparazione ordine (basato su PREPARATO)
 function getOrderProgress(orderId, description) {
@@ -2063,7 +2296,7 @@ async function applyGoodsTypeToChecks(orderId, goodsType, totalLines) {
   if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
   for (let i = 0; i < totalLines; i++) {
     if (!allOrderChecks[orderId][i]) {
-      allOrderChecks[orderId][i] = { checked: false, prepared: false, supplier: '' };
+      allOrderChecks[orderId][i] = { checked: false, prepared: false, supplier: '', matchKey: '' };
     }
     if (typeof payload.checked === 'boolean') {
       allOrderChecks[orderId][i].checked = payload.checked;
@@ -2203,7 +2436,7 @@ async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
     // Aggiorna cache locale
     if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
     if (!allOrderChecks[orderId][lineNumber]) {
-      allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '' };
+      allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '', matchKey: '' };
     }
     allOrderChecks[orderId][lineNumber].supplier = newSupplier;
   } catch (error) {
@@ -2389,12 +2622,113 @@ function articleSortKey(line) {
   return s.trim();
 }
 
+// Estrae quantità + unità di misura dall'inizio di una riga d'ordine.
+// Esempi:
+//   "100 rose freedom"      → { qty: 100, unit: '' }
+//   "2 mazzi rose freedom"  → { qty: 2,   unit: 'mazzi' }
+//   "rose"                  → { qty: null, unit: '' }
+function parseLineQuantity(line) {
+  const s = (line || '').trim();
+  const m = s.match(/^(\d+)(?:\s+(mazzi|mazzo|steli|stelo|pezzi|pezzo|pacchetti|pacchetto|pacchi|pacco|cassette|cassetta|casse|cassa|cartoni|cartone|conf|confezioni|confezione|scatole|scatola|vasi|vaso))?\b/i);
+  if (!m) return { qty: null, unit: '' };
+  const unit = m[2] ? m[2].toLowerCase() : '';
+  const unitNorm = unit
+    .replace(/^(mazz[oi])$/, 'mazzi')
+    .replace(/^(stel[oi])$/, 'steli')
+    .replace(/^(pezz[oi])$/, 'pezzi')
+    .replace(/^(pacchett[oi])$/, 'pacchetti')
+    .replace(/^(pacch[oi])$/, 'pacchi')
+    .replace(/^(cassett[ae])$/, 'cassette')
+    .replace(/^(cass[ae])$/, 'casse')
+    .replace(/^(cartone|cartoni)$/, 'cartoni')
+    .replace(/^(scatole|scatola)$/, 'scatole')
+    .replace(/^(vas[oi])$/, 'vasi');
+  return { qty: parseInt(m[1], 10), unit: unitNorm };
+}
+
+// Spezza una matchKey "NOME|QUALITA" → { name, quality } (utility lato copy).
+function splitMatchKey(matchKey) {
+  if (!matchKey) return { name: '', quality: '' };
+  const idx = matchKey.indexOf('|');
+  if (idx < 0) return { name: matchKey, quality: '' };
+  return { name: matchKey.slice(0, idx), quality: matchKey.slice(idx + 1) };
+}
+
+// Costruisce le righe del copy raggruppando per matchKey-name + unità di misura
+// sommando le quantità. Le righe non agganciate restano testuali, separate.
+//
+// items: [{ line, matchKey }]
+// Output: array di stringhe già ordinate alfabeticamente.
+function buildSupplierCopyLines(items) {
+  // Bucket per (matchKeyName + unit). Le righe senza matchKey o senza qty
+  // valida vanno nei "free" e mantengono il testo originale.
+  const buckets = new Map();
+  const free = [];
+  
+  for (const it of items) {
+    const line = it.line.trim();
+    if (!line) continue;
+    const { matchKey } = it;
+    if (!matchKey) {
+      free.push(line);
+      continue;
+    }
+    const { name, quality } = splitMatchKey(matchKey);
+    if (!name) {
+      free.push(line);
+      continue;
+    }
+    const { qty, unit } = parseLineQuantity(line);
+    if (qty === null) {
+      // Non posso sommare, lascio libera ma tag con il nome per ordinamento
+      free.push(line);
+      continue;
+    }
+    const bucketKey = `${name}::${unit}`;
+    if (!buckets.has(bucketKey)) {
+      buckets.set(bucketKey, {
+        name,
+        unit,
+        totalQty: 0,
+        qualities: new Set(),
+        count: 0,
+      });
+    }
+    const b = buckets.get(bucketKey);
+    b.totalQty += qty;
+    b.count += 1;
+    if (quality) b.qualities.add(quality);
+  }
+  
+  // Render bucket → riga di output
+  const grouped = [];
+  for (const b of buckets.values()) {
+    let qLabel = '';
+    if (b.qualities.size === 1) {
+      // Tutti i membri del gruppo hanno la stessa qualità (oppure 1 ce l'ha
+      // e gli altri "famiglia" senza qualità) → mostro la qualità.
+      qLabel = ' ' + [...b.qualities][0];
+    } else if (b.qualities.size > 1) {
+      // Più qualità nel gruppo → ometto, l'utente nel messaggio al fornitore
+      // chiarisce a parte oppure è ovvia dal nome.
+      qLabel = '';
+    }
+    const unitLabel = b.unit ? ' ' + b.unit : '';
+    grouped.push(`${b.totalQty}${unitLabel} ${b.name}${qLabel}`.trim());
+  }
+  
+  // Ordino tutto alfabeticamente per nome (ignorando quantità + unità)
+  const all = [...grouped, ...free];
+  all.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
+  return all;
+}
+
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
 // supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
 function copySupplierItems(supplier) {
   console.log('[COPY] Richiesta copia per:', supplier, '| Giorni extra:', [...selectedExtraDays]);
   
-  const lines = [];
+  const items = [];
   let unassignedCount = 0;
   const isUnassignedMode = supplier === '__UNASSIGNED__';
   
@@ -2413,19 +2747,18 @@ function copySupplierItems(supplier) {
       
       if (!rowSupplier) unassignedCount++;
       
-      if (isUnassignedMode) {
-        if (!rowSupplier) lines.push(line.trim());
-      } else {
-        if (rowSupplier === supplier) lines.push(line.trim());
+      const accept = isUnassignedMode ? !rowSupplier : (rowSupplier === supplier);
+      if (accept) {
+        items.push({ line: line.trim(), matchKey: data.matchKey || '' });
       }
     });
   });
   
-  // Ordina alfabeticamente per nome articolo (ignorando la quantità iniziale).
-  // Locale italiano per gestire accenti/varianti.
-  lines.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
+  // Raggruppamento per articolo dell'anagrafica (somma quantità su righe abbinate),
+  // poi ordinamento alfabetico unico.
+  const lines = buildSupplierCopyLines(items);
   
-  console.log('[COPY] Trovati', lines.length, 'articoli su', pool.length, 'ordini');
+  console.log('[COPY] Trovati', items.length, 'articoli (', lines.length, 'dopo raggruppamento) su', pool.length, 'ordini');
   
   if (lines.length === 0) {
     if (isUnassignedMode) {
@@ -3863,7 +4196,7 @@ function renderOrderDetail(order) {
           return lines.map(line => {
             const trimmed = line.trim();
             if (trimmed === '') return '<div class="print-checklist-spacer"></div>';
-            const lineData = checks[itemIndex] || { checked: false, prepared: false, supplier: '' };
+            const lineData = checks[itemIndex] || { checked: false, prepared: false, supplier: '', matchKey: '' };
             itemIndex++;
             const isOrdered = lineData.checked === true;
             const isPrepared = lineData.prepared === true;

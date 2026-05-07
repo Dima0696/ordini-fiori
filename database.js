@@ -179,6 +179,22 @@ const initDb = () => {
     )
   `;
   
+  // Anagrafica master degli articoli (importata dal gestionale).
+  // match_key è la chiave canonica (UPPERCASE, senza accenti) usata per:
+  //  - garantire unicità
+  //  - confronto veloce dal frontend (i checks la salvano come stringa)
+  const createArticoliMasterTableQuery = `
+    CREATE TABLE IF NOT EXISTS articoli_master (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      qualita TEXT DEFAULT '',
+      nome_norm TEXT NOT NULL,
+      qualita_norm TEXT DEFAULT '',
+      match_key TEXT NOT NULL UNIQUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
@@ -189,6 +205,7 @@ const initDb = () => {
   db.exec(createCustomerAddressesTableQuery);
   db.exec(createCatalogItemsTableQuery);
   db.exec(createOrderItemsTableQuery);
+  db.exec(createArticoliMasterTableQuery);
   
   // Crea indici per performance
   try {
@@ -208,6 +225,9 @@ const initDb = () => {
     db.exec('CREATE INDEX IF NOT EXISTS idx_catalog_items_date ON catalog_items(catalog_date)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_catalog_items_active ON catalog_items(active)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_articoli_master_nome_norm ON articoli_master(nome_norm)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_articoli_master_match_key ON articoli_master(match_key)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_fabbisogno_match_key ON fabbisogno_checks(match_key)');
     console.log('✓ Indici database creati per performance');
   } catch (error) {
     console.log('⚠️ Indici già esistenti');
@@ -253,6 +273,17 @@ const initDb = () => {
       console.log('✅ Aggiunta colonna: supplier (fabbisogno_checks)');
     } catch (error) {
       console.error('⚠️ Errore aggiungendo supplier:', error.message);
+    }
+  }
+
+  // Migrazione: aggiunge colonna 'match_key' a fabbisogno_checks
+  // (riferimento all'articolo dell'anagrafica master, formato "NOME|QUALITA" già normalizzato)
+  if (!columnExists('fabbisogno_checks', 'match_key')) {
+    try {
+      db.exec("ALTER TABLE fabbisogno_checks ADD COLUMN match_key TEXT DEFAULT ''");
+      console.log('✅ Aggiunta colonna: match_key (fabbisogno_checks)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo match_key:', error.message);
     }
   }
   
@@ -613,14 +644,15 @@ const deleteSubscription = (endpoint) => {
 
 // Funzioni per gestire i checkbox del fabbisogno
 const getFabbisognoChecks = (orderId) => {
-  const stmt = db.prepare('SELECT line_number, checked, prepared, supplier FROM fabbisogno_checks WHERE order_id = ?');
+  const stmt = db.prepare('SELECT line_number, checked, prepared, supplier, match_key FROM fabbisogno_checks WHERE order_id = ?');
   const checks = stmt.all(orderId);
   const result = {};
   checks.forEach(c => {
     result[c.line_number] = {
       checked: c.checked === 1,
       prepared: (c.prepared || 0) === 1,
-      supplier: c.supplier || ''
+      supplier: c.supplier || '',
+      matchKey: c.match_key || ''
     };
   });
   return result;
@@ -763,6 +795,353 @@ const setFabbisognoSupplier = (orderId, lineNumber, supplier) => {
     return validSupplier;
   } catch (error) {
     console.error('❌ DB setFabbisognoSupplier ERROR:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// Anagrafica articoli (master) + matching
+// ============================================
+
+// Normalizza una stringa per ricerca/confronto:
+//  - upper case
+//  - rimuove accenti
+//  - collassa spazi multipli
+//  - rimuove caratteri non alfanumerici tranne spazi, /, +
+const normalizeText = (s) => {
+  if (!s) return '';
+  return String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s/+]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Costruisce la match_key canonica da nome + qualità.
+// Formato: "NOME|QUALITA" (qualità può essere vuota → "NOME|")
+const buildMatchKey = (nome, qualita) => {
+  const n = normalizeText(nome);
+  const q = normalizeText(qualita);
+  return `${n}|${q}`;
+};
+
+// Spezza il testo normalizzato in token (parole) significativi.
+// Filtra parole troppo corte (lunghe < 2) o stop-word italiane comuni.
+// Include unità di misura/confezione (mazzi, pacchetti, ecc.) che non
+// portano informazione utile al matching del nome dell'articolo.
+// Stop-words italiane comuni + unità di confezione/quantità + descrittori
+// non discriminanti. NON includere parole che sono qualità reali in anagrafica
+// (es. EXTRA, PRIMA, SUPER, SECONDA): vanno conservate come token significativi.
+const STOP_WORDS = new Set([
+  'DI', 'DA', 'DE', 'IL', 'LA', 'LO', 'LE', 'GLI', 'A', 'AL', 'CON', 'PER', 'IN', 'E', 'O',
+  'CM', 'GR', 'MM', 'KG', 'PZ',
+  'MAZZO', 'MAZZI', 'STELO', 'STELI', 'PEZZO', 'PEZZI', 'PACCHETTO', 'PACCHETTI', 'PACCHI', 'PACCO',
+  'BUNCH', 'BUNCHES', 'CASSE', 'CASSA', 'SCATOLA', 'SCATOLE', 'SCATOLONE',
+  // Descrittori sfumati dei clienti (raramente in anagrafica come parte del nome)
+  'GRANDI', 'GRANDE', 'PICCOLO', 'PICCOLA', 'PICCOLI', 'PICCOLE',
+  'CORTO', 'CORTA', 'CORTI', 'CORTE', 'LUNGO', 'LUNGA', 'LUNGHI', 'LUNGHE',
+  'INTENSO', 'INTENSA', 'TENUE', 'PASTELLO', 'CHIARO', 'CHIARA', 'SCURO', 'SCURA',
+  'GAMBO', 'FOGLIA', 'FOGLIE', 'FIORE', 'FIORI',
+]);
+const tokenize = (s) => {
+  return normalizeText(s)
+    .split(' ')
+    .filter(t => t.length >= 2 && !STOP_WORDS.has(t));
+};
+
+// Tokenizza una RIGA D'ORDINE (con quantità all'inizio).
+// Differenza con tokenize: rimuove il primo token se è un numero (= quantità)
+// ma conserva eventuali numeri successivi (= qualità tipo "70" in "70 CM").
+const tokenizeOrderLine = (line) => {
+  const tokens = tokenize(line);
+  if (tokens.length === 0) return [];
+  if (/^\d+$/.test(tokens[0])) return tokens.slice(1);
+  return tokens;
+};
+
+// Inserisce/aggiorna in batch un set di articoli master.
+// items: [{ nome, qualita }]
+// Idempotente: la chiave è match_key.
+// Ritorna { inserted, skipped } per logging.
+const upsertArticoliMaster = (items) => {
+  let inserted = 0;
+  let skipped = 0;
+  const stmt = db.prepare(`
+    INSERT INTO articoli_master (nome, qualita, nome_norm, qualita_norm, match_key)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(match_key) DO NOTHING
+  `);
+  const tx = db.transaction((rows) => {
+    for (const r of rows) {
+      const nome = (r.nome || '').trim();
+      if (!nome) { skipped++; continue; }
+      const qualita = (r.qualita || '').trim();
+      const matchKey = buildMatchKey(nome, qualita);
+      const info = stmt.run(nome, qualita, normalizeText(nome), normalizeText(qualita), matchKey);
+      if (info.changes > 0) inserted++; else skipped++;
+    }
+  });
+  tx(items);
+  return { inserted, skipped };
+};
+
+const countArticoliMaster = () => {
+  return db.prepare('SELECT COUNT(*) as c FROM articoli_master').get().c;
+};
+
+const clearArticoliMaster = () => {
+  db.prepare('DELETE FROM articoli_master').run();
+};
+
+// Cerca articoli per nome (e opzionalmente qualità).
+// q può essere il testo che digita l'utente o una riga di ordine intera.
+// Ritorna fino a `limit` candidati ordinati per "rilevanza":
+//   - punteggio alto se TUTTI i token della query sono nel nome+qualità dell'articolo
+//   - punteggio extra se anche la qualità matcha esattamente
+const searchArticoli = (q, limit = 20) => {
+  const tokens = tokenize(q);
+  if (tokens.length === 0) return [];
+  
+  // Filtro grossolano via LIKE sul primo token (più selettivo: il più lungo)
+  const sorted = [...tokens].sort((a, b) => b.length - a.length);
+  const seedToken = sorted[0];
+  const rows = db.prepare(`
+    SELECT id, nome, qualita, nome_norm, qualita_norm, match_key
+    FROM articoli_master
+    WHERE nome_norm LIKE ? OR qualita_norm LIKE ?
+    LIMIT 500
+  `).all(`%${seedToken}%`, `%${seedToken}%`);
+  
+  const scored = [];
+  for (const r of rows) {
+    const allText = `${r.nome_norm} ${r.qualita_norm}`;
+    const articleTokens = new Set(tokenize(allText));
+    let matched = 0;
+    for (const t of tokens) if (articleTokens.has(t)) matched++;
+    if (matched === 0) continue;
+    // Score base: % di token query che matchano
+    let score = matched / tokens.length;
+    // Bonus se TUTTI i token della query sono presenti
+    if (matched === tokens.length) score += 1.0;
+    // Bonus per qualità presente
+    if (r.qualita_norm && tokens.some(t => r.qualita_norm.split(' ').includes(t))) score += 0.2;
+    // Penalità leggera per nomi molto lunghi (preferire nomi più stretti)
+    score -= Math.min(0.3, (r.nome_norm.length / 200));
+    scored.push({ ...r, score, matchedTokens: matched });
+  }
+  
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map(r => ({
+    id: r.id,
+    nome: r.nome,
+    qualita: r.qualita,
+    matchKey: r.match_key,
+    score: r.score
+  }));
+};
+
+// Verifica che una matchKey sia valida.
+// Sono valide:
+//  - matchKey esatta presente in articoli_master
+//  - matchKey "famiglia" del tipo "NOME|" dove NOME esiste come nome_norm
+//    (significa "qualsiasi qualità di NOME")
+const articoloExistsByMatchKey = (matchKey) => {
+  if (!matchKey) return false;
+  const exact = db.prepare('SELECT 1 FROM articoli_master WHERE match_key = ?').get(matchKey);
+  if (exact) return true;
+  // Family key: "NOME|" o "NOME"
+  const idx = matchKey.indexOf('|');
+  const nameNorm = idx >= 0 ? matchKey.slice(0, idx) : matchKey;
+  const qual = idx >= 0 ? matchKey.slice(idx + 1) : '';
+  if (qual === '' && nameNorm) {
+    const family = db.prepare('SELECT 1 FROM articoli_master WHERE nome_norm = ? LIMIT 1').get(nameNorm);
+    return !!family;
+  }
+  return false;
+};
+
+// Estrae la "parte nome" da una matchKey (utile per raggruppare).
+const matchKeyName = (matchKey) => {
+  if (!matchKey) return '';
+  const idx = matchKey.indexOf('|');
+  return idx >= 0 ? matchKey.slice(0, idx) : matchKey;
+};
+
+// Match automatico CONSERVATIVO per una singola riga di ordine.
+// Ritorna la matchKey solo se UNA SOLA coppia anagrafica copre TUTTI i token
+// significativi del nome dell'articolo (qualsiasi qualità). Altrimenti ''.
+//
+// Logica conservativa:
+//  1) Estrae i token dalla riga (escludendo numeri puri = quantità)
+//  2) Trova tutti i nomi master i cui token sono SOTTOINSIEME dei token riga
+//     (quindi la riga "100 rose free spirit 70" copre "ROSE FREE SPIRIT")
+//  3) Tra questi, prende il nome con più token (più specifico)
+//  4) Se più articoli condividono lo stesso nome (qualità diverse), prova a
+//     vedere se c'è una qualità che matcha la riga; altrimenti torna match
+//     solo se esiste una sola variante di qualità o se una è "vuota"
+const autoMatchLine = (line) => {
+  if (!line) return '';
+  // Token della riga: rimuove la quantità iniziale ma conserva eventuali numeri
+  // successivi (es. "70" in "ROSE FREEDOM 70 CM" è la qualità).
+  const lineTokens = tokenizeOrderLine(line);
+  if (lineTokens.length === 0) return '';
+  const lineTokenSet = new Set(lineTokens);
+  
+  // Carica tutti i nomi distinti dell'anagrafica e i loro token.
+  // 4141 nomi distinti, basta una query (cached idealmente, ma 4k righe è ok).
+  const allArticles = db.prepare('SELECT id, nome, qualita, nome_norm, qualita_norm, match_key FROM articoli_master').all();
+  
+  // Raggruppa per nome → tutte le qualità
+  const byName = new Map();
+  for (const a of allArticles) {
+    if (!byName.has(a.nome_norm)) byName.set(a.nome_norm, []);
+    byName.get(a.nome_norm).push(a);
+  }
+  
+  // Trova nomi i cui token sono interamente contenuti nella riga
+  const candidates = [];
+  for (const [nameNorm, arts] of byName.entries()) {
+    const nameTokens = tokenize(nameNorm);
+    if (nameTokens.length === 0) continue;
+    const allIn = nameTokens.every(t => lineTokenSet.has(t));
+    if (allIn) {
+      candidates.push({ nameNorm, nameTokens, articles: arts });
+    }
+  }
+  
+  if (candidates.length === 0) return '';
+  
+  // Specificità: prima conta i token alfabetici (non numerici), poi il totale.
+  // Così "ROSE FREEDOM" (2 alpha) batte "ROSE 70 CM" (1 alpha + 1 numerico).
+  const alphaCount = (toks) => toks.filter(t => !/^\d+$/.test(t)).length;
+  candidates.forEach(c => { c._alpha = alphaCount(c.nameTokens); });
+  candidates.sort((a, b) => {
+    if (b._alpha !== a._alpha) return b._alpha - a._alpha;
+    return b.nameTokens.length - a.nameTokens.length;
+  });
+  
+  const topAlpha = candidates[0]._alpha;
+  const topLen = candidates[0].nameTokens.length;
+  const topMatches = candidates.filter(c => c._alpha === topAlpha && c.nameTokens.length === topLen);
+  
+  // Conservativo: se ci sono più nomi con la stessa specificità → ambiguo, NO match
+  if (topMatches.length > 1) return '';
+  
+  // Il nome più specifico deve avere almeno 2 token alfabetici, OPPURE
+  // 1 token alfabetico se quel singolo token è "univoco" (es. nessun nome
+  // master più lungo lo contiene → garantisce che "ROSE" non matcha mai
+  // da solo, perché esistono "ROSE FREEDOM" ecc.).
+  if (topAlpha < 2) {
+    // Un solo token alfabetico: accettiamo solo se la riga non ha altri token
+    // alfabetici (cioè la riga è davvero "5 eucalipto" senza altre parole).
+    const lineAlpha = lineTokens.filter(t => !/^\d+$/.test(t));
+    if (lineAlpha.length !== 1) return '';
+    // E quel token deve essere il solo nome unico nell'anagrafica (improbabile
+    // che capiti, ma resta conservativo: skip).
+    return '';
+  }
+  
+  const chosen = topMatches[0];
+  const arts = chosen.articles;
+  const remainingTokens = lineTokens.filter(t => !chosen.nameTokens.includes(t));
+  
+  // 1) Tenta match con una qualità specifica (se la riga ne contiene token corrispondenti)
+  for (const a of arts) {
+    if (!a.qualita_norm) continue;
+    const qTokens = tokenize(a.qualita_norm);
+    if (qTokens.length === 0) continue;
+    const allQIn = qTokens.every(t => remainingTokens.includes(t));
+    if (allQIn && qTokens.length > 0) {
+      return a.match_key;
+    }
+  }
+  
+  // 2) Variante "senza qualità" esiste in anagrafica → matcha quella
+  const blankQuality = arts.find(a => !a.qualita_norm);
+  if (blankQuality) return blankQuality.match_key;
+  
+  // 3) Una sola qualità in anagrafica per quel nome → matcha quella
+  if (arts.length === 1) return arts[0].match_key;
+  
+  // 4) Più qualità diverse e la riga non specifica → matcha la "famiglia" del nome
+  //    (matchKey con qualità vuota: "NOME|"). Il raggruppamento poi unirà questa
+  //    riga con quelle che hanno la qualità.
+  //    Conservativo: lo facciamo SOLO se non ci sono token rimanenti dopo il nome,
+  //    perché se la riga dice "rose freedom XXL" e XXL non è una qualità in
+  //    anagrafica, quel "XXL" potrebbe essere una specifica importante → ambiguo.
+  if (remainingTokens.length === 0) {
+    return `${chosen.nameNorm}|`;
+  }
+  
+  return '';
+};
+
+// Match automatico per TUTTE le righe di un ordine.
+// Compila solo le righe che NON hanno già una match_key impostata
+// (preserva le scelte manuali dell'utente).
+// Ritorna oggetto { lineIndex: matchKey } con i nuovi match applicati.
+const autoMatchOrderLines = (orderId, description) => {
+  if (!description) return {};
+  const lines = description.split('\n').filter(l => l.trim() !== '');
+  if (lines.length === 0) return {};
+  
+  // Esiste l'anagrafica? Se vuota, salta.
+  if (countArticoliMaster() === 0) return {};
+  
+  const existing = db.prepare('SELECT line_number, match_key FROM fabbisogno_checks WHERE order_id = ?').all(orderId);
+  const existingMap = new Map();
+  for (const e of existing) existingMap.set(e.line_number, e.match_key || '');
+  
+  const applied = {};
+  const tx = db.transaction(() => {
+    for (let i = 0; i < lines.length; i++) {
+      // Salta se l'utente ha già scelto manualmente
+      if (existingMap.has(i) && existingMap.get(i)) continue;
+      
+      const matchKey = autoMatchLine(lines[i]);
+      if (!matchKey) continue;
+      
+      // Upsert
+      const existsRow = db.prepare('SELECT id FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, i);
+      if (existsRow) {
+        db.prepare('UPDATE fabbisogno_checks SET match_key = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?')
+          .run(matchKey, orderId, i);
+      } else {
+        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, match_key) VALUES (?, ?, 0, 0, \'\', ?)')
+          .run(orderId, i, matchKey);
+      }
+      applied[i] = matchKey;
+    }
+  });
+  tx();
+  return applied;
+};
+
+// Set match_key manuale su una riga.
+// Verifica che la matchKey esista in anagrafica (o sia vuota = scollega).
+const setFabbisognoMatchKey = (orderId, lineNumber, matchKey) => {
+  const key = (matchKey || '').trim();
+  if (key && !articoloExistsByMatchKey(key)) {
+    throw new Error('match_key inesistente: ' + key);
+  }
+  
+  try {
+    const upsert = db.transaction(() => {
+      const existing = db.prepare('SELECT id FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
+      if (existing) {
+        db.prepare('UPDATE fabbisogno_checks SET match_key = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?')
+          .run(key, orderId, lineNumber);
+      } else {
+        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, match_key) VALUES (?, ?, 0, 0, \'\', ?)')
+          .run(orderId, lineNumber, key);
+      }
+    });
+    upsert();
+    return key;
+  } catch (error) {
+    console.error('❌ DB setFabbisognoMatchKey ERROR:', error);
     throw error;
   }
 };
@@ -1390,7 +1769,20 @@ module.exports = {
   setFabbisognoCheck,
   setFabbisognoPrepared,
   setFabbisognoSupplier,
+  setFabbisognoMatchKey,
   clearFabbisognoChecks,
+  // Anagrafica articoli master
+  upsertArticoliMaster,
+  countArticoliMaster,
+  clearArticoliMaster,
+  searchArticoli,
+  articoloExistsByMatchKey,
+  matchKeyName,
+  autoMatchLine,
+  autoMatchOrderLines,
+  buildMatchKey,
+  normalizeText,
+  tokenize,
   getAllListini,
   getListinoById,
   addListino,
