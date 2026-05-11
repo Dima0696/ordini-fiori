@@ -2938,47 +2938,78 @@ function splitMatchKey(matchKey) {
   return { name: matchKey.slice(0, idx), quality: matchKey.slice(idx + 1) };
 }
 
-// Costruisce le righe del copy una per una, SENZA raggruppare e SENZA
-// pulizia dei caratteri (pallini/simboli restano se l'utente li ha
-// scritti). Comportamento "letterale":
-//  - riga con matchKey + qty parsabile → "<qty><unit?> <NOME ANAGRAFICA>[ QUALITÀ]"
-//  - riga con matchKey ma qty non parsabile (pallino, simboli...) → testo originale
-//  - riga senza matchKey → testo originale
+// Costruisce le righe del copy raggruppando in modo "SAFE":
 //
-// Se lo stesso articolo è scritto in modi diversi, NON si somma più
-// (così l'utente vede ogni richiesta a parte e non perde quantità).
-// L'ordinamento finale è alfabetico per nome.
+//  - Righe senza matchKey → testo originale
+//  - Bucket per (nome anagrafica, unità di misura). Per ciascun bucket:
+//     * Se tutti i membri hanno quantità leggibile → SOMMA in una sola
+//       riga: "<totale><unit?> <NOME>[ QUALITÀ se unica]"
+//     * Altrimenti (anche solo una riga del bucket ha qty non leggibile,
+//       es. pallino davanti): NIENTE somma. Ogni membro appare come riga
+//       a parte: nome anagrafica + qty se leggibile, testo originale
+//       altrimenti. Così non vediamo mai "120+?" o quantità sballate.
+//
+// Ordinamento finale alfabetico per nome.
 //
 // items: [{ line, matchKey }]
 function buildSupplierCopyLines(items) {
-  const lines = [];
+  const buckets = new Map();
+  const standalone = []; // righe senza matchKey valida → testo originale
   
   for (const it of items) {
     const original = (it.line || '').trim();
     if (!original) continue;
     const { matchKey } = it;
-    
     if (!matchKey) {
-      lines.push(original);
+      standalone.push(original);
       continue;
     }
     const { name, quality } = splitMatchKey(matchKey);
     if (!name) {
-      lines.push(original);
+      standalone.push(original);
       continue;
     }
     const { qty, unit } = parseLineQuantity(original);
-    if (qty === null) {
-      // Quantità non parsabile (es. pallino davanti, oppure niente
-      // numero): meglio mostrare il testo originale così l'utente
-      // capisce subito a quale richiesta corrisponde.
-      lines.push(original);
-      continue;
+    const bucketKey = `${name}::${unit}`;
+    if (!buckets.has(bucketKey)) {
+      buckets.set(bucketKey, {
+        name,
+        unit,
+        members: [],
+        allHaveQty: true,
+        qualities: new Set(),
+      });
     }
-    const qualLabel = quality ? ` ${quality}` : '';
-    const unitLabel = unit ? ` ${unit}` : '';
-    lines.push(`${qty}${unitLabel} ${name}${qualLabel}`);
+    const b = buckets.get(bucketKey);
+    b.members.push({ original, qty, quality });
+    if (qty === null) b.allHaveQty = false;
+    if (quality) b.qualities.add(quality);
   }
+  
+  const lines = [];
+  for (const b of buckets.values()) {
+    if (b.members.length > 1 && b.allHaveQty) {
+      // Bucket "pulito" con più membri → somma
+      const total = b.members.reduce((s, m) => s + m.qty, 0);
+      let qLabel = '';
+      if (b.qualities.size === 1) qLabel = ` ${[...b.qualities][0]}`;
+      const unitLabel = b.unit ? ` ${b.unit}` : '';
+      lines.push(`${total}${unitLabel} ${b.name}${qLabel}`);
+    } else {
+      // Bucket singolo OPPURE sporco (almeno una senza qty) → riga per riga
+      for (const m of b.members) {
+        if (m.qty === null) {
+          lines.push(m.original);
+        } else {
+          const qLabel = m.quality ? ` ${m.quality}` : '';
+          const unitLabel = b.unit ? ` ${b.unit}` : '';
+          lines.push(`${m.qty}${unitLabel} ${b.name}${qLabel}`);
+        }
+      }
+    }
+  }
+  
+  standalone.forEach(s => lines.push(s));
   
   lines.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
   return lines;
