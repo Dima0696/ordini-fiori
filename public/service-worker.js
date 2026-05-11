@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
 // v142 - Selettore anagrafica: testo prepopolato selezionato + tasto pulisci + soglia 1 char
-const CACHE_NAME = 'lombardaflor-orders-v151-safe-grouping';
-const STATIC_CACHE = 'lombardaflor-static-v151-safe-grouping';
-const API_CACHE = 'lombardaflor-api-v151-safe-grouping';
+const CACHE_NAME = 'lombardaflor-orders-v152-rich-notifications';
+const STATIC_CACHE = 'lombardaflor-static-v152-rich-notifications';
+const API_CACHE = 'lombardaflor-api-v152-rich-notifications';
 
 const urlsToCache = [
   '/',
@@ -122,6 +122,13 @@ self.addEventListener('push', (event) => {
   try {
     const data = event.data.json();
     
+    // Se il payload include orderId/date, aggiungiamo l'azione "Apri ordine"
+    // per saltare direttamente al giorno dell'ordine al tap.
+    const hasOrderDeeplink = data.data && (data.data.orderId || data.data.date);
+    const actions = hasOrderDeeplink
+      ? [{ action: 'open-order', title: 'Apri ordine' }]
+      : [{ action: 'open', title: 'Apri app' }];
+    
     const options = {
       body: data.body,
       icon: data.icon || '/icon-192.png',
@@ -130,9 +137,9 @@ self.addEventListener('push', (event) => {
       requireInteraction: data.requireInteraction || false,
       vibrate: [200, 100, 200],
       data: data.data || {},
-      actions: [
-        { action: 'open', title: 'Apri App' }
-      ]
+      actions,
+      timestamp: Date.now(),
+      renotify: true
     };
     
     event.waitUntil(
@@ -143,22 +150,42 @@ self.addEventListener('push', (event) => {
   }
 });
 
-// Click su notifica
+// Click su notifica: deeplink al giorno/ordine se presente in data.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  
+  const data = event.notification.data || {};
+  
+  // URL target: se l'ordine ha una data, naviga lì
+  let targetUrl = '/';
+  if (data.date) {
+    targetUrl = `/?date=${encodeURIComponent(data.date)}`;
+    if (data.orderId) targetUrl += `&orderId=${encodeURIComponent(data.orderId)}`;
+  } else if (data.orderId) {
+    targetUrl = `/?orderId=${encodeURIComponent(data.orderId)}`;
+  }
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Se c'è già una finestra aperta, focusla
+        // Se c'è già una finestra dell'app aperta, la focusiamo e le
+        // mandiamo un messaggio per navigare al giorno/ordine.
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if (client.url.includes(self.location.origin)) {
+            if ('navigate' in client && data.date) {
+              // Navigate ricarica la pagina con il querystring (mantiene la stessa tab)
+              return client.focus().then(() => client.navigate(targetUrl));
+            }
+            // Fallback: posta un messaggio all'app già aperta
+            if ('postMessage' in client && data.date) {
+              client.postMessage({ type: 'open-order', orderId: data.orderId, date: data.date });
+            }
             return client.focus();
           }
         }
-        // Altrimenti apri una nuova finestra
+        // Nessuna finestra aperta: apriamo
         if (clients.openWindow) {
-          return clients.openWindow('/');
+          return clients.openWindow(targetUrl);
         }
       })
   );

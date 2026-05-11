@@ -172,8 +172,34 @@ async function initializeApp() {
   // Richiedi permessi notifiche
   await requestNotificationPermission();
   
+  // Ascolta messaggi dal Service Worker (deeplink da notifica push quando
+  // l'app è già aperta).
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const msg = event.data || {};
+      if (msg.type === 'open-order' && msg.date) {
+        handleNotificationDeeplink(msg.date, msg.orderId);
+      }
+    });
+  }
+  
   // Mostra calendario
   await loadCalendar(); // Usa cache se disponibile
+  
+  // Deeplink iniziale: se l'app è stata aperta da una notifica con
+  // ?date=...&orderId=..., apri direttamente quel giorno (e ordine).
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const deepDate = params.get('date');
+    const deepOrderId = params.get('orderId');
+    if (deepDate) {
+      // Ripulisci i query params dall'URL per evitare deeplink ripetuti al refresh
+      try { history.replaceState({}, '', window.location.pathname); } catch (e) {}
+      handleNotificationDeeplink(deepDate, deepOrderId ? parseInt(deepOrderId) : null);
+    }
+  } catch (e) {
+    console.warn('Deeplink iniziale fallito:', e);
+  }
   
   // Avvia auto-refresh ogni 2 minuti
   startAutoRefresh();
@@ -1493,6 +1519,32 @@ async function openDayOrders(date) {
   
   // Mostra pagina ordini
   showPage('orders');
+}
+
+// Apre il giorno e (se possibile) evidenzia un ordine specifico.
+// Chiamata sia dal deeplink iniziale (?date=...) sia da postMessage del SW.
+async function handleNotificationDeeplink(date, orderId) {
+  if (!date) return;
+  try {
+    await openDayOrders(date);
+    if (orderId) {
+      // Aspetta che il DOM degli ordini sia stato renderizzato
+      setTimeout(() => {
+        const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`)
+          || [...document.querySelectorAll('.order-card')].find(c => {
+               const btn = c.querySelector(`[data-id="${orderId}"]`);
+               return btn !== null;
+             });
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('highlight-from-notification');
+          setTimeout(() => card.classList.remove('highlight-from-notification'), 2500);
+        }
+      }, 250);
+    }
+  } catch (e) {
+    console.warn('Deeplink notifica fallito:', e);
+  }
 }
 
 // Carica ordini di un giorno

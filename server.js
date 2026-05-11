@@ -339,17 +339,9 @@ app.post('/api/orders', authenticate, async (req, res) => {
       }
     }
     
-    // Invia notifica a tutti (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
-    // const deliveryInfo = delivery_type === 'consegna' && delivery_time 
-    //   ? ` - Consegna ore ${delivery_time}`
-    //   : '';
-    // setImmediate(() => {
-    //   sendNotificationToAll(
-    //     '📦 Nuovo Ordine',
-    //     `${customer} - ${date}${deliveryInfo}`,
-    //     'new-order'
-    //   );
-    // });
+    // Notifica agli altri operatori (l'autore è escluso): "Dimitri ·
+    // Hotel Bristol — mar 13/05 · 8 articoli". Non blocca la risposta.
+    notifyOrderEvent('created', order, req.user.username);
     
     res.status(201).json(order);
   } catch (error) {
@@ -447,14 +439,8 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
         }
       }
       
-      // Invia notifica modifica (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
-      // setImmediate(() => {
-      //   sendNotificationToAll(
-      //     '✏️ Ordine Modificato',
-      //     `${customer} - aggiornato`,
-      //     'order-update'
-      //   );
-      // });
+      // Notifica modifica agli altri operatori
+      notifyOrderEvent('updated', order, req.user.username);
       
       res.json(order);
     } else {
@@ -482,24 +468,8 @@ app.patch('/api/orders/:id/status', authenticate, async (req, res) => {
     
     const order = db.updateOrderStatus(req.params.id, status, req.user.username);
     if (order) {
-      // Invia notifica in base allo stato (non-bloccante) - TEMPORANEAMENTE DISATTIVATO
-      // if (status === 'pronto') {
-      //   setImmediate(() => {
-      //     sendNotificationToAll(
-      //       '✅ Ordine Pronto',
-      //       `${order.customer} - pronto per il ritiro`,
-      //       'order-ready'
-      //     );
-      //   });
-      // } else if (status === 'ritirato') {
-      //   setImmediate(() => {
-      //     sendNotificationToAll(
-      //       '🎉 Ordine Ritirato',
-      //       `${order.customer} - ritirato`,
-      //       'order-completed'
-      //     );
-      //   });
-      // }
+      // Notifica cambio stato agli altri operatori
+      notifyOrderEvent('status-changed', order, req.user.username, { newStatus: status });
       
       res.json(order);
     } else {
@@ -555,9 +525,9 @@ app.patch('/api/orders/:id/goods-type', authenticate, (req, res) => {
 // DELETE /api/orders/:id - Elimina ordine
 app.delete('/api/orders/:id', authenticate, (req, res) => {
   try {
-    // Prima ottieni l'ordine per eliminare le foto
+    // Prima ottieni l'ordine per eliminare le foto e per la notifica
     const order = db.getOrderById(req.params.id);
-    
+
     if (order && order.photos && order.photos.length > 0) {
       // Elimina le foto associate
       order.photos.forEach(photoUrl => {
@@ -568,9 +538,11 @@ app.delete('/api/orders/:id', authenticate, (req, res) => {
         }
       });
     }
-    
+
     const deleted = db.deleteOrder(req.params.id);
     if (deleted) {
+      // Notifica eliminazione agli altri operatori (usa snapshot pre-delete)
+      if (order) notifyOrderEvent('deleted', order, req.user.username);
       res.json({ message: 'Ordine eliminato con successo' });
     } else {
       res.status(404).json({ error: 'Ordine non trovato' });
@@ -1031,8 +1003,13 @@ async function sendTestNotification(username) {
   }
 }
 
-// Funzione generica per inviare notifiche a tutti
-async function sendNotificationToAll(title, body, tag = 'order-update') {
+// Funzione generica per inviare notifiche a tutti.
+// opts:
+//  - excludeUsername: non inviare a questo utente (es. chi ha fatto l'azione)
+//  - data: payload custom (es. { orderId, url } per deeplink al click)
+//  - tag: identificatore per raggruppare/sostituire notifiche
+//  - requireInteraction: notifica persistente finché l'utente non interagisce
+async function sendNotificationToAll(title, body, tag = 'order-update', opts = {}) {
   try {
     const payload = JSON.stringify({
       title,
@@ -1040,13 +1017,21 @@ async function sendNotificationToAll(title, body, tag = 'order-update') {
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag,
-      requireInteraction: false
+      requireInteraction: opts.requireInteraction === true,
+      data: opts.data || {}
     });
     
     const allSubs = db.getAllSubscriptions();
+    const exclude = (opts.excludeUsername || '').toLowerCase();
     let sent = 0;
+    let skipped = 0;
     
     for (const sub of allSubs) {
+      // Salta l'attore (chi ha fatto l'azione non si auto-notifica)
+      if (exclude && (sub.username || '').toLowerCase() === exclude) {
+        skipped++;
+        continue;
+      }
       try {
         await webpush.sendNotification(sub.subscription, payload);
         sent++;
@@ -1057,10 +1042,100 @@ async function sendNotificationToAll(title, body, tag = 'order-update') {
       }
     }
     
-    console.log(`📬 Notifica "${title}" inviata a ${sent} utenti`);
+    console.log(`📬 "${title}" → ${sent} utenti (${skipped} attore escluso)`);
   } catch (error) {
     console.error('Errore invio notifica:', error);
   }
+}
+
+// Formatta una data ISO (YYYY-MM-DD) in italiano breve: "mar 13/05".
+function formatDateItalian(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return dateStr;
+    const days = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+    const dayName = days[d.getDay()];
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dayName} ${dd}/${mm}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// Conta articoli (righe non vuote) in una descrizione ordine
+function countOrderLines(description) {
+  if (!description) return 0;
+  return description.split('\n').filter(l => l.trim() !== '').length;
+}
+
+// Capitalizza la prima lettera (per username "dimitri" → "Dimitri")
+function capitalize(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Helper centralizzato per le notifiche di eventi su un ordine.
+// Costruisce title + body emoji-rich coerenti e include orderId + date
+// nei `data` per il deeplink al click.
+//
+// type: 'created' | 'updated' | 'status-changed' | 'deleted'
+// extras: { newStatus?: 'pronto'|'ritirato'|'da_preparare' }
+function notifyOrderEvent(type, order, actor, extras = {}) {
+  if (!order) return;
+  const actorLabel = capitalize(actor || 'qualcuno');
+  const customer = order.customer || 'cliente sconosciuto';
+  const dateLabel = formatDateItalian(order.date);
+  const lineCount = countOrderLines(order.description);
+  const lineLabel = lineCount > 0
+    ? `${lineCount} ${lineCount === 1 ? 'articolo' : 'articoli'}`
+    : '';
+  
+  let title, body, tag;
+  switch (type) {
+    case 'created':
+      title = '📦 Nuovo ordine';
+      body = `${actorLabel} · ${customer}${dateLabel ? ' — ' + dateLabel : ''}${lineLabel ? ' · ' + lineLabel : ''}`;
+      tag = `order-new-${order.id}`;
+      break;
+    case 'updated':
+      title = '✏️ Ordine modificato';
+      body = `${actorLabel} · ${customer}${dateLabel ? ' — ' + dateLabel : ''}`;
+      tag = `order-update-${order.id}`;
+      break;
+    case 'status-changed': {
+      const s = extras.newStatus;
+      if (s === 'pronto') {
+        title = '✅ Ordine pronto';
+      } else if (s === 'ritirato') {
+        title = '🎉 Ordine ritirato';
+      } else {
+        title = '↩️ Ordine riportato a "da preparare"';
+      }
+      body = `${actorLabel} · ${customer}${dateLabel ? ' — ' + dateLabel : ''}`;
+      tag = `order-status-${order.id}`;
+      break;
+    }
+    case 'deleted':
+      title = '🗑️ Ordine eliminato';
+      body = `${actorLabel} · ${customer}${dateLabel ? ' — ' + dateLabel : ''}`;
+      tag = `order-deleted-${order.id}`;
+      break;
+    default:
+      return;
+  }
+  
+  setImmediate(() => {
+    sendNotificationToAll(title, body, tag, {
+      excludeUsername: actor,
+      data: {
+        orderId: order.id,
+        date: order.date,
+        type
+      }
+    });
+  });
 }
 
 // Funzione per inviare notifiche giornaliere
