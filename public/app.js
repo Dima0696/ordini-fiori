@@ -2842,7 +2842,7 @@ function collectOrdersAndChecks() {
 // così righe come "10 rose avalanche" e "2 mazzi rose avalanche"
 // finiscono vicine quando si ordina alfabeticamente.
 function articleSortKey(line) {
-  let s = stripLineNoise(line || '').toLowerCase();
+  let s = (line || '').trim().toLowerCase();
   // Rimuovi prefisso numerico (anche con punti/virgole/range tipo "10-12 ")
   s = s.replace(/^[\d.,\-\s]+/, '');
   // Rimuovi unità di misura comuni (italiano + qualche abbreviazione)
@@ -2850,27 +2850,13 @@ function articleSortKey(line) {
   return s.trim();
 }
 
-// Pulisce i caratteri "rumore" all'inizio di una riga proveniente da
-// copia-incolla WhatsApp/Notes: bullet, trattini, asterischi, spazi
-// non-standard (NBSP, tab), caratteri invisibili Unicode (WORD JOINER
-// U+2060, ZWSP U+200B, ecc.), emoji, parentesi.
-//
-// Strategia robusta: strippa TUTTO quello che non è alfanumerico
-// finché non si incontra il primo carattere a-zA-Z0-9. Così copre
-// qualsiasi simbolo/invisible char senza dover mantenere una whitelist.
-function stripLineNoise(line) {
-  if (!line) return '';
-  return line.replace(/^[^a-zA-Z0-9]+/u, '').trim();
-}
-
 // Estrae quantità + unità di misura dall'inizio di una riga d'ordine.
 // Esempi:
 //   "100 rose freedom"      → { qty: 100, unit: '' }
 //   "2 mazzi rose freedom"  → { qty: 2,   unit: 'mazzi' }
-//   "• 100 rose freedom"    → { qty: 100, unit: '' }
 //   "rose"                  → { qty: null, unit: '' }
 function parseLineQuantity(line) {
-  const s = stripLineNoise(line);
+  const s = (line || '').trim();
   const m = s.match(/^(\d+)(?:\s+(mazzi|mazzo|steli|stelo|pezzi|pezzo|pacchetti|pacchetto|pacchi|pacco|cassette|cassetta|casse|cassa|cartoni|cartone|conf|confezioni|confezione|scatole|scatola|vasi|vaso))?\b/i);
   if (!m) return { qty: null, unit: '' };
   const unit = m[2] ? m[2].toLowerCase() : '';
@@ -2896,84 +2882,50 @@ function splitMatchKey(matchKey) {
   return { name: matchKey.slice(0, idx), quality: matchKey.slice(idx + 1) };
 }
 
-// Costruisce le righe del copy raggruppando per matchKey-name + unità di misura
-// sommando le quantità. Le righe non agganciate (senza matchKey) restano
-// testuali in `free`. Le righe con matchKey ma SENZA quantità all'inizio
-// (es. "peonie bordeaux" senza numero) usano comunque il nome anagrafica
-// con qty=null: vengono raggruppate per nome ma mostrate con "?" al posto
-// della quantità, così l'utente sa che deve metterci una quantità a mano.
+// Costruisce le righe del copy una per una, SENZA raggruppare e SENZA
+// pulizia dei caratteri (pallini/simboli restano se l'utente li ha
+// scritti). Comportamento "letterale":
+//  - riga con matchKey + qty parsabile → "<qty><unit?> <NOME ANAGRAFICA>[ QUALITÀ]"
+//  - riga con matchKey ma qty non parsabile (pallino, simboli...) → testo originale
+//  - riga senza matchKey → testo originale
+//
+// Se lo stesso articolo è scritto in modi diversi, NON si somma più
+// (così l'utente vede ogni richiesta a parte e non perde quantità).
+// L'ordinamento finale è alfabetico per nome.
 //
 // items: [{ line, matchKey }]
-// Output: array di stringhe già ordinate alfabeticamente.
 function buildSupplierCopyLines(items) {
-  const buckets = new Map();
-  const free = [];
+  const lines = [];
   
   for (const it of items) {
-    const line = stripLineNoise(it.line);
-    if (!line) continue;
+    const original = (it.line || '').trim();
+    if (!original) continue;
     const { matchKey } = it;
+    
     if (!matchKey) {
-      free.push(line);
+      lines.push(original);
       continue;
     }
     const { name, quality } = splitMatchKey(matchKey);
     if (!name) {
-      free.push(line);
+      lines.push(original);
       continue;
     }
-    const { qty, unit } = parseLineQuantity(line);
-    // Se non c'è quantità ma c'è matchKey, raggruppiamo comunque per
-    // nome+unit (con qty=null marker). Così "peonie bordeaux" abbinato
-    // a PEONIE RED CHARM appare come "? PEONIE RED CHARM" nel copy,
-    // invece di tornare al testo originale.
-    const bucketKey = `${name}::${unit}`;
-    if (!buckets.has(bucketKey)) {
-      buckets.set(bucketKey, {
-        name,
-        unit,
-        totalQty: 0,
-        hasUnknownQty: false,
-        qualities: new Set(),
-        count: 0,
-      });
-    }
-    const b = buckets.get(bucketKey);
+    const { qty, unit } = parseLineQuantity(original);
     if (qty === null) {
-      b.hasUnknownQty = true;
-    } else {
-      b.totalQty += qty;
+      // Quantità non parsabile (es. pallino davanti, oppure niente
+      // numero): meglio mostrare il testo originale così l'utente
+      // capisce subito a quale richiesta corrisponde.
+      lines.push(original);
+      continue;
     }
-    b.count += 1;
-    if (quality) b.qualities.add(quality);
+    const qualLabel = quality ? ` ${quality}` : '';
+    const unitLabel = unit ? ` ${unit}` : '';
+    lines.push(`${qty}${unitLabel} ${name}${qualLabel}`);
   }
   
-  const grouped = [];
-  for (const b of buckets.values()) {
-    let qLabel = '';
-    if (b.qualities.size === 1) {
-      qLabel = ' ' + [...b.qualities][0];
-    } else if (b.qualities.size > 1) {
-      qLabel = '';
-    }
-    const unitLabel = b.unit ? ' ' + b.unit : '';
-    
-    // Costruisci la quantità: somma + "?" se c'è almeno una riga senza qty
-    let qtyLabel;
-    if (b.totalQty > 0 && b.hasUnknownQty) {
-      qtyLabel = `${b.totalQty}+?`;
-    } else if (b.totalQty > 0) {
-      qtyLabel = `${b.totalQty}`;
-    } else {
-      qtyLabel = '?';
-    }
-    
-    grouped.push(`${qtyLabel}${unitLabel} ${b.name}${qLabel}`.trim());
-  }
-  
-  const all = [...grouped, ...free];
-  all.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
-  return all;
+  lines.sort((a, b) => articleSortKey(a).localeCompare(articleSortKey(b), 'it'));
+  return lines;
 }
 
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
