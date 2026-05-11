@@ -212,16 +212,20 @@ app.get('/api/me', authenticate, (req, res) => {
 //   una per device fisico).
 
 // L'RP_ID è il dominio. In locale è 'localhost', in produzione
-// va impostato via env (es. ordini-fiori.up.railway.app).
+// va impostato via env (es. ordini-fiori.up.railway.app). Su Railway
+// l'header 'host' arriva tramite proxy; usiamo anche x-forwarded-host.
 function rpIdFromReq(req) {
   if (process.env.WEBAUTHN_RP_ID) return process.env.WEBAUTHN_RP_ID;
-  const host = (req.headers['host'] || '').split(':')[0];
+  const rawHost = req.headers['x-forwarded-host'] || req.headers['host'] || '';
+  const host = String(rawHost).split(',')[0].trim().split(':')[0];
   return host || 'localhost';
 }
 function originFromReq(req) {
   if (process.env.WEBAUTHN_ORIGIN) return process.env.WEBAUTHN_ORIGIN;
-  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
-  const host = req.headers['host'];
+  const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'http')
+    .split(',')[0].trim();
+  const rawHost = req.headers['x-forwarded-host'] || req.headers['host'] || '';
+  const host = String(rawHost).split(',')[0].trim();
   return `${proto}://${host}`;
 }
 
@@ -264,10 +268,11 @@ app.get('/api/webauthn/register/options', authenticate, async (req, res) => {
   try {
     const username = req.user.username;
     const existing = db.getPasskeysByUsername(username);
+    const rpID = rpIdFromReq(req);
     
     const options = await generateRegistrationOptions({
       rpName: 'Ordini Fiori',
-      rpID: rpIdFromReq(req),
+      rpID,
       userName: username,
       // userID deve essere stabile per utente (max 64 byte).
       userID: new TextEncoder().encode(username),
@@ -287,8 +292,15 @@ app.get('/api/webauthn/register/options', authenticate, async (req, res) => {
     setChallenge(`reg:${username}`, options.challenge);
     res.json(options);
   } catch (error) {
-    console.error('Errore generazione opzioni registrazione passkey:', error);
-    res.status(500).json({ error: 'Errore generazione opzioni' });
+    console.error('Errore generazione opzioni registrazione passkey:', {
+      message: error.message,
+      stack: error.stack,
+      rpID: rpIdFromReq(req),
+      origin: originFromReq(req),
+      host: req.headers['host'],
+      xfh: req.headers['x-forwarded-host'],
+    });
+    res.status(500).json({ error: 'Errore generazione opzioni: ' + (error.message || 'sconosciuto') });
   }
 });
 
@@ -381,8 +393,14 @@ app.post('/api/webauthn/login/options', async (req, res) => {
     setChallenge(challengeKey, options.challenge);
     res.json({ ...options, _challengeKey: challengeKey });
   } catch (error) {
-    console.error('Errore generazione opzioni login passkey:', error);
-    res.status(500).json({ error: 'Errore generazione opzioni' });
+    console.error('Errore generazione opzioni login passkey:', {
+      message: error.message,
+      stack: error.stack,
+      rpID: rpIdFromReq(req),
+      host: req.headers['host'],
+      xfh: req.headers['x-forwarded-host'],
+    });
+    res.status(500).json({ error: 'Errore generazione opzioni: ' + (error.message || 'sconosciuto') });
   }
 });
 
