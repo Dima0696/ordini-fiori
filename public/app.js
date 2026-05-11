@@ -561,11 +561,21 @@ function setupEventListeners() {
   
   // Copia articoli per fornitore
   document.querySelectorAll('.copy-supplier-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       const supplier = btn.dataset.supplier;
-      // Feedback animazione
       btn.classList.add('copying');
       setTimeout(() => btn.classList.remove('copying'), 600);
+      // Refresh sincrono PRIMA del calcolo: garantisce che ordini/checks
+      // appena creati o modificati siano effettivamente nel pool (evita
+      // race con l'optimistic UI dei salvataggi recenti).
+      btn.disabled = true;
+      try {
+        await refreshDataForCopy();
+      } catch (err) {
+        console.error('[COPY] refresh dati fallito:', err);
+      } finally {
+        btn.disabled = false;
+      }
       copySupplierItems(supplier);
     });
   });
@@ -1525,6 +1535,52 @@ async function loadOrders(date) {
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
     alert('Errore nel caricamento degli ordini: ' + error.message);
+  }
+}
+
+// Refresh "silenzioso" (no re-render UI) per la copia fornitore: aggiorna
+// currentDayOrders + allOrderChecks + extraDayOrders/Checks da server in
+// modo sincrono, così copySupplierItems vede sempre lo stato più aggiornato.
+// Non triggera renderOrdersView per evitare lampeggi sulla UI.
+async function refreshDataForCopy() {
+  if (!currentDate) return;
+  
+  // Giorno corrente
+  try {
+    const response = await fetchNoCache(`${API_URL}/orders/date/${currentDate}`);
+    const orders = await response.json();
+    currentDayOrders = orders;
+    if (orders.length > 0) {
+      const ids = orders.map(o => o.id).join(',');
+      const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${ids}`);
+      const freshChecks = await checksResponse.json();
+      // Sostituisco SOLO i checks del giorno corrente, preservando quelli
+      // dei giorni extra (che vengono rifrescati subito sotto).
+      allOrderChecks = { ...allOrderChecks, ...freshChecks };
+    }
+  } catch (e) {
+    console.error('[COPY-REFRESH] giorno corrente fallito:', e);
+  }
+  
+  // Giorni extra selezionati
+  if (selectedExtraDays.size > 0) {
+    await Promise.all([...selectedExtraDays].map(async iso => {
+      try {
+        const response = await fetchNoCache(`${API_URL}/orders/date/${iso}`);
+        const orders = await response.json();
+        extraDayOrders[iso] = orders;
+        if (orders.length > 0) {
+          const ids = orders.map(o => o.id).join(',');
+          const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${ids}`);
+          extraDayChecks[iso] = await checksResponse.json();
+        } else {
+          extraDayChecks[iso] = {};
+        }
+        mergeExtraChecksIntoAll(iso);
+      } catch (e) {
+        console.error('[COPY-REFRESH] extra-day', iso, 'fallito:', e);
+      }
+    }));
   }
 }
 
@@ -2931,39 +2987,49 @@ function buildSupplierCopyLines(items) {
 // Copia negli appunti gli articoli di un fornitore (solo quelli NON ancora ordinati)
 // supplier può essere 'IMPORT' | 'ITA' | 'NL' | '__UNASSIGNED__'
 function copySupplierItems(supplier) {
-  console.log('[COPY] Richiesta copia per:', supplier, '| Giorni extra:', [...selectedExtraDays]);
+  const pool = collectOrdersAndChecks();
+  console.log('[COPY]', supplier, '| giorno:', currentDate, '| extra:', [...selectedExtraDays], '| ordini nel pool:', pool.length);
   
   const items = [];
   let unassignedCount = 0;
+  let totalLines = 0;
+  let skippedOrdered = 0;
+  let skippedOtherSupplier = 0;
   const isUnassignedMode = supplier === '__UNASSIGNED__';
-  
-  const pool = collectOrdersAndChecks();
   
   pool.forEach(({ order, checks }) => {
     if (!order.description) return;
     const orderLines = order.description.split('\n').filter(l => l.trim() !== '');
     
     orderLines.forEach((line, index) => {
+      totalLines++;
       const data = checks[index] || {};
       const rowSupplier = (data.supplier || '').toUpperCase();
       const isOrdered = data.checked === true;
       
-      if (isOrdered) return;
+      if (isOrdered) { skippedOrdered++; return; }
       
       if (!rowSupplier) unassignedCount++;
       
       const accept = isUnassignedMode ? !rowSupplier : (rowSupplier === supplier);
       if (accept) {
         items.push({ line: line.trim(), matchKey: data.matchKey || '' });
+      } else if (!isUnassignedMode && rowSupplier && rowSupplier !== supplier) {
+        skippedOtherSupplier++;
       }
     });
   });
   
-  // Raggruppamento per articolo dell'anagrafica (somma quantità su righe abbinate),
-  // poi ordinamento alfabetico unico.
   const lines = buildSupplierCopyLines(items);
   
-  console.log('[COPY] Trovati', items.length, 'articoli (', lines.length, 'dopo raggruppamento) su', pool.length, 'ordini');
+  console.log('[COPY] dettaglio:', {
+    totalLines,
+    matched: items.length,
+    skippedOrdered,
+    skippedOtherSupplier,
+    unassigned: unassignedCount,
+    outputLines: lines.length
+  });
   
   if (lines.length === 0) {
     if (isUnassignedMode) {
