@@ -137,6 +137,7 @@ window.addEventListener('load', () => {
 // Inizializzazione app
 document.addEventListener('DOMContentLoaded', () => {
   setupLoginListeners();
+  setupBiometricPromptListeners();
   checkAuth();
 });
 
@@ -203,6 +204,11 @@ async function initializeApp() {
   
   // Avvia auto-refresh ogni 2 minuti
   startAutoRefresh();
+  
+  // Sync soft: polling /api/sync/ping ogni ~20s per mostrare banner
+  // "aggiornamenti disponibili" quando un altro operatore modifica
+  // ordini/check del giorno corrente o di un giorno extra selezionato.
+  startSyncPolling();
   
   // Aggiorna badge "ordini in attesa" (portale clienti)
   if (typeof refreshPendingBadgeOnly === 'function') {
@@ -356,7 +362,330 @@ function setupLoginListeners() {
       errorEl.style.display = 'block';
     }
   });
+  
+  // Pulsante "Sblocca con biometria" (visibile solo se c'è una passkey
+  // registrata su questo browser/device per un utente noto)
+  const bioBtn = document.getElementById('btn-biometric-login');
+  if (bioBtn) {
+    bioBtn.addEventListener('click', async () => {
+      const errorEl = document.getElementById('login-error');
+      errorEl.style.display = 'none';
+      try {
+        await loginWithPasskey();
+      } catch (error) {
+        // AbortError = utente ha annullato (Face ID/Touch ID cancel): silenzioso
+        if (error && error.name === 'NotAllowedError') return;
+        errorEl.textContent = error.message || 'Sblocco biometrico non riuscito';
+        errorEl.style.display = 'block';
+      }
+    });
+  }
+  
+  // Mostra/nasconde il pulsante in base alla disponibilità WebAuthn +
+  // memoria di "utente che ha registrato una passkey su questo browser".
+  refreshBiometricLoginButton();
+  // Auto-aggiorna la label quando l'utente cambia la select
+  const sel = document.getElementById('login-username');
+  if (sel) sel.addEventListener('change', refreshBiometricLoginButton);
 }
+
+// ============================================================
+// WEBAUTHN / PASSKEYS — Client
+// ============================================================
+//
+// L'API browser navigator.credentials.create()/get() lavora con
+// ArrayBuffer per challenge/userID/credentialID, mentre il server
+// SimpleWebAuthn parla in base64url. Servono helper di conversione.
+
+function _b64urlToBuffer(b64url) {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 ? 4 - (b64.length % 4) : 0;
+  const padded = b64 + '='.repeat(pad);
+  const bin = atob(padded);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+function _bufferToB64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Converte opzioni di registrazione (server → browser): i campi
+// challenge, user.id e excludeCredentials[].id devono diventare ArrayBuffer.
+function _decodeRegistrationOptions(opts) {
+  return {
+    ...opts,
+    challenge: _b64urlToBuffer(opts.challenge),
+    user: { ...opts.user, id: _b64urlToBuffer(opts.user.id) },
+    excludeCredentials: (opts.excludeCredentials || []).map(c => ({
+      ...c,
+      id: _b64urlToBuffer(c.id),
+    })),
+  };
+}
+
+// Converte una PublicKeyCredential (browser → server JSON)
+function _encodeCredential(cred) {
+  const r = cred.response;
+  const out = {
+    id: cred.id,
+    rawId: _bufferToB64url(cred.rawId),
+    type: cred.type,
+    clientExtensionResults: cred.getClientExtensionResults
+      ? cred.getClientExtensionResults()
+      : {},
+    response: {
+      clientDataJSON: _bufferToB64url(r.clientDataJSON),
+    },
+  };
+  // Registration response
+  if (r.attestationObject) {
+    out.response.attestationObject = _bufferToB64url(r.attestationObject);
+    if (typeof r.getTransports === 'function') {
+      out.response.transports = r.getTransports();
+    }
+  }
+  // Authentication response
+  if (r.authenticatorData) {
+    out.response.authenticatorData = _bufferToB64url(r.authenticatorData);
+    out.response.signature = _bufferToB64url(r.signature);
+    if (r.userHandle) {
+      out.response.userHandle = _bufferToB64url(r.userHandle);
+    }
+  }
+  return out;
+}
+
+function _decodeAuthOptions(opts) {
+  return {
+    ...opts,
+    challenge: _b64urlToBuffer(opts.challenge),
+    allowCredentials: (opts.allowCredentials || []).map(c => ({
+      ...c,
+      id: _b64urlToBuffer(c.id),
+    })),
+  };
+}
+
+// L'API WebAuthn è disponibile solo su contesti sicuri (HTTPS o localhost)
+function isWebAuthnSupported() {
+  return !!(
+    window.PublicKeyCredential &&
+    typeof window.PublicKeyCredential === 'function' &&
+    navigator.credentials &&
+    typeof navigator.credentials.create === 'function' &&
+    typeof navigator.credentials.get === 'function'
+  );
+}
+
+// Marca "questo browser ha una passkey per username X" — serve solo a
+// decidere se mostrare il pulsante "Sblocca con biometria". È solo un
+// hint locale, la vera verifica avviene server-side.
+function _bioUsersKey() { return 'lf_passkey_users'; }
+function getKnownPasskeyUsers() {
+  try {
+    const raw = localStorage.getItem(_bioUsersKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function rememberPasskeyUser(username) {
+  const set = new Set(getKnownPasskeyUsers());
+  set.add(username);
+  localStorage.setItem(_bioUsersKey(), JSON.stringify([...set]));
+}
+function forgetPasskeyUser(username) {
+  const set = new Set(getKnownPasskeyUsers());
+  set.delete(username);
+  localStorage.setItem(_bioUsersKey(), JSON.stringify([...set]));
+}
+
+function refreshBiometricLoginButton() {
+  const btn = document.getElementById('btn-biometric-login');
+  if (!btn) return;
+  if (!isWebAuthnSupported()) { btn.hidden = true; return; }
+  const known = getKnownPasskeyUsers();
+  if (known.length === 0) { btn.hidden = true; return; }
+  const sel = document.getElementById('login-username');
+  const selectedUser = sel ? sel.value : '';
+  // Se l'utente non ha scelto un nome, ma c'è almeno una passkey nota,
+  // mostra il pulsante in modalità "discoverable" (il dispositivo proporrà
+  // quale account usare).
+  btn.hidden = false;
+  const label = document.getElementById('btn-biometric-login-label');
+  if (label) {
+    if (selectedUser && known.includes(selectedUser)) {
+      label.textContent = `Sblocca come ${selectedUser}`;
+    } else {
+      label.textContent = 'Sblocca con biometria';
+    }
+  }
+}
+
+// Registra una nuova passkey per l'utente loggato corrente.
+// Mostra il prompt Face ID / Touch ID / Windows Hello.
+async function enrollPasskey() {
+  if (!isWebAuthnSupported()) {
+    throw new Error('Questo browser non supporta lo sblocco biometrico');
+  }
+  
+  // 1) Chiedi opzioni al server
+  const optsRes = await authenticatedFetch(`${API_URL}/webauthn/register/options`);
+  if (!optsRes.ok) throw new Error('Impossibile preparare la registrazione');
+  const optsJson = await optsRes.json();
+  
+  // 2) Chiama l'API browser → prompt biometrico
+  const credential = await navigator.credentials.create({
+    publicKey: _decodeRegistrationOptions(optsJson),
+  });
+  if (!credential) throw new Error('Nessuna credenziale ricevuta');
+  
+  // 3) Invia al server per verifica e salvataggio
+  const verifyRes = await authenticatedFetch(`${API_URL}/webauthn/register/verify`, {
+    method: 'POST',
+    body: JSON.stringify({
+      response: _encodeCredential(credential),
+      deviceName: navigator.platform || '',
+    }),
+  });
+  const verifyJson = await verifyRes.json();
+  if (!verifyRes.ok || !verifyJson.verified) {
+    throw new Error(verifyJson.error || 'Registrazione non riuscita');
+  }
+  
+  // Memorizza localmente che questo browser ha una passkey per questo utente
+  if (currentUser) rememberPasskeyUser(currentUser);
+  return true;
+}
+
+// Login con passkey: il pulsante nella schermata di login fa partire
+// il prompt biometrico e, se va a buon fine, crea la sessione.
+async function loginWithPasskey() {
+  if (!isWebAuthnSupported()) {
+    throw new Error('Sblocco biometrico non supportato su questo browser');
+  }
+  
+  // Se l'utente ha selezionato un nome nella select, passalo per limitare
+  // ai suoi credentialID (più affidabile su iOS). Altrimenti usa modalità
+  // "discoverable" (il sistema operativo mostra l'elenco delle passkey).
+  const sel = document.getElementById('login-username');
+  const username = sel ? sel.value : '';
+  
+  const optsRes = await fetch(`${API_URL}/webauthn/login/options`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(username ? { username } : {}),
+  });
+  if (!optsRes.ok) {
+    const err = await optsRes.json().catch(() => ({}));
+    throw new Error(err.error || 'Impossibile avviare lo sblocco');
+  }
+  const optsJson = await optsRes.json();
+  const challengeKey = optsJson._challengeKey;
+  
+  const credential = await navigator.credentials.get({
+    publicKey: _decodeAuthOptions(optsJson),
+  });
+  if (!credential) throw new Error('Nessuna credenziale ricevuta');
+  
+  const verifyRes = await fetch(`${API_URL}/webauthn/login/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      response: _encodeCredential(credential),
+      challengeKey,
+    }),
+  });
+  const verifyJson = await verifyRes.json();
+  if (!verifyRes.ok || !verifyJson.success) {
+    throw new Error(verifyJson.error || 'Sblocco non riuscito');
+  }
+  
+  authToken = verifyJson.token;
+  currentUser = verifyJson.username;
+  localStorage.setItem('authToken', authToken);
+  localStorage.setItem('currentUser', currentUser);
+  rememberPasskeyUser(currentUser);
+  
+  showApp();
+  await initializeApp();
+}
+
+// ----- Banner "Attiva sblocco biometrico" dopo login con password -----
+
+const BIO_PROMPT_DISMISSED_KEY = 'lf_bio_prompt_dismissed';
+
+function shouldOfferBiometricEnroll() {
+  if (!isWebAuthnSupported()) return false;
+  if (!currentUser) return false;
+  // Già registrato su questo browser per questo utente
+  if (getKnownPasskeyUsers().includes(currentUser)) return false;
+  // L'utente ha già detto "no grazie" su questo browser
+  try {
+    const dismissed = JSON.parse(localStorage.getItem(BIO_PROMPT_DISMISSED_KEY) || '[]');
+    if (dismissed.includes(currentUser)) return false;
+  } catch { /* ignore */ }
+  return true;
+}
+
+function maybeShowBiometricPrompt() {
+  const el = document.getElementById('biometric-prompt');
+  if (!el) return;
+  if (!shouldOfferBiometricEnroll()) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+}
+
+function setupBiometricPromptListeners() {
+  const enable = document.getElementById('biometric-prompt-enable');
+  const dismiss = document.getElementById('biometric-prompt-dismiss');
+  const banner = document.getElementById('biometric-prompt');
+  
+  if (enable && !enable._bound) {
+    enable._bound = true;
+    enable.addEventListener('click', async () => {
+      enable.disabled = true;
+      const originalLabel = enable.textContent;
+      enable.textContent = 'Attivo...';
+      try {
+        await enrollPasskey();
+        if (banner) banner.hidden = true;
+        showToast('Sblocco biometrico attivato', 'success');
+      } catch (error) {
+        // L'utente può annullare il prompt OS: in quel caso nessun messaggio
+        if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          enable.disabled = false;
+          enable.textContent = originalLabel;
+          return;
+        }
+        showToast('Attivazione non riuscita: ' + (error.message || ''), 'error');
+        enable.disabled = false;
+        enable.textContent = originalLabel;
+      }
+    });
+  }
+  
+  if (dismiss && !dismiss._bound) {
+    dismiss._bound = true;
+    dismiss.addEventListener('click', () => {
+      if (banner) banner.hidden = true;
+      // Ricorda il dismiss per non riproporre ad ogni login
+      try {
+        const list = JSON.parse(localStorage.getItem(BIO_PROMPT_DISMISSED_KEY) || '[]');
+        if (currentUser && !list.includes(currentUser)) {
+          list.push(currentUser);
+          localStorage.setItem(BIO_PROMPT_DISMISSED_KEY, JSON.stringify(list));
+        }
+      } catch { /* ignore */ }
+    });
+  }
+}
+
 
 // Helper per richieste autenticate
 async function authenticatedFetch(url, options = {}) {
@@ -445,6 +774,11 @@ async function login(username, password) {
     
     showApp();
     await initializeApp();
+    
+    // Dopo login con password, proponi di attivare lo sblocco biometrico
+    // (banner discreto, solo se WebAuthn è supportato e l'utente non l'ha
+    // già rifiutato/registrato su questo browser).
+    try { maybeShowBiometricPrompt(); } catch (_) { /* ignore */ }
   } catch (error) {
     throw error;
   }
@@ -1584,9 +1918,156 @@ async function loadOrders(date) {
     if (selectedExtraDays.size > 0) {
       refreshExtraDays();
     }
+    
+    // Sync soft: aggiorna lo snapshot di riferimento e nasconde l'eventuale
+    // banner "aggiornamenti disponibili" (siamo appena allineati col server).
+    refreshSyncSnapshot();
+    hideSyncBanner();
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
     alert('Errore nel caricamento degli ordini: ' + error.message);
+  }
+}
+
+// ===========================================
+// SYNC SOFT — banner "aggiornamenti disponibili"
+// ===========================================
+//
+// Polling leggero su /api/sync/ping ogni POLL_INTERVAL_MS. Confronta
+// uno snapshot { date: { count, lastUpdate } } con quello in memoria.
+// Se rileva qualsiasi cambiamento (count diverso o lastUpdate più recente)
+// mostra un banner in alto sulla pagina ordini. Tap sul banner →
+// loadOrders + refreshExtraDays e nasconde.
+//
+// Lo snapshot in memoria viene RESET ogni volta che facciamo un fetch
+// fresco esplicito (loadOrders/refreshExtraDays), così non rileviamo
+// le nostre stesse modifiche come "novità da altri".
+
+const SYNC_POLL_INTERVAL_MS = 20000; // ~20s
+let syncSnapshot = {}; // { 'YYYY-MM-DD': { count, lastUpdate } }
+let syncPollTimer = null;
+let syncBannerEl = null;
+
+// Rinfresca lo snapshot di riferimento facendo una chiamata diretta al
+// server. Va invocato dopo OGNI fetch esplicito di ordini/checks
+// (loadOrders, refreshDataForCopy, ricarica banner, ecc.) così non
+// rileviamo le nostre stesse modifiche come "novità da altri".
+async function refreshSyncSnapshot() {
+  if (!authToken) return;
+  const dates = getMonitoredDates();
+  if (dates.length === 0) return;
+  try {
+    const url = `${API_URL}/sync/ping?dates=${encodeURIComponent(dates.join(','))}`;
+    const res = await authenticatedFetch(url, { cache: 'no-store' });
+    if (!res.ok) return;
+    const fresh = await res.json();
+    syncSnapshot = fresh;
+  } catch (e) {
+    // Offline o errore: lascio lo snapshot precedente
+  }
+}
+
+// Risulta true se uno snapshot fresco è "più recente" del precedente
+function snapshotIsNewer(prev, fresh) {
+  if (!prev) return true;
+  if ((fresh.count || 0) !== (prev.count || 0)) return true;
+  if ((fresh.lastUpdate || '') > (prev.lastUpdate || '')) return true;
+  return false;
+}
+
+function getSyncBannerEl() {
+  if (!syncBannerEl) {
+    syncBannerEl = document.getElementById('sync-banner');
+    if (syncBannerEl) {
+      syncBannerEl.addEventListener('click', async () => {
+        hideSyncBanner();
+        try {
+          if (currentDate) await loadOrders(currentDate);
+          if (selectedExtraDays.size > 0) await refreshExtraDays();
+        } catch (e) {
+          console.warn('Sync reload errore:', e);
+        }
+      });
+    }
+  }
+  return syncBannerEl;
+}
+
+function showSyncBanner(detail) {
+  const el = getSyncBannerEl();
+  if (!el) return;
+  if (detail) {
+    const text = el.querySelector('.sync-banner-text');
+    if (text) text.textContent = detail;
+  }
+  el.hidden = false;
+  el.classList.add('visible');
+}
+
+function hideSyncBanner() {
+  const el = getSyncBannerEl();
+  if (!el) return;
+  el.hidden = true;
+  el.classList.remove('visible');
+}
+
+// Lista date da monitorare = giorno corrente + giorni extra selezionati
+function getMonitoredDates() {
+  const dates = [];
+  if (currentDate) dates.push(currentDate);
+  for (const iso of selectedExtraDays) {
+    if (iso && !dates.includes(iso)) dates.push(iso);
+  }
+  return dates;
+}
+
+async function syncPing() {
+  // Salta se non siamo loggati o l'utente non è sulla pagina ordini
+  if (!authToken) return;
+  const ordersPage = document.getElementById('page-orders');
+  if (!ordersPage || !ordersPage.classList.contains('active')) return;
+  if (document.hidden) return; // Tab in background → niente polling
+  
+  const dates = getMonitoredDates();
+  if (dates.length === 0) return;
+  
+  try {
+    const url = `${API_URL}/sync/ping?dates=${encodeURIComponent(dates.join(','))}`;
+    const res = await authenticatedFetch(url, { cache: 'no-store' });
+    if (!res.ok) return;
+    const fresh = await res.json();
+    
+    let changed = false;
+    for (const d of dates) {
+      const prev = syncSnapshot[d];
+      const f = fresh[d] || { count: 0, lastUpdate: '' };
+      if (snapshotIsNewer(prev, f)) {
+        changed = true;
+        break;
+      }
+    }
+    
+    if (changed) {
+      showSyncBanner();
+    }
+  } catch (e) {
+    // Connessione offline o errore: niente banner, riprovo al prossimo tick
+  }
+}
+
+function startSyncPolling() {
+  if (syncPollTimer) return;
+  syncPollTimer = setInterval(syncPing, SYNC_POLL_INTERVAL_MS);
+  // Quando l'utente torna alla scheda, ping immediato
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncPing();
+  });
+}
+
+function stopSyncPolling() {
+  if (syncPollTimer) {
+    clearInterval(syncPollTimer);
+    syncPollTimer = null;
   }
 }
 
@@ -1661,6 +2142,7 @@ async function refreshOneExtraDay(iso) {
     }
     
     mergeExtraChecksIntoAll(iso);
+    refreshSyncSnapshot();
   } catch (e) {
     console.error('[EXTRA-DAY] refresh fallito:', iso, e);
   }

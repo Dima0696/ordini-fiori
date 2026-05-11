@@ -59,6 +59,20 @@ const initDb = () => {
     )
   `;
   
+  const createPasskeysTableQuery = `
+    CREATE TABLE IF NOT EXISTS passkeys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      credential_id TEXT NOT NULL UNIQUE,
+      public_key BLOB NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      device_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_used_at DATETIME
+    )
+  `;
+  
   const createSubscriptionsTableQuery = `
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,6 +212,7 @@ const initDb = () => {
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
   db.exec(createSubscriptionsTableQuery);
+  db.exec(createPasskeysTableQuery);
   db.exec(createFabbisognoChecksTableQuery);
   db.exec(createListiniTableQuery);
   db.exec(createPreventiviTableQuery);
@@ -624,6 +639,111 @@ const saveSubscription = (username, subscription) => {
     subscription.endpoint,
     JSON.stringify(subscription.keys)
   );
+};
+
+// Restituisce, per ogni data passata in input, uno snapshot di sincronia:
+//   { 'YYYY-MM-DD': { count, lastUpdate } }
+// dove `lastUpdate` è il MAX tra orders.updated_at e fabbisogno_checks.updated_at
+// per quella data. Usato dal sync soft client-side per accorgersi di cambiamenti.
+const getOrdersSyncSnapshot = (dates) => {
+  const result = {};
+  if (!Array.isArray(dates) || dates.length === 0) return result;
+  
+  const placeholders = dates.map(() => '?').join(',');
+  
+  // Conteggio + max updated_at orders per data
+  const ordersRows = db.prepare(`
+    SELECT date, COUNT(*) AS count, COALESCE(MAX(updated_at), '') AS lastUpdate
+    FROM orders
+    WHERE date IN (${placeholders})
+    GROUP BY date
+  `).all(...dates);
+  
+  // Max updated_at fabbisogno_checks per data
+  const checksRows = db.prepare(`
+    SELECT o.date AS date, COALESCE(MAX(fc.updated_at), '') AS lastCheck
+    FROM fabbisogno_checks fc
+    JOIN orders o ON o.id = fc.order_id
+    WHERE o.date IN (${placeholders})
+    GROUP BY o.date
+  `).all(...dates);
+  
+  // Inizializza tutte le date (anche quelle senza ordini) con count=0
+  for (const d of dates) {
+    result[d] = { count: 0, lastUpdate: '' };
+  }
+  
+  for (const r of ordersRows) {
+    result[r.date].count = r.count;
+    result[r.date].lastUpdate = r.lastUpdate || '';
+  }
+  
+  for (const r of checksRows) {
+    if (!result[r.date]) result[r.date] = { count: 0, lastUpdate: '' };
+    // Tiene il più recente tra orders e checks
+    if (r.lastCheck && r.lastCheck > result[r.date].lastUpdate) {
+      result[r.date].lastUpdate = r.lastCheck;
+    }
+  }
+  
+  return result;
+};
+
+// ===========================================
+// PASSKEYS / WebAuthn
+// ===========================================
+
+const savePasskey = ({ username, credentialID, publicKey, counter, transports, deviceName }) => {
+  const stmt = db.prepare(`
+    INSERT INTO passkeys (username, credential_id, public_key, counter, transports, device_name)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  return stmt.run(
+    username,
+    credentialID,
+    publicKey,
+    counter,
+    transports ? JSON.stringify(transports) : null,
+    deviceName || null
+  );
+};
+
+const getPasskeysByUsername = (username) => {
+  const rows = db.prepare(`
+    SELECT id, credential_id AS credentialID, public_key AS publicKey, counter,
+           transports, device_name AS deviceName, created_at AS createdAt,
+           last_used_at AS lastUsedAt
+    FROM passkeys WHERE username = ?
+    ORDER BY created_at DESC
+  `).all(username);
+  return rows.map(r => ({
+    ...r,
+    transports: r.transports ? JSON.parse(r.transports) : []
+  }));
+};
+
+const getPasskeyByCredentialId = (credentialID) => {
+  const r = db.prepare(`
+    SELECT id, username, credential_id AS credentialID, public_key AS publicKey,
+           counter, transports
+    FROM passkeys WHERE credential_id = ?
+  `).get(credentialID);
+  if (!r) return null;
+  return {
+    ...r,
+    transports: r.transports ? JSON.parse(r.transports) : []
+  };
+};
+
+const updatePasskeyCounter = (credentialID, newCounter) => {
+  db.prepare(`
+    UPDATE passkeys SET counter = ?, last_used_at = CURRENT_TIMESTAMP
+    WHERE credential_id = ?
+  `).run(newCounter, credentialID);
+};
+
+const deletePasskey = (id, username) => {
+  return db.prepare('DELETE FROM passkeys WHERE id = ? AND username = ?').run(id, username);
 };
 
 const getAllSubscriptions = () => {
@@ -1813,6 +1933,12 @@ module.exports = {
   saveSubscription,
   getAllSubscriptions,
   deleteSubscription,
+  getOrdersSyncSnapshot,
+  savePasskey,
+  getPasskeysByUsername,
+  getPasskeyByCredentialId,
+  updatePasskeyCounter,
+  deletePasskey,
   getFabbisognoChecks,
   toggleFabbisognoCheck,
   setFabbisognoCheck,

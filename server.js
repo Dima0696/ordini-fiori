@@ -7,6 +7,12 @@ const webpush = require('web-push');
 const cron = require('node-cron');
 const db = require('./database');
 const pushConfig = require('./push-config');
+const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require('@simplewebauthn/server');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -189,6 +195,281 @@ app.post('/api/logout', authenticate, (req, res) => {
 // GET /api/me - Verifica sessione corrente
 app.get('/api/me', authenticate, (req, res) => {
   res.json({ username: req.user.username });
+});
+
+// ============================================================
+// WEBAUTHN / PASSKEYS — Sblocco con Face ID / Touch ID / Windows Hello
+// ============================================================
+//
+// Architettura:
+// - L'utente fa prima login normale (username+password) e poi può
+//   registrare una passkey per il device corrente.
+// - Per i login successivi, il pulsante "Sblocca con biometria"
+//   chiede al sistema operativo di confermare l'identità (Face ID,
+//   Touch ID, impronta Android, Windows Hello), senza più digitare
+//   nulla. Funziona cross-platform (iOS, Android, macOS, Windows).
+// - Le passkey sono salvate per device (più passkey per utente,
+//   una per device fisico).
+
+// L'RP_ID è il dominio. In locale è 'localhost', in produzione
+// va impostato via env (es. ordini-fiori.up.railway.app).
+function rpIdFromReq(req) {
+  if (process.env.WEBAUTHN_RP_ID) return process.env.WEBAUTHN_RP_ID;
+  const host = (req.headers['host'] || '').split(':')[0];
+  return host || 'localhost';
+}
+function originFromReq(req) {
+  if (process.env.WEBAUTHN_ORIGIN) return process.env.WEBAUTHN_ORIGIN;
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+  const host = req.headers['host'];
+  return `${proto}://${host}`;
+}
+
+// Map in memoria: chiave = username (registrazione) o sessionId (login),
+// valore = { challenge, expiresAt }. Le challenge scadono dopo 5 minuti
+// per evitare replay (lo standard WebAuthn richiede challenge fresca).
+const pendingChallenges = new Map();
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+function setChallenge(key, challenge) {
+  pendingChallenges.set(key, { challenge, expiresAt: Date.now() + CHALLENGE_TTL_MS });
+}
+function takeChallenge(key) {
+  const entry = pendingChallenges.get(key);
+  if (!entry) return null;
+  pendingChallenges.delete(key);
+  if (entry.expiresAt < Date.now()) return null;
+  return entry.challenge;
+}
+// Pulizia periodica
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of pendingChallenges) {
+    if (v.expiresAt < now) pendingChallenges.delete(k);
+  }
+}, 60_000).unref();
+
+// Converte una stringa base64url in Uint8Array (per la libreria)
+function b64urlToUint8(b64url) {
+  return new Uint8Array(Buffer.from(b64url, 'base64url'));
+}
+
+// ---------- REGISTRAZIONE PASSKEY (utente già autenticato) ----------
+
+// GET /api/webauthn/register/options
+//   Genera le opzioni che il client passerà a navigator.credentials.create().
+//   Esclude le passkey già registrate per questo utente sullo stesso device
+//   (per evitare duplicati).
+app.get('/api/webauthn/register/options', authenticate, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const existing = db.getPasskeysByUsername(username);
+    
+    const options = await generateRegistrationOptions({
+      rpName: 'Ordini Fiori',
+      rpID: rpIdFromReq(req),
+      userName: username,
+      // userID deve essere stabile per utente (max 64 byte).
+      userID: new TextEncoder().encode(username),
+      attestationType: 'none',
+      excludeCredentials: existing.map(pk => ({
+        id: pk.credentialID,
+        transports: pk.transports,
+      })),
+      authenticatorSelection: {
+        // 'preferred' = preferisce passkey su device (Touch/Face ID),
+        // ma accetta anche security key esterne.
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      },
+    });
+    
+    setChallenge(`reg:${username}`, options.challenge);
+    res.json(options);
+  } catch (error) {
+    console.error('Errore generazione opzioni registrazione passkey:', error);
+    res.status(500).json({ error: 'Errore generazione opzioni' });
+  }
+});
+
+// POST /api/webauthn/register/verify
+//   Verifica la risposta di navigator.credentials.create() e salva
+//   la passkey nel DB.
+app.post('/api/webauthn/register/verify', authenticate, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const { response, deviceName } = req.body || {};
+    if (!response) return res.status(400).json({ error: 'Risposta mancante' });
+    
+    const expectedChallenge = takeChallenge(`reg:${username}`);
+    if (!expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge scaduta o mancante. Riprova.' });
+    }
+    
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: originFromReq(req),
+      expectedRPID: rpIdFromReq(req),
+    });
+    
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ error: 'Verifica non riuscita' });
+    }
+    
+    const { credential } = verification.registrationInfo;
+    
+    db.savePasskey({
+      username,
+      credentialID: credential.id,
+      publicKey: Buffer.from(credential.publicKey),
+      counter: credential.counter || 0,
+      transports: credential.transports || response.response?.transports || [],
+      deviceName: deviceName || guessDeviceName(req),
+    });
+    
+    res.json({ verified: true });
+  } catch (error) {
+    console.error('Errore verifica registrazione passkey:', error);
+    res.status(500).json({ error: 'Errore verifica registrazione: ' + error.message });
+  }
+});
+
+// Genera un nome device "decente" a partire dallo User-Agent
+function guessDeviceName(req) {
+  const ua = req.headers['user-agent'] || '';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Mac OS X/i.test(ua) && /Safari/i.test(ua)) return 'Mac';
+  if (/Windows/i.test(ua)) return 'Windows PC';
+  if (/Linux/i.test(ua)) return 'Linux';
+  return 'Dispositivo';
+}
+
+// ---------- LOGIN CON PASSKEY (utente NON autenticato) ----------
+
+// POST /api/webauthn/login/options
+//   Body: { username?: string }
+//   Restituisce options per navigator.credentials.get().
+//   Se username è fornito limita ai suoi credentialID (più affidabile su
+//   iOS/Safari). Altrimenti permette discoverable credentials.
+app.post('/api/webauthn/login/options', async (req, res) => {
+  try {
+    const { username } = req.body || {};
+    let allowCredentials;
+    if (username) {
+      const pks = db.getPasskeysByUsername(username);
+      if (pks.length === 0) {
+        return res.status(404).json({ error: 'Nessuna passkey registrata per questo utente' });
+      }
+      allowCredentials = pks.map(pk => ({
+        id: pk.credentialID,
+        transports: pk.transports,
+      }));
+    }
+    
+    const options = await generateAuthenticationOptions({
+      rpID: rpIdFromReq(req),
+      userVerification: 'preferred',
+      allowCredentials,
+    });
+    
+    // Chiave per la challenge: se ho un username uso quello, altrimenti
+    // uso la challenge stessa (per discoverable credentials)
+    const challengeKey = username ? `login:${username}` : `login:_disc:${options.challenge}`;
+    setChallenge(challengeKey, options.challenge);
+    res.json({ ...options, _challengeKey: challengeKey });
+  } catch (error) {
+    console.error('Errore generazione opzioni login passkey:', error);
+    res.status(500).json({ error: 'Errore generazione opzioni' });
+  }
+});
+
+// POST /api/webauthn/login/verify
+//   Body: { response, challengeKey }
+//   Verifica l'assertion. Se ok, crea una sessione e restituisce token.
+app.post('/api/webauthn/login/verify', async (req, res) => {
+  try {
+    const { response, challengeKey } = req.body || {};
+    if (!response || !challengeKey) {
+      return res.status(400).json({ error: 'Dati mancanti' });
+    }
+    
+    const expectedChallenge = takeChallenge(challengeKey);
+    if (!expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge scaduta o mancante. Riprova.' });
+    }
+    
+    const credentialID = response.id;
+    const passkey = db.getPasskeyByCredentialId(credentialID);
+    if (!passkey) {
+      return res.status(404).json({ error: 'Passkey non riconosciuta su questo server' });
+    }
+    
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: originFromReq(req),
+      expectedRPID: rpIdFromReq(req),
+      credential: {
+        id: passkey.credentialID,
+        publicKey: new Uint8Array(passkey.publicKey),
+        counter: passkey.counter,
+        transports: passkey.transports,
+      },
+    });
+    
+    if (!verification.verified) {
+      return res.status(401).json({ error: 'Verifica non riuscita' });
+    }
+    
+    db.updatePasskeyCounter(passkey.credentialID, verification.authenticationInfo.newCounter);
+    
+    // Stessa logica della login normale: rimuove sessione vecchia, crea nuovo token
+    const username = passkey.username;
+    const oldToken = activeSessions.get(username);
+    if (oldToken) tokenToUsername.delete(oldToken);
+    
+    const token = generateToken();
+    activeSessions.set(username, token);
+    tokenToUsername.set(token, username);
+    
+    res.json({ success: true, token, username });
+  } catch (error) {
+    console.error('Errore verifica login passkey:', error);
+    res.status(500).json({ error: 'Errore verifica: ' + error.message });
+  }
+});
+
+// ---------- GESTIONE PASSKEY UTENTE ----------
+
+// GET /api/webauthn/credentials — Lista passkey registrate
+app.get('/api/webauthn/credentials', authenticate, (req, res) => {
+  try {
+    const pks = db.getPasskeysByUsername(req.user.username);
+    res.json(pks.map(pk => ({
+      id: pk.id,
+      deviceName: pk.deviceName,
+      createdAt: pk.createdAt,
+      lastUsedAt: pk.lastUsedAt,
+    })));
+  } catch (error) {
+    console.error('Errore lista passkey:', error);
+    res.status(500).json({ error: 'Errore lista passkey' });
+  }
+});
+
+// DELETE /api/webauthn/credentials/:id — Rimuove una passkey
+app.delete('/api/webauthn/credentials/:id', authenticate, (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    db.deletePasskey(id, req.user.username);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Errore eliminazione passkey:', error);
+    res.status(500).json({ error: 'Errore eliminazione' });
+  }
 });
 
 // API Routes - Ordini (protette)
@@ -942,6 +1223,38 @@ app.get('/api/stats/dates', (req, res) => {
 // ==========================================
 // NOTIFICHE PUSH
 // ==========================================
+
+// ==========================================
+// SYNC SOFT — Banner "ci sono aggiornamenti"
+// ==========================================
+
+// GET /api/sync/ping?dates=YYYY-MM-DD,YYYY-MM-DD
+// Restituisce, per ogni data, count ordini e ultimo updated_at (compresi
+// gli aggiornamenti su fabbisogno_checks). Il client confronta questo
+// snapshot con il suo memorizzato per capire se ci sono novità e mostrare
+// un banner discreto "Aggiornamenti disponibili — ricarica".
+//
+// Endpoint volutamente leggero (2 query GROUP BY) per essere chiamato
+// in polling ogni ~20s. Non restituisce gli ordini, solo i marker.
+app.get('/api/sync/ping', authenticate, (req, res) => {
+  try {
+    const datesParam = (req.query.dates || '').trim();
+    if (!datesParam) {
+      return res.json({});
+    }
+    // Validazione minima: solo date YYYY-MM-DD, evita iniezioni
+    const dates = datesParam.split(',')
+      .map(s => s.trim())
+      .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+    if (dates.length === 0) return res.json({});
+    
+    const snapshot = db.getOrdersSyncSnapshot(dates);
+    res.json(snapshot);
+  } catch (error) {
+    console.error('Errore sync ping:', error);
+    res.status(500).json({ error: 'Errore sync ping' });
+  }
+});
 
 // GET /api/push/vapid-public-key
 app.get('/api/push/vapid-public-key', (req, res) => {
