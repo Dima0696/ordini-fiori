@@ -7,12 +7,18 @@ const webpush = require('web-push');
 const cron = require('node-cron');
 const nodeCrypto = require('crypto');
 
-// Polyfill: SimpleWebAuthn v13 usa globalThis.crypto (Web Crypto API)
-// che è disponibile come globale solo da Node 20. Su Node 18 e versioni
-// precedenti dobbiamo esporlo manualmente da crypto.webcrypto.
-if (typeof globalThis.crypto === 'undefined' && nodeCrypto.webcrypto) {
-  globalThis.crypto = nodeCrypto.webcrypto;
+// Polyfill: SimpleWebAuthn v13 usa globalThis.crypto (Web Crypto API).
+// Disponibile come globale stabile da Node 20+, ma su alcune versioni
+// di Node 18/19 e su alcuni runtime Linux potrebbe non esserlo.
+// Forziamo l'assegnazione in modo incondizionato per essere certi.
+if (nodeCrypto.webcrypto) {
+  try {
+    globalThis.crypto = nodeCrypto.webcrypto;
+  } catch (e) {
+    // Su alcune versioni globalThis.crypto è non-configurabile: ignoriamo.
+  }
 }
+console.log(`[startup] Node ${process.version}, globalThis.crypto = ${typeof globalThis.crypto}, subtle = ${typeof (globalThis.crypto && globalThis.crypto.subtle)}`);
 
 const db = require('./database');
 const pushConfig = require('./push-config');
@@ -204,6 +210,24 @@ app.post('/api/logout', authenticate, (req, res) => {
 // GET /api/me - Verifica sessione corrente
 app.get('/api/me', authenticate, (req, res) => {
   res.json({ username: req.user.username });
+});
+
+// GET /api/diag - Diagnostica runtime (pubblico, info non sensibili)
+// Utile per verificare quale versione di Node e quali API sono disponibili
+// in produzione. Rimuovere quando la biometria sarà stabile.
+app.get('/api/diag', (req, res) => {
+  res.json({
+    nodeVersion: process.version,
+    hasGlobalCrypto: typeof globalThis.crypto !== 'undefined',
+    hasSubtle: typeof (globalThis.crypto && globalThis.crypto.subtle) !== 'undefined',
+    hasWebCrypto: typeof nodeCrypto.webcrypto !== 'undefined',
+    host: req.headers['host'],
+    forwardedHost: req.headers['x-forwarded-host'],
+    forwardedProto: req.headers['x-forwarded-proto'],
+    rpId: rpIdFromReq(req),
+    origin: originFromReq(req),
+    uptimeSec: Math.round(process.uptime()),
+  });
 });
 
 // ============================================================
