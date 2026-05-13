@@ -1,0 +1,7 @@
+# Pinning della versione Node per Railway/Nixpacks.
+# Necessario perché better-sqlite3@9.x non ha prebuilt binaries per Node 22+
+# e Nixpacks tenderebbe ad installare la versione più recente disponibile.
+# Node 20 LTS ha prebuilt per better-sqlite3 ed ha già globalThis.crypto
+# nativamente (per @simplewebauthn/server v13).
+[phases.setup]
+nixPkgs = ['nodejs_20', 'npm']
