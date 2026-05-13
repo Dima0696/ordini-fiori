@@ -5,6 +5,15 @@ const multer = require('multer');
 const fs = require('fs');
 const webpush = require('web-push');
 const cron = require('node-cron');
+const nodeCrypto = require('crypto');
+
+// Polyfill: SimpleWebAuthn v13 usa globalThis.crypto (Web Crypto API)
+// che è disponibile come globale solo da Node 20. Su Node 18 e versioni
+// precedenti dobbiamo esporlo manualmente da crypto.webcrypto.
+if (typeof globalThis.crypto === 'undefined' && nodeCrypto.webcrypto) {
+  globalThis.crypto = nodeCrypto.webcrypto;
+}
+
 const db = require('./database');
 const pushConfig = require('./push-config');
 const {
