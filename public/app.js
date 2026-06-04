@@ -1,6 +1,13 @@
 // Configurazione API
 const API_URL = window.location.origin + '/api';
 
+// Abbinamento articoli con l'anagrafica: DISATTIVATO.
+// L'abbinamento automatico/manuale alle varietà dell'anagrafica dava risultati
+// poco affidabili, quindi è spento. Restano attive provenienza (ITA/NL/IMP),
+// spunte, copia fornitore (che usa il testo originale) e tutto il resto.
+// Per riattivarlo in futuro basta rimettere true (e riabilitare l'auto-match server).
+const MATCHING_ENABLED = false;
+
 // Constants - Status e Labels
 const ORDER_STATUS = {
   DA_PREPARARE: 'da_preparare',
@@ -2559,6 +2566,7 @@ function shortChipLabel(matchKey) {
 //  - matchKey valorizzata → chip verde con label breve dell'articolo
 //  - matchKey vuota → chip grigio con icona "+" (silenzioso, opzionale)
 function renderMatchChip(matchKey) {
+  if (!MATCHING_ENABLED) return '';
   if (matchKey) {
     const label = shortChipLabel(matchKey);
     return `<button type="button" class="match-chip match-chip-linked" data-match-key="${escapeHtml(matchKey)}" title="${escapeHtml(label)} — tap per cambiare" aria-label="Articolo abbinato: ${escapeHtml(label)}">${escapeHtml(label)}</button>`;
@@ -2818,7 +2826,7 @@ function renderOrderRowsPreview() {
   preview.innerHTML = `
     <div class="order-rows-preview-header">
       <span>Righe (${rows.length})</span>
-      <span class="order-rows-hint">Tocca per abbinare e scegliere provenienza</span>
+      <span class="order-rows-hint">${MATCHING_ENABLED ? 'Tocca per abbinare e scegliere provenienza' : 'Scegli la provenienza di ogni riga'}</span>
     </div>
     ${rows.map(r => {
       const state = pendingOrderLineState[r.idx] || {};
@@ -2843,6 +2851,7 @@ function renderOrderRowsPreview() {
 // stile di renderMatchChip ma con classe extra `order-row-match-chip` e
 // data-row, così il delegato click sa quale riga è stata toccata.
 function renderOrderRowMatchChip(rowIdx, matchKey) {
+  if (!MATCHING_ENABLED) return '';
   if (matchKey) {
     const label = shortChipLabel(matchKey);
     return `<button type="button" class="match-chip match-chip-linked order-row-match-chip" data-row="${rowIdx}" data-match-key="${escapeHtml(matchKey)}" title="${escapeHtml(label)} — tocca per cambiare" aria-label="Articolo abbinato: ${escapeHtml(label)}">${escapeHtml(label)}</button>`;
@@ -3578,7 +3587,9 @@ function copySupplierItems(supplier) {
       
       const accept = isUnassignedMode ? !rowSupplier : (rowSupplier === supplier);
       if (accept) {
-        items.push({ line: line.trim(), matchKey: data.matchKey || '' });
+        // Con abbinamento disattivato la copia usa SEMPRE il testo originale
+        // (ignora eventuali match_key residui in DB).
+        items.push({ line: line.trim(), matchKey: MATCHING_ENABLED ? (data.matchKey || '') : '' });
       } else if (!isUnassignedMode && rowSupplier && rowSupplier !== supplier) {
         skippedOtherSupplier++;
       }

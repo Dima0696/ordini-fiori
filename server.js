@@ -32,6 +32,11 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Abbinamento automatico articoli ↔ anagrafica: DISATTIVATO.
+// Dava match poco affidabili. Restano provenienza, spunte e copia (testo
+// originale). Per riabilitarlo: impostare a true (o env MATCHING_ENABLED=1).
+const ARTICLE_MATCHING_ENABLED = process.env.MATCHING_ENABLED === '1';
+
 // Crea cartella uploads se non esiste
 // Su Railway usa il volume, altrimenti locale
 const uploadsDir = process.env.DATABASE_PATH 
@@ -653,10 +658,12 @@ app.post('/api/orders', authenticate, async (req, res) => {
     
     // Match automatico anagrafica (conservativo, solo righe ancora non collegate).
     // Non blocca la creazione se fallisce: è un layer opzionale.
-    try {
-      db.autoMatchOrderLines(order.id, order.description);
-    } catch (e) {
-      console.error('⚠️ autoMatch creazione ordine fallito:', e.message);
+    if (ARTICLE_MATCHING_ENABLED) {
+      try {
+        db.autoMatchOrderLines(order.id, order.description);
+      } catch (e) {
+        console.error('⚠️ autoMatch creazione ordine fallito:', e.message);
+      }
     }
     
     // Applica le scelte manuali dell'utente (chip articolo + provenienza)
@@ -755,10 +762,12 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
     const order = db.updateOrder(req.params.id, orderData, req.user.username);
     if (order) {
       // Match automatico sulle righe nuove (preserva quelle già agganciate manualmente).
-      try {
-        db.autoMatchOrderLines(order.id, order.description);
-      } catch (e) {
-        console.error('⚠️ autoMatch update ordine fallito:', e.message);
+      if (ARTICLE_MATCHING_ENABLED) {
+        try {
+          db.autoMatchOrderLines(order.id, order.description);
+        } catch (e) {
+          console.error('⚠️ autoMatch update ordine fallito:', e.message);
+        }
       }
       
       // Applica scelte manuali dell'utente (chip + provenienza) fatte nella
@@ -1198,6 +1207,9 @@ app.post('/api/articoli/upload', authenticate, uploadAnagrafica.single('file'), 
 // Body opzionale: { fromDate, toDate } in formato YYYY-MM-DD; default ultimi 30 giorni.
 app.post('/api/articoli/auto-match-existing', authenticate, (req, res) => {
   try {
+    if (!ARTICLE_MATCHING_ENABLED) {
+      return res.json({ processed: 0, totalApplied: 0, disabled: true });
+    }
     const today = new Date();
     const past = new Date(today);
     past.setDate(today.getDate() - 30);
