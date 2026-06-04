@@ -5061,7 +5061,10 @@ async function toggleWholeOrder(type) {
   if (!order) return;
   const orderId = order.id;
   const total = countOrderItemLines(order);
-  if (total === 0) return;
+  if (total === 0) {
+    showToast('Questo ordine non ha righe da segnare', 'info');
+    return;
+  }
   
   const st = getOrderAggregateState(order);
   const newValue = type === 'prepared' ? !st.allPrepared : !st.allOrdered;
@@ -5079,9 +5082,10 @@ async function toggleWholeOrder(type) {
     }
   }
   
-  // Aggiorna subito i bottoni e la vista sottostante
-  updateDetailQuickActions(order);
-  renderOrdersView();
+  // Feedback visivo immediato sui bottoni (protetto: non deve mai bloccare
+  // l'invio al server in caso di errore di rendering).
+  try { updateDetailQuickActions(order); } catch (_) {}
+  try { renderOrdersView(); } catch (e) { console.warn('[QUICK-ACTION] render non riuscito (non bloccante):', e); }
   
   const btn = document.getElementById(type === 'prepared' ? 'btn-detail-mark-prepared' : 'btn-detail-mark-ordered');
   if (btn) {
@@ -5089,12 +5093,14 @@ async function toggleWholeOrder(type) {
     setTimeout(() => btn.classList.remove('pulsing'), 500);
   }
   
+  // Invio al server: avviene SEMPRE, indipendentemente dal rendering.
   try {
-    await authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+    const resp = await authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ totalLines: total, type, value: newValue })
     });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     showToast(
       type === 'prepared'
         ? (newValue ? 'Ordine segnato come preparato' : 'Annullato "preparato"')
@@ -5102,15 +5108,15 @@ async function toggleWholeOrder(type) {
       'success'
     );
   } catch (e) {
-    console.error('[QUICK-ACTION] errore:', e);
-    showToast('Errore, riprovo a sincronizzare', 'error');
+    console.error('[QUICK-ACTION] errore invio al server:', e);
+    showToast('Errore di rete: modifica non salvata', 'error');
     // Rollback: ricarica i checks freschi dal server
     try {
       const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${orderId}`);
       const fresh = await checksResponse.json();
       allOrderChecks[orderId] = fresh[orderId] || {};
-      updateDetailQuickActions(order);
-      renderOrdersView();
+      try { updateDetailQuickActions(order); } catch (_) {}
+      try { renderOrdersView(); } catch (_) {}
     } catch (_) { /* lascio lo stato ottimistico */ }
   }
 }

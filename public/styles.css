@@ -7135,6 +7135,20 @@ button {
   flex-shrink: 0;
 }
 
+/* Il gruppo titolo deve potersi restringere così i bottoni a destra
+   restano SEMPRE visibili anche su telefoni stretti / nomi cliente lunghi */
+.modal-header-detail .modal-title-group {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.modal-header-detail .modal-title-group > div {
+  min-width: 0;
+}
+.modal-header-detail #detail-header-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .detail-quick-btn {
   display: inline-flex;
   align-items: center;
