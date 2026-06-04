@@ -2289,20 +2289,22 @@ function createOrderCard(order, index) {
     const isAllOrdered = hasLines && orderedProg.done === orderedProg.total;
     const isAllPrepared = hasLines && preparedProg.done === preparedProg.total;
     
-    // Badge di stato (in alto a destra)
+    // Badge di stato (in alto a destra). Sono anche BOTTONI: un tocco
+    // segna/annulla TUTTO l'ordine come ordinato o preparato (anche senza
+    // spuntare le singole righe). Lo stato "active" = tutto segnato.
     let stateBadgesHtml = '';
     if (isRitirato) {
       stateBadgesHtml = `<span class="order-state-badge state-ritirato">RITIRATO</span>`;
     } else {
       stateBadgesHtml = `
-        <span class="order-state-badge state-ordinato ${isAllOrdered ? 'active' : ''}" title="Tutti gli articoli ordinati">
+        <button type="button" class="order-state-badge state-ordinato is-clickable ${isAllOrdered ? 'active' : ''}" data-order-id="${order.id}" data-mark="checked" aria-pressed="${isAllOrdered}" title="${isAllOrdered ? 'Annulla: tutto ordinato' : 'Segna tutto come ordinato'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/></svg>
           <span>ORDINATO</span>
-        </span>
-        <span class="order-state-badge state-pronto ${isAllPrepared ? 'active' : ''}" title="Tutti gli articoli preparati">
+        </button>
+        <button type="button" class="order-state-badge state-pronto is-clickable ${isAllPrepared ? 'active' : ''}" data-order-id="${order.id}" data-mark="prepared" aria-pressed="${isAllPrepared}" title="${isAllPrepared ? 'Annulla: tutto preparato' : 'Segna tutto come preparato'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
           <span>PRONTO</span>
-        </span>
+        </button>
       `;
     }
     
@@ -2408,6 +2410,16 @@ function createOrderCard(order, index) {
         const lineNumber = parseInt(group.dataset.line);
         const supplier = btn.dataset.supplier;
         toggleOrderLineSupplier(orderId, lineNumber, supplier, btn);
+      });
+    });
+    
+    // Click sui badge ORDINATO / PRONTO → segna/annulla tutto l'ordine
+    orderCard.querySelectorAll('.order-state-badge.is-clickable').forEach(badge => {
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const oid = parseInt(badge.dataset.orderId);
+        const type = badge.dataset.mark; // 'checked' | 'prepared'
+        toggleOrderStateFromBadge(oid, type);
       });
     });
     
@@ -5068,8 +5080,10 @@ function updateDetailQuickActions(order) {
 // Segna/annulla TUTTO l'ordine come ordinato ('checked') o preparato ('prepared').
 // Toggle: se è già tutto segnato → annulla, altrimenti segna tutto.
 // Funziona anche se le singole righe non sono state spuntate.
-async function toggleWholeOrder(type) {
-  const order = currentDetailOrder;
+// Core condiviso: segna/annulla TUTTO l'ordine come ordinato/preparato.
+// Aggiornamento ottimistico + invio al server (che avviene SEMPRE, anche
+// se il re-render fallisce). type: 'checked' | 'prepared'.
+async function markWholeOrder(order, type, newValue) {
   if (!order) return;
   const orderId = order.id;
   const total = countOrderItemLines(order);
@@ -5077,9 +5091,6 @@ async function toggleWholeOrder(type) {
     showToast('Questo ordine non ha righe da segnare', 'info');
     return;
   }
-  
-  const st = getOrderAggregateState(order);
-  const newValue = type === 'prepared' ? !st.allPrepared : !st.allOrdered;
   
   // Aggiornamento ottimistico della cache locale
   if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
@@ -5094,16 +5105,9 @@ async function toggleWholeOrder(type) {
     }
   }
   
-  // Feedback visivo immediato sui bottoni (protetto: non deve mai bloccare
-  // l'invio al server in caso di errore di rendering).
+  // Feedback visivo immediato (protetto: non deve mai bloccare il server).
   try { updateDetailQuickActions(order); } catch (_) {}
   try { renderOrdersView(); } catch (e) { console.warn('[QUICK-ACTION] render non riuscito (non bloccante):', e); }
-  
-  const btn = document.getElementById(type === 'prepared' ? 'btn-detail-mark-prepared' : 'btn-detail-mark-ordered');
-  if (btn) {
-    btn.classList.add('pulsing');
-    setTimeout(() => btn.classList.remove('pulsing'), 500);
-  }
   
   // Invio al server: avviene SEMPRE, indipendentemente dal rendering.
   try {
@@ -5131,6 +5135,31 @@ async function toggleWholeOrder(type) {
       try { renderOrdersView(); } catch (_) {}
     } catch (_) { /* lascio lo stato ottimistico */ }
   }
+}
+
+// Bottoni rapidi nell'header del DETTAGLIO ordine.
+async function toggleWholeOrder(type) {
+  const order = currentDetailOrder;
+  if (!order) return;
+  const st = getOrderAggregateState(order);
+  const newValue = type === 'prepared' ? !st.allPrepared : !st.allOrdered;
+  
+  const btn = document.getElementById(type === 'prepared' ? 'btn-detail-mark-prepared' : 'btn-detail-mark-ordered');
+  if (btn) {
+    btn.classList.add('pulsing');
+    setTimeout(() => btn.classList.remove('pulsing'), 500);
+  }
+  
+  await markWholeOrder(order, type, newValue);
+}
+
+// Badge ORDINATO / PRONTO cliccabili nelle card della LISTA ordini.
+async function toggleOrderStateFromBadge(orderId, type) {
+  const order = findDisplayedOrder(orderId);
+  if (!order) return;
+  const st = getOrderAggregateState(order);
+  const newValue = type === 'prepared' ? !st.allPrepared : !st.allOrdered;
+  await markWholeOrder(order, type, newValue);
 }
 
 // Apri modal condivisione/azioni

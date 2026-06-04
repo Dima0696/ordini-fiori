@@ -2084,6 +2084,47 @@ body {
   opacity: 1;
 }
 
+/* Badge cliccabili (toggle "segna tutto ordinato/preparato").
+   Stato DA FARE = contorno colorato (chiaramente toccabile, non grigio
+   "disabilitato"). Stato FATTO (.active) = pieno colorato. */
+.order-state-badge.is-clickable {
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.order-state-badge.is-clickable.state-ordinato:not(.active) {
+  background: #FFFFFF;
+  color: #2E7D32;
+  border-color: #66BB6A;
+}
+.order-state-badge.is-clickable.state-pronto:not(.active) {
+  background: #FFFFFF;
+  color: #EF6C00;
+  border-color: #FFB74D;
+}
+.order-state-badge.is-clickable:not(.active) svg {
+  opacity: 1;
+}
+.order-state-badge.is-clickable:active {
+  transform: scale(0.93);
+}
+.order-state-badge.is-clickable.state-ordinato:not(.active):hover {
+  background: #E8F5E9;
+  border-color: #2E7D32;
+}
+.order-state-badge.is-clickable.state-pronto:not(.active):hover {
+  background: #FFF3E0;
+  border-color: #EF6C00;
+}
+/* Tap target adeguato su mobile */
+@media (max-width: 480px) {
+  .order-state-badge.is-clickable {
+    min-height: 30px;
+  }
+}
+
 .order-state-badge.state-ritirato {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
   color: #FFFFFF;
