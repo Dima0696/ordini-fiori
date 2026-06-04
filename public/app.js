@@ -141,10 +141,29 @@ window.addEventListener('load', () => {
   }
 });
 
+// Delega di eventi per i bottoni rapidi "Ordinato"/"Preparato" dell'header
+// dettaglio. Agganciata QUI (DOMContentLoaded), indipendente da
+// setupEventListeners, così funziona sempre anche se quel setup si
+// interrompe per un errore. La delega sul document gestisce anche
+// eventuali ricreazioni del DOM.
+function setupDetailQuickActionDelegation() {
+  document.addEventListener('click', (e) => {
+    if (!e.target || !e.target.closest) return;
+    if (e.target.closest('#btn-detail-mark-ordered')) {
+      e.preventDefault();
+      toggleWholeOrder('checked');
+    } else if (e.target.closest('#btn-detail-mark-prepared')) {
+      e.preventDefault();
+      toggleWholeOrder('prepared');
+    }
+  });
+}
+
 // Inizializzazione app
 document.addEventListener('DOMContentLoaded', () => {
   setupLoginListeners();
   setupBiometricPromptListeners();
+  setupDetailQuickActionDelegation();
   checkAuth();
 });
 
@@ -1292,16 +1311,9 @@ function setupEventListeners() {
     modalDetail.classList.remove('active');
   });
   
-  // Azioni rapide nell'header dettaglio: segnano TUTTO l'ordine come
-  // ordinato/preparato in un colpo solo (anche senza spuntare le righe).
-  const btnMarkOrdered = document.getElementById('btn-detail-mark-ordered');
-  const btnMarkPrepared = document.getElementById('btn-detail-mark-prepared');
-  if (btnMarkOrdered) {
-    btnMarkOrdered.addEventListener('click', () => toggleWholeOrder('checked'));
-  }
-  if (btnMarkPrepared) {
-    btnMarkPrepared.addEventListener('click', () => toggleWholeOrder('prepared'));
-  }
+  // (I listener dei bottoni rapidi Ordinato/Preparato sono agganciati in
+  //  modo indipendente nel DOMContentLoaded, vedi setupDetailQuickActionDelegation,
+  //  così funzionano anche se questo setup dovesse interrompersi prima.)
   
   // Click fuori dal modal dettaglio → chiude (solo se non si sta stampando)
   modalDetail.addEventListener('click', (e) => {
