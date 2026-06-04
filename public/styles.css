@@ -7109,6 +7109,73 @@ button {
   backdrop-filter: blur(10px);
 }
 
+/* Azioni rapide header dettaglio: Ordinato / Preparato + chiudi */
+.detail-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.detail-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, transform 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+.detail-quick-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.detail-quick-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.detail-quick-btn:active {
+  transform: scale(0.95);
+}
+/* Stato attivo: l'intero ordine è già segnato → pill piena bianca */
+.detail-quick-btn.active {
+  background: white;
+  color: var(--color-primary-dark);
+  border-color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.detail-quick-btn.pulsing {
+  animation: detail-quick-pulse 0.5s ease;
+}
+@keyframes detail-quick-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (max-width: 480px) {
+  /* Su schermi stretti mostro solo le icone per non affollare l'header */
+  .detail-quick-btn {
+    padding: 8px;
+    gap: 0;
+  }
+  .detail-quick-btn span {
+    display: none;
+  }
+  .detail-header-right {
+    gap: 6px;
+  }
+}
+
 /* Print Header (solo stampa) */
 .print-only {
   display: none !important;

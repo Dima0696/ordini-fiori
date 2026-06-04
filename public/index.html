@@ -1325,7 +1325,19 @@
             <p class="modal-subtitle">Informazioni complete ordine</p>
           </div>
         </div>
-        <button id="btn-close-detail" class="btn-close">✕</button>
+        <div class="detail-header-right no-print">
+          <!-- Azioni rapide: segnano TUTTO l'ordine come ordinato/preparato,
+               anche senza spuntare i singoli articoli -->
+          <button id="btn-detail-mark-ordered" type="button" class="detail-quick-btn" title="Segna tutto l'ordine come ordinato" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/></svg>
+            <span>Ordinato</span>
+          </button>
+          <button id="btn-detail-mark-prepared" type="button" class="detail-quick-btn" title="Segna tutto l'ordine come preparato" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+            <span>Preparato</span>
+          </button>
+          <button id="btn-close-detail" class="btn-close">✕</button>
+        </div>
       </div>
       
       <div id="detail-content" class="detail-content detail-content-premium">

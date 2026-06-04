@@ -1292,6 +1292,17 @@ function setupEventListeners() {
     modalDetail.classList.remove('active');
   });
   
+  // Azioni rapide nell'header dettaglio: segnano TUTTO l'ordine come
+  // ordinato/preparato in un colpo solo (anche senza spuntare le righe).
+  const btnMarkOrdered = document.getElementById('btn-detail-mark-ordered');
+  const btnMarkPrepared = document.getElementById('btn-detail-mark-prepared');
+  if (btnMarkOrdered) {
+    btnMarkOrdered.addEventListener('click', () => toggleWholeOrder('checked'));
+  }
+  if (btnMarkPrepared) {
+    btnMarkPrepared.addEventListener('click', () => toggleWholeOrder('prepared'));
+  }
+  
   // Click fuori dal modal dettaglio → chiude (solo se non si sta stampando)
   modalDetail.addEventListener('click', (e) => {
     if (isPrinting) return; // Non chiudere durante la stampa
@@ -4973,13 +4984,135 @@ async function markAsOrdered(orderId) {
 }
 
 // Apri dettaglio ordine
-function openOrderDetail(order) {
+async function openOrderDetail(order) {
   currentDetailOrder = order;
   currentOrderId = order.id;
   
   const modal = document.getElementById('modal-detail');
   renderOrderDetail(order);
   modal.classList.add('active');
+  
+  // Assicura che i check (ordinato/preparato) siano in cache: serve ai
+  // bottoni rapidi per mostrare lo stato corretto. Se l'ordine è stato
+  // aperto da una vista senza check precaricati (es. ricerca), li scarica.
+  if (!allOrderChecks[order.id]) {
+    try {
+      const resp = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${order.id}`);
+      const fresh = await resp.json();
+      allOrderChecks[order.id] = (fresh && fresh[order.id]) || {};
+    } catch (e) {
+      console.warn('[DETAIL] checks non caricati:', e);
+    }
+  }
+  updateDetailQuickActions(order);
+}
+
+// Conta le righe "vere" (non vuote) di un ordine.
+function countOrderItemLines(order) {
+  if (!order || !order.description) return 0;
+  return order.description.split('\n').filter(l => l.trim() !== '').length;
+}
+
+// Stato aggregato dell'ordine: quante righe sono ordinate / preparate.
+function getOrderAggregateState(order) {
+  const total = countOrderItemLines(order);
+  const checks = allOrderChecks[order.id] || {};
+  let ordered = 0, prepared = 0;
+  for (let i = 0; i < total; i++) {
+    const d = checks[i];
+    if (d && d.checked === true) ordered++;
+    if (d && d.prepared === true) prepared++;
+  }
+  return {
+    total,
+    ordered,
+    prepared,
+    allOrdered: total > 0 && ordered === total,
+    allPrepared: total > 0 && prepared === total,
+  };
+}
+
+// Aggiorna lo stato visivo (attivo/non attivo) dei due bottoni rapidi.
+function updateDetailQuickActions(order) {
+  const btnOrdered = document.getElementById('btn-detail-mark-ordered');
+  const btnPrepared = document.getElementById('btn-detail-mark-prepared');
+  if (!btnOrdered || !btnPrepared) return;
+  
+  const st = getOrderAggregateState(order);
+  
+  btnOrdered.classList.toggle('active', st.allOrdered);
+  btnOrdered.setAttribute('aria-pressed', st.allOrdered ? 'true' : 'false');
+  btnOrdered.title = st.allOrdered
+    ? 'Annulla "ordinato" per tutto l\'ordine'
+    : 'Segna tutto l\'ordine come ordinato';
+  
+  btnPrepared.classList.toggle('active', st.allPrepared);
+  btnPrepared.setAttribute('aria-pressed', st.allPrepared ? 'true' : 'false');
+  btnPrepared.title = st.allPrepared
+    ? 'Annulla "preparato" per tutto l\'ordine'
+    : 'Segna tutto l\'ordine come preparato';
+}
+
+// Segna/annulla TUTTO l'ordine come ordinato ('checked') o preparato ('prepared').
+// Toggle: se è già tutto segnato → annulla, altrimenti segna tutto.
+// Funziona anche se le singole righe non sono state spuntate.
+async function toggleWholeOrder(type) {
+  const order = currentDetailOrder;
+  if (!order) return;
+  const orderId = order.id;
+  const total = countOrderItemLines(order);
+  if (total === 0) return;
+  
+  const st = getOrderAggregateState(order);
+  const newValue = type === 'prepared' ? !st.allPrepared : !st.allOrdered;
+  
+  // Aggiornamento ottimistico della cache locale
+  if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
+  for (let i = 0; i < total; i++) {
+    if (!allOrderChecks[orderId][i]) {
+      allOrderChecks[orderId][i] = { checked: false, prepared: false, supplier: '', matchKey: '' };
+    }
+    if (type === 'prepared') {
+      allOrderChecks[orderId][i].prepared = newValue;
+    } else {
+      allOrderChecks[orderId][i].checked = newValue;
+    }
+  }
+  
+  // Aggiorna subito i bottoni e la vista sottostante
+  updateDetailQuickActions(order);
+  renderOrdersView();
+  
+  const btn = document.getElementById(type === 'prepared' ? 'btn-detail-mark-prepared' : 'btn-detail-mark-ordered');
+  if (btn) {
+    btn.classList.add('pulsing');
+    setTimeout(() => btn.classList.remove('pulsing'), 500);
+  }
+  
+  try {
+    await authenticatedFetch(`${API_URL}/fabbisogno-checks/check-all/${orderId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ totalLines: total, type, value: newValue })
+    });
+    showToast(
+      type === 'prepared'
+        ? (newValue ? 'Ordine segnato come preparato' : 'Annullato "preparato"')
+        : (newValue ? 'Ordine segnato come ordinato' : 'Annullato "ordinato"'),
+      'success'
+    );
+  } catch (e) {
+    console.error('[QUICK-ACTION] errore:', e);
+    showToast('Errore, riprovo a sincronizzare', 'error');
+    // Rollback: ricarica i checks freschi dal server
+    try {
+      const checksResponse = await fetchNoCache(`${API_URL}/fabbisogno-checks/batch/${orderId}`);
+      const fresh = await checksResponse.json();
+      allOrderChecks[orderId] = fresh[orderId] || {};
+      updateDetailQuickActions(order);
+      renderOrdersView();
+    } catch (_) { /* lascio lo stato ottimistico */ }
+  }
 }
 
 // Apri modal condivisione/azioni
