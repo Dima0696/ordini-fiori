@@ -6419,7 +6419,103 @@ button {
    ============================================ */
 
 .modal-order-premium {
-  max-width: 900px !important;
+  max-width: 640px !important;
+}
+
+/* ============================================
+   STAMPA SILENZIOSA: il dettaglio viene montato
+   per il layout di stampa ma non si vede a schermo
+   ============================================ */
+body.printing-quick #modal-detail.active {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ============================================
+   FORM ORDINE COMPATTO (nuovo/modifica)
+   Solo l'essenziale: data, cliente, merce, foto.
+   Salva sempre visibile (sticky).
+   ============================================ */
+.modal-header-order.modal-header-slim {
+  padding: 1rem 1.4rem;
+  align-items: center;
+  border-radius: 28px 28px 0 0;
+}
+
+.modal-header-slim h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.form-body-compact {
+  padding: 1.1rem 1.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-order-compact .form-group-premium {
+  margin-bottom: 0;
+}
+
+.form-order-compact .form-group-premium label {
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5a6b66;
+}
+
+.label-hint {
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: #9aa5a0;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.3rem;
+}
+
+.form-order-compact .form-group-premium input,
+.form-order-compact .form-group-premium textarea {
+  padding: 0.8rem 1rem;
+  border: 1.5px solid #E3E8E6;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.form-order-compact .form-group-premium textarea {
+  min-height: 150px;
+  line-height: 1.55;
+}
+
+.form-row-compact {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.75rem;
+}
+
+.form-group-date input {
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-add-photo-compact {
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.form-actions-premium.form-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 0.85rem 1.4rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #ECEFF1;
+  border-radius: 0 0 28px 28px;
 }
 
 .modal-header-order {
@@ -9687,4 +9783,44 @@ button {
   .catalogo-toolbar { flex-direction: column; align-items: stretch; }
   .catalogo-actions { flex-direction: column; }
   .catalogo-actions button { justify-content: center; }
+}
+
+/* ============================================
+   FORM ORDINE COMPATTO — override mobile
+   (dopo i blocchi responsive generici)
+   ============================================ */
+@media (max-width: 768px) {
+  .form-actions-premium.form-actions-sticky {
+    flex-direction: row !important;
+    gap: 0.6rem !important;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .form-actions-sticky .btn-delete-premium {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+
+  .form-actions-sticky .btn-save-order {
+    flex: 1 !important;
+  }
+
+  .form-row-compact {
+    grid-template-columns: 150px 1fr !important;
+    gap: 0.6rem !important;
+  }
+
+  .form-body-compact {
+    padding: 1rem 1rem 0.5rem !important;
+  }
+
+  .form-order-compact .form-group-premium input,
+  .form-order-compact .form-group-premium textarea {
+    padding: 0.75rem 0.9rem !important;
+    font-size: 16px !important; /* niente zoom iOS */
+  }
+
+  .form-order-compact .form-group-premium textarea {
+    min-height: 130px !important;
+  }
 }

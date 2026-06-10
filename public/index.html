@@ -1021,153 +1021,52 @@
   <!-- MODAL NUOVO ORDINE / MODIFICA ORDINE -->
   <div id="modal-order" class="modal">
     <div class="modal-content modal-order-premium">
-      <div class="modal-header modal-header-order">
-        <div class="modal-title-group">
-          <div class="modal-icon modal-icon-order">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </div>
-          <div>
-            <h2 id="modal-title">Nuovo Ordine</h2>
-            <p class="modal-subtitle">Compila i dettagli dell'ordine</p>
-          </div>
-        </div>
+      <div class="modal-header modal-header-order modal-header-slim">
+        <h2 id="modal-title">Nuovo Ordine</h2>
         <button id="btn-close-modal" class="btn-close">✕</button>
       </div>
       
-      <form id="order-form" class="form-order">
+      <form id="order-form" class="form-order form-order-compact">
         <input type="hidden" id="order-id">
+        <!-- Disponibilità e stato gestiti dalle spunte sulle card, non più dal form -->
+        <input type="hidden" id="goods-type" value="da_ordinare">
+        <input type="hidden" id="order-status" value="da_preparare">
         
-        <!-- SEZIONE DETTAGLI -->
-        <div class="form-section">
-          <div class="section-header section-header-order">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <h3>Dettagli Ordine</h3>
-          </div>
-          
-          <div class="form-row-premium">
-            <div class="form-group-premium">
-              <label for="order-date">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                Data
-              </label>
+        <div class="form-body-compact">
+          <div class="form-row-compact">
+            <div class="form-group-premium form-group-date">
+              <label for="order-date">Data</label>
               <input type="date" id="order-date" required>
             </div>
             
             <div class="form-group-premium">
-              <label for="order-customer">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Cliente
-              </label>
+              <label for="order-customer">Cliente</label>
               <input type="text" id="order-customer" placeholder="Fioreria Rossi" required>
             </div>
           </div>
           
           <div class="form-group-premium">
-            <label for="order-description">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
-              Merce
-            </label>
-            <textarea id="order-description" rows="3" placeholder="es. 3 casse rose, 5 mazzi eucalyptus" required></textarea>
+            <label for="order-description">Merce <span class="label-hint">una riga per articolo</span></label>
+            <textarea id="order-description" rows="6" placeholder="es. 3 casse rose&#10;5 mazzi eucalyptus" required></textarea>
             <div id="order-rows-preview" class="order-rows-preview" aria-live="polite"></div>
           </div>
-        </div>
-        
-        <!-- SEZIONE DISPONIBILITÀ -->
-        <div class="form-section">
-          <div class="section-header section-header-order">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            <h3>Disponibilità Merce</h3>
-          </div>
           
-          <div class="goods-buttons-premium">
-            <button type="button" class="btn-goods-premium btn-goods-tordinare active" data-goods="da_ordinare">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <div class="form-group-premium">
+            <input type="file" id="photo-input" accept="image/*" multiple style="display: none;">
+            <button type="button" id="btn-add-photo" class="btn-add-photo-premium btn-add-photo-compact">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
               </svg>
-              Da ordinare
+              Aggiungi foto
             </button>
-            <button type="button" class="btn-goods-premium btn-goods-ordinato" data-goods="ordinata">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="9" cy="21" r="1.5"/>
-                <circle cx="18" cy="21" r="1.5"/>
-                <path d="M2.5 3h2.2l2.7 12.3a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 2-1.5L21.5 7H6"/>
-              </svg>
-              Ordinato
-            </button>
-            <button type="button" class="btn-goods-premium btn-goods-pronto" data-goods="in_cella">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              Pronto
-            </button>
+            <div id="photo-preview" class="photo-preview"></div>
           </div>
-          <input type="hidden" id="goods-type" value="da_ordinare">
-          <p class="goods-buttons-hint">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <span>Aggiorna automaticamente tutte le spunte degli articoli</span>
-          </p>
         </div>
         
-        <!-- SEZIONE FOTO -->
-        <div class="form-section">
-          <div class="section-header section-header-order">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-            <h3>Foto</h3>
-          </div>
-          
-          <input type="file" id="photo-input" accept="image/*" multiple style="display: none;">
-          <button type="button" id="btn-add-photo" class="btn-add-photo-premium">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-            Aggiungi Foto
-          </button>
-          <div id="photo-preview" class="photo-preview"></div>
-        </div>
-        
-        <!-- Stato ordine gestito automaticamente tramite le spunte (ordinato/preparato) -->
-        <input type="hidden" id="order-status" value="da_preparare">
-        
-        <!-- AZIONI -->
-        <div class="form-actions-premium">
+        <!-- AZIONI: sticky, sempre visibili senza scrollare -->
+        <div class="form-actions-premium form-actions-sticky">
           <button type="button" id="btn-delete-order" class="btn-delete-premium" style="display: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>

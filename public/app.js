@@ -1307,6 +1307,7 @@ function setupEventListeners() {
   const modalDetail = document.getElementById('modal-detail');
   document.getElementById('btn-close-detail').addEventListener('click', () => {
     modalDetail.classList.remove('active');
+    document.body.classList.remove('printing-quick');
   });
   
   // (I listener dei bottoni rapidi Ordinato/Preparato sono agganciati in
@@ -2526,14 +2527,15 @@ function createOrderCard(order, index) {
     // Event listeners pulsanti
     orderCard.querySelector('.btn-print-quick').addEventListener('click', (e) => {
       e.stopPropagation();
-      // Apri dettaglio ordine e stampa
+      // Stampa "silenziosa": il dettaglio viene renderizzato nel modal
+      // (serve al layout di stampa) ma resta INVISIBILE a schermo.
+      document.body.classList.add('printing-quick');
       openOrderDetail(order);
-      
-      // Listener per tornare alla lista dopo la stampa
+
+      // Pulizia dopo la stampa: rimuovi invisibilità e chiudi il modal
       const afterPrintHandler = () => {
-        // Rimuovi il listener
         window.removeEventListener('afterprint', afterPrintHandler);
-        // Chiudi il modal dettaglio
+        document.body.classList.remove('printing-quick');
         const modalDetail = document.getElementById('modal-detail');
         if (modalDetail) {
           modalDetail.classList.remove('active');
@@ -2541,14 +2543,20 @@ function createOrderCard(order, index) {
         // Segna come stampato
         markOrderAsPrinted(order.id);
       };
-      
-      // Attendi che il modal si apra e poi stampa
+
+      // Attendi che il modal sia renderizzato e poi stampa
       setTimeout(() => {
-        // Aggiungi listener per quando termina la stampa
         window.addEventListener('afterprint', afterPrintHandler);
-        // Apri dialog stampa
         window.print();
       }, 300);
+
+      // Rete di sicurezza: se afterprint non arriva (browser anomali),
+      // ripristina comunque la UI dopo 90 secondi
+      setTimeout(() => {
+        if (document.body.classList.contains('printing-quick')) {
+          afterPrintHandler();
+        }
+      }, 90000);
     });
     
     const btnEdit = orderCard.querySelector('.btn-edit-order');
