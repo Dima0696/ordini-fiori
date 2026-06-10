@@ -1814,13 +1814,14 @@ function renderSearchResults(query, orders) {
   html += `</div>`;
   searchResultsContainer.innerHTML = html;
   
-  // Aggiungi click handlers
+  // Click su un risultato → vai al giorno con l'ordine aperto ed evidenziato
+  // (stessa esperienza del tap su una notifica push)
   searchResultsContainer.querySelectorAll('.order-card').forEach(card => {
     card.addEventListener('click', () => {
       const orderId = parseInt(card.dataset.orderId);
       const order = orders.find(o => o.id === orderId);
       if (order) {
-        openOrderDetail(order);
+        handleNotificationDeeplink(order.date, order.id);
       }
     });
   });
@@ -1857,7 +1858,8 @@ async function openOrderByCustomerAndDate(customer, date) {
     
     if (order) {
       console.log(`[QUICK-OPEN] Ordine trovato:`, order.id);
-      openOrderDetail(order);
+      // Vai al giorno con l'ordine aperto ed evidenziato (niente più vista dettaglio)
+      await handleNotificationDeeplink(date, order.id);
     } else {
       console.warn(`[QUICK-OPEN] Ordine non trovato per ${customer}`);
       alert(`Ordine di ${customer} non trovato per questa data`);
