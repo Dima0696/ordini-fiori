@@ -1022,6 +1022,16 @@ function setupEventListeners() {
     loadCalendar(true);
   });
   
+  // Linguette filtro ordini (Tutti / Da preparare / Pronti)
+  const filterTabs = document.getElementById('orders-filter-tabs');
+  if (filterTabs) {
+    filterTabs.addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      setOrderFilter(tab.dataset.filter);
+    });
+  }
+  
   // Navigazione pagine
   document.getElementById('btn-back').addEventListener('click', () => {
     showPage('calendar');
@@ -1623,9 +1633,9 @@ function renderCalendar() {
       // Riga contatori per stato: colpo d'occhio sul carico di lavoro
       content += `<div class="day-status-row">
         <span class="day-count">${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</span>
-        ${daPrep > 0 ? `<span class="day-chip chip-da-preparare">${daPrep} da preparare</span>` : ''}
-        ${pronti > 0 ? `<span class="day-chip chip-pronto">${pronti} pront${pronti === 1 ? 'o' : 'i'}</span>` : ''}
-        ${ritirati > 0 ? `<span class="day-chip chip-ritirato">${ritirati} ritirat${ritirati === 1 ? 'o' : 'i'}</span>` : ''}
+        ${daPrep > 0 ? `<span class="day-stat-chip chip-da-preparare">${daPrep} da preparare</span>` : ''}
+        ${pronti > 0 ? `<span class="day-stat-chip chip-pronto">${pronti} pront${pronti === 1 ? 'o' : 'i'}</span>` : ''}
+        ${ritirati > 0 ? `<span class="day-stat-chip chip-ritirato">${ritirati} ritirat${ritirati === 1 ? 'o' : 'i'}</span>` : ''}
       </div>`;
       
       // Barra avanzamento giorno (pronti + ritirati su totale)
@@ -1912,6 +1922,9 @@ async function openDayOrders(date) {
   extraDayChecks = {};
   
   updateOrdersDateTitle(date);
+  
+  // Riparti sempre da "Tutti" quando si apre un giorno
+  setOrderFilter('all');
   
   // Carica ordini
   await loadOrders(date);
@@ -2218,6 +2231,50 @@ async function refreshOneExtraDay(iso) {
   }
 }
 
+// ===========================================
+// LINGUETTE FILTRO ORDINI (Tutti / Da preparare / Pronti)
+// Il filtro è solo visivo: nasconde via CSS le card che non
+// corrispondono, così spunte e aggiornamenti continuano a funzionare.
+// ===========================================
+let currentOrderFilter = 'all';
+
+function setOrderFilter(filter) {
+  currentOrderFilter = filter;
+  if (ordersList) ordersList.dataset.filter = filter;
+  document.querySelectorAll('#orders-filter-tabs .filter-tab').forEach(tab => {
+    const isActive = tab.dataset.filter === filter;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', isActive);
+  });
+  updateOrderFilterCounts();
+}
+
+function updateOrderFilterCounts() {
+  if (!ordersList) return;
+  const cards = ordersList.querySelectorAll('.order-card');
+  let daPrep = 0, pronti = 0;
+  cards.forEach(c => {
+    if (c.classList.contains('status-da_preparare')) daPrep++;
+    else if (c.classList.contains('status-pronto')) pronti++;
+  });
+  const setCount = (id, n) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = n;
+  };
+  setCount('fcount-all', cards.length);
+  setCount('fcount-da', daPrep);
+  setCount('fcount-pronto', pronti);
+  
+  // Messaggio "nessun ordine in questo stato" se il filtro attivo è vuoto
+  const emptyFilter = document.getElementById('filter-empty-message');
+  if (emptyFilter) {
+    const activeCount = currentOrderFilter === 'da_preparare' ? daPrep
+      : currentOrderFilter === 'pronto' ? pronti
+      : cards.length;
+    emptyFilter.hidden = !(cards.length > 0 && activeCount === 0);
+  }
+}
+
 // Ordina ordini per stato (da_preparare → pronto → ritirato)
 function sortOrdersByStatus(orders) {
   const statusOrder = { 'da_preparare': 1, 'pronto': 2, 'ritirato': 3 };
@@ -2252,6 +2309,7 @@ function renderOrdersGrouped(groups) {
   const totalOrders = groups.reduce((sum, g) => sum + g.orders.length, 0);
   if (totalOrders === 0) {
     emptyMessage.style.display = 'block';
+    updateOrderFilterCounts();
     return;
   }
   emptyMessage.style.display = 'none';
@@ -2290,6 +2348,8 @@ function renderOrdersGrouped(groups) {
       ordersList.appendChild(createOrderCard(order, index));
     });
   });
+  
+  updateOrderFilterCounts();
 }
 
 // Render lista singola (usata quando non ci sono giorni extra)
@@ -2298,6 +2358,7 @@ function renderOrders(orders) {
   
   if (orders.length === 0) {
     emptyMessage.style.display = 'block';
+    updateOrderFilterCounts();
     return;
   }
   
@@ -2306,6 +2367,8 @@ function renderOrders(orders) {
   sortOrdersByStatus(orders).forEach((order, index) => {
     ordersList.appendChild(createOrderCard(order, index));
   });
+  
+  updateOrderFilterCounts();
 }
 
 // Ordini espansi nella vista giorno (persiste durante i re-render)
@@ -4272,6 +4335,7 @@ async function updateOrderStatus(orderId, status) {
   if (orderCard) {
     const wasExpanded = orderCard.classList.contains('expanded');
     orderCard.className = `order-card status-${status} ${wasExpanded ? 'expanded' : 'collapsed'}`;
+    updateOrderFilterCounts();
     orderCard.style.opacity = '0.6';
     orderCard.style.transition = 'opacity 0.2s';
     const badge = orderCard.querySelector('.order-status-badge');

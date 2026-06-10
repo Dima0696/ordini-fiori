@@ -380,23 +380,31 @@
         <button id="btn-fabbisogno" class="btn-secondary btn-large" style="display: none;">📋 Fabbisogno giorno</button>
       </div>
       
-      <div class="orders-toolbar" aria-label="Giorni da includere e copia articoli per fornitore">
+      <div class="orders-toolbar orders-toolbar-fornitore" aria-label="Ordine fornitore: scegli i giorni e copia la lista articoli">
+        <div class="fornitore-title-row">
+          <span class="fornitore-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </span>
+          <div class="fornitore-title-text">
+            <span class="fornitore-title">Ordine fornitore</span>
+            <span class="fornitore-subtitle">Scegli i giorni da includere, poi copia la lista degli articoli da ordinare</span>
+          </div>
+        </div>
+        
         <div class="orders-toolbar-section orders-toolbar-days">
           <div class="orders-toolbar-head">
-            <svg class="orders-toolbar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span class="orders-toolbar-label">Giorni</span>
+            <span class="fornitore-step-num">1</span>
+            <span class="orders-toolbar-label">Giorni da includere</span>
           </div>
           <div id="days-selector-chips" class="days-selector-chips">
             <!-- Chip giorni generate dinamicamente -->
           </div>
         </div>
         
-        <div class="orders-toolbar-divider" aria-hidden="true"></div>
-        
         <div class="orders-toolbar-section orders-toolbar-copy">
           <div class="orders-toolbar-head">
-            <svg class="orders-toolbar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-            <span class="orders-toolbar-label">Copia <span id="orders-toolbar-days-badge" class="toolbar-days-badge" hidden></span></span>
+            <span class="fornitore-step-num">2</span>
+            <span class="orders-toolbar-label">Copia articoli per <span id="orders-toolbar-days-badge" class="toolbar-days-badge" hidden></span></span>
           </div>
           <div class="copy-suppliers-chips">
             <button type="button" class="copy-supplier-btn copy-supplier-import" data-supplier="IMPORT" title="Copia articoli IMPORT non ancora ordinati">IMPORT</button>
@@ -405,6 +413,16 @@
             <button type="button" class="copy-supplier-btn copy-supplier-other" data-supplier="__UNASSIGNED__" title="Copia articoli non ancora assegnati a un fornitore">ALTRI</button>
           </div>
         </div>
+      </div>
+      
+      <div class="orders-filter-tabs" id="orders-filter-tabs" role="tablist" aria-label="Filtra ordini per stato">
+        <button type="button" class="filter-tab active" data-filter="all" role="tab" aria-selected="true">Tutti <span class="filter-count" id="fcount-all">0</span></button>
+        <button type="button" class="filter-tab filter-tab-da" data-filter="da_preparare" role="tab" aria-selected="false">Da preparare <span class="filter-count" id="fcount-da">0</span></button>
+        <button type="button" class="filter-tab filter-tab-pronto" data-filter="pronto" role="tab" aria-selected="false">Pronti <span class="filter-count" id="fcount-pronto">0</span></button>
+      </div>
+      
+      <div id="filter-empty-message" class="filter-empty-message" hidden>
+        Nessun ordine in questo stato
       </div>
       
       <div id="orders-list" class="orders-list">
