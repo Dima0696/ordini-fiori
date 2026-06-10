@@ -1595,15 +1595,42 @@ function renderCalendar() {
     const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][dayOfWeek];
     let dateFormatted = `${dayName} ${day} ${monthNames[dateMonth]}`;
     
+    // Calcola domani per il badge
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const isTomorrow = dateStr === formatDate(tomorrow);
+    
+    let dateBadge = '';
+    if (isToday) {
+      dateBadge = `<span class="today-badge">Oggi</span>`;
+    } else if (isTomorrow) {
+      dateBadge = `<span class="tomorrow-badge">Domani</span>`;
+    }
+    
     let content = `
       <div class="day-number-bg">${day}</div>
-      <div class="day-date">${dateFormatted}</div>
+      <div class="day-date">${dateFormatted}${dateBadge}</div>
       <div class="day-info">`;
     
     if (stat && stat.total > 0) {
-      content += `
-        <div class="day-count">${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</div>
-      `;
+      const daPrep = stat.da_preparare || 0;
+      const pronti = stat.pronto || 0;
+      const ritirati = stat.ritirato || 0;
+      const done = pronti + ritirati;
+      const percent = Math.round((done / stat.total) * 100);
+      
+      // Riga contatori per stato: colpo d'occhio sul carico di lavoro
+      content += `<div class="day-status-row">
+        <span class="day-count">${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}</span>
+        ${daPrep > 0 ? `<span class="day-chip chip-da-preparare">${daPrep} da preparare</span>` : ''}
+        ${pronti > 0 ? `<span class="day-chip chip-pronto">${pronti} pront${pronti === 1 ? 'o' : 'i'}</span>` : ''}
+        ${ritirati > 0 ? `<span class="day-chip chip-ritirato">${ritirati} ritirat${ritirati === 1 ? 'o' : 'i'}</span>` : ''}
+      </div>`;
+      
+      // Barra avanzamento giorno (pronti + ritirati su totale)
+      content += `<div class="day-progress" title="${done}/${stat.total} completati">
+        <div class="day-progress-fill ${percent === 100 ? 'complete' : ''}" style="width: ${percent}%"></div>
+      </div>`;
       
       // Mostra nomi clienti (cliccabili!)
       if (stat.customers && stat.customers.length > 0) {
@@ -1625,7 +1652,8 @@ function renderCalendar() {
         content += `</div>`;
       }
     } else {
-      content += `<span style="color: #bbb;">Nessun ordine</span>`;
+      dayCard.classList.add('no-orders');
+      content += `<span class="day-empty-label">Nessun ordine</span>`;
     }
     
     content += `</div>`;

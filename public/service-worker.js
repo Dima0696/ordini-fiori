@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
 // v142 - Selettore anagrafica: testo prepopolato selezionato + tasto pulisci + soglia 1 char
-const CACHE_NAME = 'lombardaflor-orders-v161-card-tendina';
-const STATIC_CACHE = 'lombardaflor-static-v161-card-tendina';
-const API_CACHE = 'lombardaflor-api-v161-card-tendina';
+const CACHE_NAME = 'lombardaflor-orders-v162-home-premium';
+const STATIC_CACHE = 'lombardaflor-static-v162-home-premium';
+const API_CACHE = 'lombardaflor-api-v162-home-premium';
 
 const urlsToCache = [
   '/',

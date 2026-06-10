@@ -1478,6 +1478,100 @@ body {
   width: fit-content;
 }
 
+/* ============================================
+   RIEPILOGO STATO GIORNO (chips + progresso)
+   ============================================ */
+.day-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.day-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.day-chip.chip-da-preparare {
+  background: rgba(255, 152, 0, 0.14);
+  color: #C45D00;
+  border: 1.5px solid rgba(255, 152, 0, 0.35);
+}
+
+.day-chip.chip-pronto {
+  background: rgba(76, 175, 80, 0.12);
+  color: #2E7D32;
+  border: 1.5px solid rgba(76, 175, 80, 0.3);
+}
+
+.day-chip.chip-ritirato {
+  background: rgba(158, 158, 158, 0.12);
+  color: #757575;
+  border: 1.5px solid rgba(158, 158, 158, 0.25);
+}
+
+.day-progress {
+  width: 100%;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.day-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #FF9800 0%, #FFC107 100%);
+  transition: width 0.4s ease;
+}
+
+.day-progress-fill.complete {
+  background: linear-gradient(90deg, #4CAF50 0%, #2E7D32 100%);
+}
+
+/* Badge DOMANI (gemello discreto di OGGI) */
+.tomorrow-badge {
+  display: inline-flex;
+  padding: 0.3rem 0.7rem;
+  background: rgba(11, 93, 82, 0.1);
+  color: var(--color-primary-dark, #0B5D52);
+  border-radius: 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1.5px solid rgba(11, 93, 82, 0.25);
+}
+
+/* Giorni vuoti: compatti, così i giorni pieni risaltano */
+.day-card.no-orders {
+  padding: 0.8rem 1.25rem;
+  opacity: 0.65;
+}
+
+.day-card.no-orders .day-date {
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+.day-card.no-orders .day-number-bg {
+  font-size: 3rem;
+}
+
+.day-empty-label {
+  color: #bbb;
+  font-size: 0.85rem;
+}
+
 .status-indicators {
   display: flex;
   gap: 0.5rem;
@@ -7873,6 +7967,22 @@ button {
   .customer-more {
     font-size: 0.65rem !important;
     padding: 0.3rem 0.55rem !important;
+  }
+  
+  /* Chips stato giorno e card vuote compatte */
+  .day-chip {
+    font-size: 0.68rem !important;
+    padding: 0.28rem 0.55rem !important;
+  }
+  
+  .day-card.no-orders {
+    padding: 0.7rem 1rem !important;
+  }
+  
+  .today-badge,
+  .tomorrow-badge {
+    font-size: 0.68rem !important;
+    padding: 0.28rem 0.6rem !important;
   }
   
   /* ORDERS LIST - Spacing */
