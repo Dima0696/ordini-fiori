@@ -2404,25 +2404,40 @@ function createOrderCard(order, index) {
       <button class="btn-small btn-reject-inline" data-id="${order.id}">✗ Rifiuta</button>
     ` : '';
     
-    // Riassunto per card chiusa: numero righe + avanzamento preparazione
+    // Riga meta sotto il nome: numero righe + avanzamento + indicatori
     const lineCount = preparedProg.total;
-    let collapsedMetaHtml = '';
+    let metaParts = [];
     if (lineCount > 0) {
-      collapsedMetaHtml = `<span class="order-collapsed-meta">${lineCount} ${lineCount === 1 ? 'articolo' : 'articoli'}${preparedProg.done > 0 ? ` · ${preparedProg.done}/${preparedProg.total} pronti` : ''}</span>`;
+      metaParts.push(`${lineCount} ${lineCount === 1 ? 'articolo' : 'articoli'}`);
+      if (preparedProg.done > 0) metaParts.push(`${preparedProg.done}/${preparedProg.total} pronti`);
     }
+    const metaHtml = (metaParts.length > 0 || indicators)
+      ? `<div class="order-head-meta">${metaParts.join(' · ')}${indicators ? ` <span class="order-indicators">${indicators}</span>` : ''}</div>`
+      : '';
+    
+    // Icone azioni rapide (sempre visibili, anche a card chiusa)
+    const pencilIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
+    const printerIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>`;
+    
+    // Azioni secondarie nel corpo (solo quelle che non stanno nella quick row)
+    const bodyActionsHtml = `${customerPendingActions}${!isRitirato && !isCustomerPending && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}`;
     
     orderCard.innerHTML = `
       <div class="order-content">
         <div class="order-header order-card-toggle" role="button" tabindex="0" aria-expanded="${isExpanded}" title="${isExpanded ? 'Chiudi ordine' : 'Apri ordine'}">
-          <div class="order-customer">
-            ${escapeHtml(order.customer)}
-            ${indicators ? `<span class="order-indicators">${indicators}</span>` : ''}
-            ${collapsedMetaHtml}
+          <div class="order-head-main">
+            <div class="order-customer">${escapeHtml(order.customer)}</div>
+            ${metaHtml}
           </div>
-          <div class="order-state-badges">${stateBadgesHtml}</div>
           <span class="order-expand-arrow" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </span>
+        </div>
+        <div class="order-quick-row">
+          <div class="order-state-badges">${stateBadgesHtml}</div>
+          <span class="order-quick-spacer"></span>
+          ${!isRitirato ? `<button class="order-icon-btn btn-edit-order" data-id="${order.id}" title="Modifica ordine" aria-label="Modifica ordine">${pencilIcon}</button>` : ''}
+          <button class="order-icon-btn btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}" title="${isOrderPrinted(order.id) ? 'Già stampato — ristampa' : 'Stampa ordine'}" aria-label="Stampa ordine">${printerIcon}</button>
         </div>
         <div class="order-body">
           ${customerBadgesHtml ? `<div class="order-customer-badges">${customerBadgesHtml}</div>` : ''}
@@ -2433,15 +2448,7 @@ function createOrderCard(order, index) {
           ${renderOrderProgress(order.id, order.description)}
           ${photosHtml}
           ${userInfoHtml}
-          <div class="order-actions">
-            ${customerPendingActions}
-            <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
-              ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
-            </button>
-            ${!isRitirato ? `<button class="btn-small btn-edit-order" data-id="${order.id}">✎ Modifica</button>` : ''}
-            ${!isRitirato && !isCustomerPending && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
-            ${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
-          </div>
+          <div class="order-actions ${bodyActionsHtml.trim() === '' ? 'no-items' : ''}">${bodyActionsHtml}</div>
         </div>
       </div>
     `;
@@ -3173,6 +3180,8 @@ function refreshOrderCardState(orderId) {
     } else if (!isAllPrepared && btnCollected) {
       btnCollected.remove();
     }
+    // Nascondi/mostra la riga azioni in base al contenuto
+    actionsEl.classList.toggle('no-items', actionsEl.querySelectorAll('button').length === 0);
   }
 }
 
