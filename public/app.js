@@ -2254,8 +2254,8 @@ function updateOrderFilterCounts() {
   const cards = ordersList.querySelectorAll('.order-card');
   let daPrep = 0, pronti = 0;
   cards.forEach(c => {
-    if (c.classList.contains('status-da_preparare')) daPrep++;
-    else if (c.classList.contains('status-pronto')) pronti++;
+    if (c.dataset.state === 'da_preparare') daPrep++;
+    else if (c.dataset.state === 'pronto') pronti++;
   });
   const setCount = (id, n) => {
     const el = document.getElementById(id);
@@ -2395,6 +2395,12 @@ function createOrderCard(order, index) {
     const hasLines = preparedProg.total > 0;
     const isAllOrdered = hasLines && orderedProg.done === orderedProg.total;
     const isAllPrepared = hasLines && preparedProg.done === preparedProg.total;
+    
+    // Stato EFFETTIVO per filtri e conteggi: "pronto" = tutte le righe
+    // preparate (come il badge PRONTO), non solo lo status sul server
+    orderCard.dataset.state = isRitirato ? 'ritirato'
+      : (isAllPrepared || order.status === ORDER_STATUS.PRONTO) ? 'pronto'
+      : 'da_preparare';
     
     // Badge di stato (in alto a destra). Sono anche BOTTONI: un tocco
     // segna/annulla TUTTO l'ordine come ordinato o preparato (anche senza
@@ -3233,6 +3239,10 @@ function refreshOrderCardState(orderId) {
   const badgePro = orderCard.querySelector('.order-state-badge.state-pronto');
   if (badgeOrd) badgeOrd.classList.toggle('active', isAllOrdered);
   if (badgePro) badgePro.classList.toggle('active', isAllPrepared);
+  
+  // Aggiorna stato effettivo per filtri e conteggi
+  orderCard.dataset.state = (isAllPrepared || order.status === ORDER_STATUS.PRONTO) ? 'pronto' : 'da_preparare';
+  updateOrderFilterCounts();
   
   // Gestione bottone "Ritirato" (appare solo quando tutto è preparato)
   const actionsEl = orderCard.querySelector('.order-actions');
@@ -4335,6 +4345,9 @@ async function updateOrderStatus(orderId, status) {
   if (orderCard) {
     const wasExpanded = orderCard.classList.contains('expanded');
     orderCard.className = `order-card status-${status} ${wasExpanded ? 'expanded' : 'collapsed'}`;
+    orderCard.dataset.state = status === 'ritirato' ? 'ritirato'
+      : status === 'pronto' ? 'pronto'
+      : 'da_preparare';
     updateOrderFilterCounts();
     orderCard.style.opacity = '0.6';
     orderCard.style.transition = 'opacity 0.2s';

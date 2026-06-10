@@ -3197,12 +3197,14 @@ body {
   color: white;
 }
 
-/* Filtro attivo: nascondi le card che non corrispondono */
-.orders-list[data-filter="da_preparare"] .order-card:not(.status-da_preparare) {
+/* Filtro attivo: nascondi le card che non corrispondono.
+   Usa data-state (stato EFFETTIVO calcolato dalle spunte),
+   non lo status del server che può restare indietro. */
+.orders-list[data-filter="da_preparare"] .order-card:not([data-state="da_preparare"]) {
   display: none !important;
 }
 
-.orders-list[data-filter="pronto"] .order-card:not(.status-pronto) {
+.orders-list[data-filter="pronto"] .order-card:not([data-state="pronto"]) {
   display: none !important;
 }
 
