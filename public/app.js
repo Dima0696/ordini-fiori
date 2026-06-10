@@ -1014,6 +1014,14 @@ function setupEventListeners() {
     loadCalendar(true);
   });
   
+  // Tap sul titolo del mese → torna al mese corrente
+  document.getElementById('current-month').addEventListener('click', () => {
+    const now = new Date();
+    if (currentMonth.getFullYear() === now.getFullYear() && currentMonth.getMonth() === now.getMonth()) return;
+    currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    loadCalendar(true);
+  });
+  
   // Navigazione pagine
   document.getElementById('btn-back').addEventListener('click', () => {
     showPage('calendar');
@@ -1098,16 +1106,10 @@ function setupEventListeners() {
   // Form submit
   document.getElementById('ordine-fisso-form').addEventListener('submit', handleOrdineFissoSubmit);
   
-  // Merce in arrivo (TODO)
-  document.getElementById('fab-arrivi').addEventListener('click', () => {
-    closeFabMenu();
-    alert('📦 Merce in arrivo - In arrivo! Calendario degli arrivi di merce.');
-  });
-  
-  // Listini (TODO)
+  // Listini
   document.getElementById('fab-listini').addEventListener('click', () => {
     closeFabMenu();
-    alert('📋 Listini - In arrivo! Carica PDF o foto dei listini per le festività.');
+    openListiniPage();
   });
   
   // Quick Actions Premium (sotto header)
@@ -1117,10 +1119,6 @@ function setupEventListeners() {
   
   document.getElementById('quick-ordine-fisso').addEventListener('click', () => {
     openOrdineFissoModal();
-  });
-  
-  document.getElementById('quick-arrivi').addEventListener('click', () => {
-    alert('📦 Merce in arrivo - In arrivo! Calendario degli arrivi di merce.');
   });
   
   document.getElementById('quick-listini').addEventListener('click', () => {
@@ -1498,7 +1496,13 @@ function renderCalendar() {
   // Aggiorna titolo mese
   const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
                       'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-  document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
+  document.getElementById('current-month-label').textContent = `${monthNames[month]} ${year}`;
+  
+  // Mostra hint "torna a oggi" solo se non siamo sul mese corrente
+  const now = new Date();
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+  const monthHint = document.getElementById('current-month-hint');
+  if (monthHint) monthHint.hidden = isCurrentMonth;
   
   // Genera giorni del mese
   const firstDay = new Date(year, month, 1);
@@ -1900,6 +1904,11 @@ async function handleNotificationDeeplink(date, orderId) {
                return btn !== null;
              });
         if (card) {
+          // Espandi la card se è chiusa, così l'ordine è subito leggibile
+          if (card.classList.contains('collapsed')) {
+            const toggle = card.querySelector('.order-card-toggle');
+            if (toggle) toggle.click();
+          }
           card.scrollIntoView({ behavior: 'smooth', block: 'center' });
           card.classList.add('highlight-from-notification');
           setTimeout(() => card.classList.remove('highlight-from-notification'), 2500);
@@ -2268,6 +2277,9 @@ function renderOrders(orders) {
   });
 }
 
+// Ordini espansi nella vista giorno (persiste durante i re-render)
+const expandedOrderIds = new Set();
+
 // Crea la card di un singolo ordine con tutti i listener
 function createOrderCard(order, index) {
     const orderCard = document.createElement('div');
@@ -2275,11 +2287,12 @@ function createOrderCard(order, index) {
     const isCustomerPending = order.customer_order_status === 'pending';
     const isCustomerRejected = order.customer_order_status === 'rejected';
     const isCustomerOrder = !!order.customer_id;
+    const isExpanded = expandedOrderIds.has(order.id);
     let cardExtraCls = '';
     if (isRitirato) cardExtraCls += ' order-ritirato';
     if (isCustomerPending) cardExtraCls += ' is-customer-pending';
     if (isCustomerRejected) cardExtraCls += ' is-customer-rejected';
-    orderCard.className = `order-card status-${order.status}${cardExtraCls}`;
+    orderCard.className = `order-card status-${order.status}${cardExtraCls} ${isExpanded ? 'expanded' : 'collapsed'}`;
     orderCard.dataset.orderId = order.id;
     
     // Calcolo stati automatici dalle spunte
@@ -2361,34 +2374,68 @@ function createOrderCard(order, index) {
       <button class="btn-small btn-reject-inline" data-id="${order.id}">✗ Rifiuta</button>
     ` : '';
     
+    // Riassunto per card chiusa: numero righe + avanzamento preparazione
+    const lineCount = preparedProg.total;
+    let collapsedMetaHtml = '';
+    if (lineCount > 0) {
+      collapsedMetaHtml = `<span class="order-collapsed-meta">${lineCount} ${lineCount === 1 ? 'articolo' : 'articoli'}${preparedProg.done > 0 ? ` · ${preparedProg.done}/${preparedProg.total} pronti` : ''}</span>`;
+    }
+    
     orderCard.innerHTML = `
       <div class="order-content">
-        <div class="order-header">
+        <div class="order-header order-card-toggle" role="button" tabindex="0" aria-expanded="${isExpanded}" title="${isExpanded ? 'Chiudi ordine' : 'Apri ordine'}">
           <div class="order-customer">
             ${escapeHtml(order.customer)}
             ${indicators ? `<span class="order-indicators">${indicators}</span>` : ''}
+            ${collapsedMetaHtml}
           </div>
           <div class="order-state-badges">${stateBadgesHtml}</div>
+          <span class="order-expand-arrow" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </span>
         </div>
-        ${customerBadgesHtml ? `<div class="order-customer-badges">${customerBadgesHtml}</div>` : ''}
-        ${isCustomerRejected && order.customer_reject_reason ? `<div class="order-reject-note">Motivo rifiuto: ${escapeHtml(order.customer_reject_reason)}</div>` : ''}
-        <div class="order-description order-checklist" data-order-id="${order.id}">
-          ${renderDescriptionWithChecks(order.id, order.description)}
+        <div class="order-body">
+          ${customerBadgesHtml ? `<div class="order-customer-badges">${customerBadgesHtml}</div>` : ''}
+          ${isCustomerRejected && order.customer_reject_reason ? `<div class="order-reject-note">Motivo rifiuto: ${escapeHtml(order.customer_reject_reason)}</div>` : ''}
+          <div class="order-description order-checklist" data-order-id="${order.id}">
+            ${renderDescriptionWithChecks(order.id, order.description)}
+          </div>
+          ${renderOrderProgress(order.id, order.description)}
+          ${photosHtml}
+          ${userInfoHtml}
+          <div class="order-actions">
+            ${customerPendingActions}
+            <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
+              ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
+            </button>
+            ${!isRitirato ? `<button class="btn-small btn-edit-order" data-id="${order.id}">✎ Modifica</button>` : ''}
+            ${!isRitirato && !isCustomerPending && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
+            ${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
+          </div>
         </div>
-        ${renderOrderProgress(order.id, order.description)}
-        ${photosHtml}
-        ${userInfoHtml}
-      </div>
-      <div class="order-actions">
-        ${customerPendingActions}
-        <button class="btn-small btn-print-quick ${isOrderPrinted(order.id) ? 'printed' : ''}" data-id="${order.id}">
-          ${isOrderPrinted(order.id) ? '✓ Stampato' : '🖨️ Stampa'}
-        </button>
-        ${!isRitirato ? `<button class="btn-small btn-edit-order" data-id="${order.id}">✎ Modifica</button>` : ''}
-        ${!isRitirato && !isCustomerPending && isAllPrepared ? `<button class="btn-small btn-collected" data-id="${order.id}">✓ Ritirato</button>` : ''}
-        ${isRitirato ? `<button class="btn-small btn-undo-collected" data-id="${order.id}">↶ Annulla ritiro</button>` : ''}
       </div>
     `;
+    
+    // Toggle apri/chiudi card (tap su nome cliente / freccia)
+    const toggleHeader = orderCard.querySelector('.order-card-toggle');
+    const toggleCard = () => {
+      const nowExpanded = orderCard.classList.toggle('expanded');
+      orderCard.classList.toggle('collapsed', !nowExpanded);
+      toggleHeader.setAttribute('aria-expanded', nowExpanded);
+      toggleHeader.title = nowExpanded ? 'Chiudi ordine' : 'Apri ordine';
+      if (nowExpanded) {
+        expandedOrderIds.add(order.id);
+      } else {
+        expandedOrderIds.delete(order.id);
+      }
+    };
+    toggleHeader.addEventListener('click', toggleCard);
+    toggleHeader.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCard();
+      }
+    });
     
     // Click sulle checkbox (prima dei listener generici per stopPropagation)
     orderCard.querySelectorAll('.check-box').forEach(checkBox => {
@@ -4176,7 +4223,8 @@ async function updateOrderStatus(orderId, status) {
       return btn !== null;
     });
   if (orderCard) {
-    orderCard.className = `order-card status-${status}`;
+    const wasExpanded = orderCard.classList.contains('expanded');
+    orderCard.className = `order-card status-${status} ${wasExpanded ? 'expanded' : 'collapsed'}`;
     orderCard.style.opacity = '0.6';
     orderCard.style.transition = 'opacity 0.2s';
     const badge = orderCard.querySelector('.order-status-badge');

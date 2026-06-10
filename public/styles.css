@@ -1195,12 +1195,41 @@ body {
   border: none;
 }
 
-.month-selector h2 {
+.btn-current-month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 1rem;
+  border-radius: 14px;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn-current-month:active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.97);
+}
+
+#current-month-label {
   font-size: 1.5rem;
   font-weight: 800;
   color: white;
   letter-spacing: -0.5px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  line-height: 1.1;
+}
+
+.current-month-hint {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .btn-month {
@@ -1951,6 +1980,67 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
+}
+
+/* ============================================
+   CARD ORDINE A TENDINA (vista giorno)
+   ============================================ */
+.order-card-toggle {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  gap: 0.5rem;
+}
+
+.order-card-toggle .order-customer {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.order-expand-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--color-text, #424242);
+  background: rgba(0, 0, 0, 0.05);
+  transition: transform 0.25s ease, background 0.2s ease;
+}
+
+.order-card.expanded .order-expand-arrow {
+  transform: rotate(180deg);
+}
+
+.order-card-toggle:active .order-expand-arrow {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.order-card.collapsed .order-body {
+  display: none;
+}
+
+.order-card.collapsed .order-header {
+  margin-bottom: 0;
+}
+
+/* Riassunto visibile solo a card chiusa */
+.order-collapsed-meta {
+  display: none;
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #888;
+  text-transform: none !important;
+  letter-spacing: 0;
+}
+
+.order-card.collapsed .order-collapsed-meta {
+  display: block;
 }
 
 .order-customer {
@@ -7618,6 +7708,20 @@ button {
   .order-header {
     margin-bottom: 0.6rem !important;
     gap: 0.5rem !important;
+  }
+  
+  /* Card chiusa: compatta, header senza margine */
+  .order-card.collapsed {
+    padding: 0.85rem 1rem !important;
+  }
+  
+  .order-card.collapsed .order-header {
+    margin-bottom: 0 !important;
+  }
+  
+  .order-expand-arrow {
+    width: 42px !important;
+    height: 42px !important;
   }
   
   .order-customer {
