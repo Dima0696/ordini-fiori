@@ -179,10 +179,35 @@ function setupDetailQuickActionDelegation() {
   });
 }
 
+// Guardia globale: impedisce che i modali si chiudano quando la selezione del
+// testo (partita dentro il form) finisce sullo sfondo scuro. Tutti i modali
+// chiudono su "click sullo sfondo" (e.target === modal); ma se il gesto è
+// iniziato DENTRO il contenuto, quel click è la fine di una selezione, non un
+// click sullo sfondo → va ignorato, altrimenti si perde la modifica in corso.
+function setupModalSelectionGuard() {
+  let pointerDownTarget = null;
+  document.addEventListener('pointerdown', (e) => { pointerDownTarget = e.target; }, true);
+  // mousedown come fallback per browser senza pointer events
+  document.addEventListener('mousedown', (e) => { pointerDownTarget = e.target; }, true);
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t || !t.classList || !t.classList.contains('modal')) return; // non è lo sfondo di un modale
+    const startedInsideContent = pointerDownTarget && pointerDownTarget.closest &&
+      pointerDownTarget.closest('.modal-content, .modal-preventivo-premium, .photo-viewer');
+    const hasSelection = window.getSelection && String(window.getSelection()).length > 0;
+    if (startedInsideContent || hasSelection) {
+      // È la fine di una selezione, non un click sullo sfondo: non chiudere.
+      e.stopPropagation();
+    }
+  }, true); // fase di cattura: gira prima dei gestori di chiusura dei modali
+}
+
 // Inizializzazione app
 document.addEventListener('DOMContentLoaded', () => {
   setupLoginListeners();
   setupChangePasswordListeners();
+  setupModalSelectionGuard();
   setupDetailQuickActionDelegation();
   checkAuth();
 });
