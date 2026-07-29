@@ -1318,8 +1318,16 @@ function renderCalendar() {
     startDate = new Date(year, month, 1);
   }
   
-  // Genera i prossimi 30 giorni a partire dalla data di inizio
-  for (let i = 0; i < 30; i++) {
+  // Quanti giorni generare: almeno 30 (anteprima prossimi giorni sulla home),
+  // ma sempre fino ALLA FINE del mese mostrato — altrimenti un mese da 31
+  // giorni perdeva l'ultimo (es. "31 agosto non si vedeva", perché si
+  // generavano solo 30 giorni da inizio mese).
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysToEndOfMonth = Math.round((lastDay.getTime() - startDate.getTime()) / msPerDay) + 1;
+  const numDays = Math.max(30, daysToEndOfMonth);
+
+  // Genera i giorni a partire dalla data di inizio
+  for (let i = 0; i < numDays; i++) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);
     dates.push(date);
