@@ -1434,3 +1434,46 @@ body { min-height: 100vh; min-height: 100dvh; }
   .orders-toolbar-fornitore { padding: 1.15rem 1.25rem !important; }
   .orders-filter-tabs { padding: .35rem !important; }
 }
+
+/* ============================================================
+   MOBILE — RIGA AZIONI ORDINE: tutto dentro la card
+   Su schermi stretti la riga (Ordinato/Pronto + modifica + stampa) sforava
+   e il tasto stampa finiva tagliato fuori dalla card.
+   ============================================================ */
+@media (max-width: 560px) {
+  .order-quick-row {
+    flex-wrap: nowrap;
+    gap: .4rem !important;
+    min-width: 0;
+  }
+  /* I badge possono restringersi, le icone mai */
+  .order-state-badges {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: .4rem;
+    overflow: hidden;
+  }
+  .order-state-badge {
+    padding: .45rem .62rem !important;
+    font-size: .715rem !important;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .order-state-badge svg { width: 14px; height: 14px; flex: 0 0 auto; }
+  .order-quick-spacer { flex: 1 1 auto; min-width: .2rem; }
+  .order-icon-btn {
+    flex: 0 0 auto;
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .order-icon-btn svg { width: 17px; height: 17px; }
+}
+
+/* Schermi molto stretti (≤360px): ancora più compatto */
+@media (max-width: 380px) {
+  .order-header, .order-card-toggle { padding: .9rem .85rem .5rem !important; }
+  .order-quick-row { padding: 0 .85rem .9rem !important; }
+  .order-body { padding: 0 .85rem .9rem !important; }
+  .order-state-badge { padding: .42rem .5rem !important; font-size: .68rem !important; }
+}
