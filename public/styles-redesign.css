@@ -24,10 +24,11 @@
   --lf-text:   #2A3A36;
   --lf-muted:  #64756F;
   --lf-faint:  #93A29D;
-  --lf-line:   #E7ECEA;
-  --lf-line-strong: #D9E1DE;
+  --lf-line:   #DCE6E1;
+  --lf-line-strong: #C7D5CE;
   --lf-surface:#FFFFFF;
-  --lf-canvas: #F3F7F5;
+  --lf-canvas: #DCE8E1;        /* salvia tenue: le card bianche risaltano */
+  --lf-canvas-2: #CFE0D6;      /* fondo del gradiente, un filo più saturo */
 
   /* — Status — */
   --lf-amber:    #D98218;
@@ -39,11 +40,11 @@
   --lf-coral:    #DD513A;
   --lf-coral-bg: #FBE6E1;
 
-  /* — Elevation — */
-  --lf-sh-1: 0 1px 2px rgba(16,40,34,.06), 0 1px 3px rgba(16,40,34,.05);
-  --lf-sh-2: 0 6px 20px -6px rgba(16,40,34,.14);
-  --lf-sh-3: 0 20px 48px -14px rgba(16,40,34,.22);
-  --lf-ring: 0 0 0 4px rgba(13,114,102,.16);
+  /* — Elevation (più definite: le card devono staccarsi dallo sfondo) — */
+  --lf-sh-1: 0 1px 2px rgba(16,40,34,.08), 0 3px 10px -3px rgba(16,40,34,.12);
+  --lf-sh-2: 0 8px 24px -6px rgba(16,40,34,.18);
+  --lf-sh-3: 0 24px 52px -14px rgba(16,40,34,.28);
+  --lf-ring: 0 0 0 4px rgba(13,114,102,.18);
 
   /* — Radius — */
   --lf-r-sm: 10px;
@@ -76,12 +77,15 @@
 
 /* ---------- BASE / CANVAS ---------- */
 body {
-  background: var(--lf-canvas) !important;
-  background-attachment: initial !important;
+  background: linear-gradient(180deg, var(--lf-canvas) 0%, var(--lf-canvas-2) 100%) !important;
+  background-attachment: fixed !important;
   color: var(--lf-text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+/* Le pagine app non devono coprire lo sfondo salvia con un colore pieno */
+#page-calendar, #page-orders, #page-listini, #page-preventivi,
+#page-clienti, #page-catalogo, .page { background: transparent !important; }
 
 /* Sfondo verde solo per la schermata di login */
 #page-login {
