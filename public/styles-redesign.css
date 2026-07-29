@@ -991,3 +991,220 @@ body { min-height: 100vh; min-height: 100dvh; }
   box-shadow: var(--lf-sh-2) !important;
   filter: brightness(1.05) !important;
 }
+
+/* ============================================================
+   DESKTOP — LAYOUT PROFESSIONALE (≥1024px)
+   Non più "app telefono stirata": app shell vera, griglie multi-colonna,
+   densità e proporzioni da software gestionale.
+   ============================================================ */
+@media (min-width: 1024px) {
+
+  /* ---- APP SHELL: barra superiore piena, contenuto incolonnato ---- */
+  .app-header,
+  .app-header-home {
+    position: sticky; top: 0; z-index: 90;
+    padding: 0 !important;
+    min-height: 68px !important;
+    box-shadow: 0 1px 0 rgba(16,40,34,.06), 0 6px 18px -12px rgba(16,40,34,.25);
+  }
+  /* Riga interna incolonnata alla stessa larghezza del contenuto */
+  .app-header-home > .app-header-left { padding-left: 32px; }
+  .app-header-home > .app-header-right { padding-right: 32px; }
+  .app-header > .app-header-left { padding-left: 32px; }
+  .app-header > .app-header-right { padding-right: 32px; }
+  .app-header-home, .app-header {
+    display: flex; align-items: center; gap: 1.25rem;
+  }
+  .app-logo { height: 34px !important; }
+
+  /* Navigazione: riga vera, niente scroll orizzontale né sfumature */
+  .app-header-nav {
+    overflow: visible !important;
+    -webkit-mask-image: none !important; mask-image: none !important;
+    flex-wrap: wrap;
+    gap: .5rem !important;
+    flex: 1 1 auto;
+  }
+  .quick-action-btn { min-height: 40px; padding: .5rem 1rem !important; }
+
+  /* ---- CONTENITORI: larghezza generosa, respiro laterale ---- */
+  .calendar-container,
+  .orders-container,
+  .listini-container,
+  .preventivi-container,
+  .clienti-container,
+  .catalogo-container {
+    max-width: 1680px !important;
+    margin: 0 auto !important;
+    padding: 28px 32px 56px !important;
+  }
+
+  /* ---- HOME: toolbar (ricerca + mese) su una riga, poi griglia giorni ---- */
+  .calendar-container {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas:
+      "search month"
+      "days   days";
+    column-gap: 20px;
+    row-gap: 20px;
+    align-items: center;
+  }
+  .search-container { grid-area: search; margin: 0 !important; padding: 0 !important; }
+  .month-selector   { grid-area: month; margin: 0 !important; min-width: 340px; }
+  .days-list,
+  #search-results-container { grid-area: days; }
+
+  /* Griglia giorni: sfrutta davvero la larghezza */
+  .days-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 18px !important;
+    align-items: start;
+  }
+  .day-card {
+    padding: 1.15rem 1.25rem 1.15rem 1.5rem !important;
+    min-height: 168px;
+    display: flex; flex-direction: column;
+  }
+  .day-card .day-customers { margin-top: auto; }
+  .day-number-bg { font-size: 5.5rem !important; opacity: .045 !important; }
+
+  /* ---- VISTA GIORNO: sidebar sticky + lista ordini ---- */
+  .orders-container {
+    display: grid;
+    grid-template-columns: 380px minmax(0,1fr);
+    grid-template-areas:
+      "aside  tabs"
+      "aside  list";
+    column-gap: 28px;
+    row-gap: 18px;
+    align-content: start;
+  }
+  .order-actions-top { grid-area: aside; margin: 0 0 14px 0 !important; }
+  .orders-toolbar-fornitore {
+    grid-area: aside;
+    align-self: start;
+    position: sticky; top: 96px;
+    margin-top: 72px !important; /* sotto il bottone Nuovo ordine */
+  }
+  .orders-filter-tabs { grid-area: tabs; margin: 0 !important; }
+  #orders-list, .orders-list { grid-area: list; }
+  #filter-empty-message { grid-area: list; }
+
+  /* Il pannello fornitore in colonna: i chip giorni vanno a capo */
+  .orders-toolbar-fornitore .day-chip-row,
+  .orders-toolbar-fornitore .day-chips { flex-wrap: wrap !important; overflow: visible !important; }
+  .copy-suppliers-chips { flex-wrap: wrap !important; overflow: visible !important; }
+  .copy-supplier-btn { flex: 1 1 calc(50% - .35rem); }
+
+  /* Lista ordini: due colonne su schermi ampi */
+  .orders-list { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+
+  /* ---- TIPOGRAFIA DESKTOP: gerarchia più decisa ---- */
+  body { font-size: 15.5px; }
+  .day-date { font-size: 1.12rem !important; }
+  .order-customer { font-size: 1.08rem !important; }
+  #current-month-label { font-size: 1.15rem !important; }
+  .app-header .page-title, .app-header h2 { font-size: 1.1rem !important; }
+
+  /* ---- Liste di pagina (preventivi, clienti, catalogo) a griglia ---- */
+  .preventivi-list, .clienti-list, .catalog-grid, .listini-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+    gap: 18px !important;
+    align-items: start;
+  }
+
+  /* ---- Modali: proporzioni desktop ---- */
+  .modal.active { align-items: center !important; padding: 2rem !important; }
+  .modal-content { margin: 0 auto !important; max-height: 88vh; overflow-y: auto; }
+  .modal-large, .modal-preventivo-premium { max-width: 980px !important; }
+}
+
+/* ---- Schermi molto ampi: quarta colonna e ordini affiancati ---- */
+@media (min-width: 1500px) {
+  .days-list { grid-template-columns: repeat(4, minmax(0,1fr)) !important; }
+  .orders-list { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+}
+
+/* ============================================================
+   DESKTOP — DENSITÀ E GERARCHIA (rifinitura)
+   I giorni pieni sono protagonisti; i giorni vuoti si fanno da parte.
+   ============================================================ */
+@media (min-width: 1024px) {
+
+  /* Navigazione su una riga sola, mai a capo */
+  .app-header-nav { flex-wrap: nowrap !important; overflow: visible !important; }
+
+  /* Giorni CON ordini: card piene, protagoniste */
+  .day-card.has-orders {
+    min-height: 176px;
+    padding: 1.2rem 1.3rem 1.2rem 1.6rem !important;
+  }
+  /* Giorni VUOTI: compatti e silenziosi, non buchi nella griglia */
+  .day-card:not(.has-orders) {
+    min-height: 0 !important;
+    padding: .8rem 1rem .8rem 1.2rem !important;
+    display: flex; flex-direction: row; align-items: baseline; gap: .6rem;
+    background: rgba(255,255,255,.34) !important;
+    border-style: dashed !important;
+    border-color: rgba(255,255,255,.75) !important;
+  }
+  .day-card:not(.has-orders) .day-date { font-size: .96rem !important; font-weight: 600 !important; color: var(--lf-muted) !important; }
+  .day-card:not(.has-orders) .day-empty-label { font-size: .82rem !important; margin: 0 !important; }
+  .day-card:not(.has-orders) .day-number-bg { display: none !important; }
+
+  /* Hover: sollevamento netto ma sobrio */
+  .day-card.has-orders:hover { transform: translateY(-2px); box-shadow: var(--lf-sh-2) !important; }
+  .day-card:not(.has-orders):hover { background: rgba(255,255,255,.6) !important; }
+
+  /* Interno card piene: respiro e allineamenti */
+  .day-status-row { gap: .5rem !important; margin-bottom: .7rem !important; }
+  .day-progress { margin-bottom: .85rem !important; }
+  .day-customers { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  /* Toolbar: altezze allineate tra ricerca e navigatore mese */
+  .search-box, #search-input { min-height: 50px; }
+  .month-selector { padding: .35rem !important; }
+  .btn-month { width: 42px; height: 42px; }
+
+  /* Card ordine nella vista giorno: più aria */
+  .order-card { padding: .25rem .35rem !important; }
+  .order-header { padding: .9rem 1rem .4rem !important; }
+  .order-quick-row { padding: 0 1rem .9rem !important; }
+}
+
+/* ============================================================
+   DESKTOP — VISTA GIORNO: griglia corretta (niente sovrapposizioni)
+   Colonna sinistra: azione primaria + pannello fornitore sticky.
+   Colonna destra: filtri + lista ordini.
+   ============================================================ */
+@media (min-width: 1024px) {
+  .orders-container {
+    grid-template-columns: 380px minmax(0,1fr);
+    grid-template-areas:
+      "newbtn tabs"
+      "panel  list";
+    align-content: start;
+    column-gap: 28px;
+    row-gap: 16px;
+  }
+  .order-actions-top {
+    grid-area: newbtn !important;
+    align-self: start;
+    margin: 0 !important;
+  }
+  .order-actions-top .btn-large,
+  .order-actions-top .btn-primary { width: 100%; }
+
+  .orders-toolbar-fornitore {
+    grid-area: panel !important;
+    align-self: start;
+    position: sticky; top: 96px;
+    margin: 0 !important;
+  }
+  .orders-filter-tabs { grid-area: tabs !important; align-self: center; }
+  #orders-list, .orders-list { grid-area: list !important; }
+  #filter-empty-message { grid-area: list !important; }
+}
