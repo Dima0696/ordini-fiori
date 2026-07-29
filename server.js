@@ -1646,6 +1646,35 @@ cron.schedule(`${pushConfig.notificationTime.minute} ${pushConfig.notificationTi
 console.log(`⏰ Notifiche push ATTIVE: ogni giorno alle ${pushConfig.notificationTime.hour}:${String(pushConfig.notificationTime.minute).padStart(2, '0')}`);
 
 // ============================================
+// BACKUP AUTOMATICO
+// ============================================
+const backup = require('./backup');
+
+// Scheduler backup: ogni notte alle 03:00 (ora italiana)
+cron.schedule('0 3 * * *', () => {
+  console.log('⏰ Avvio backup notturno del database...');
+  backup.runBackup('scheduled');
+}, {
+  timezone: 'Europe/Rome'
+});
+console.log('💾 Backup automatico ATTIVO: ogni notte alle 03:00 (Europe/Rome)');
+
+// POST /api/backup/now - Esegue un backup immediato (per test/manuale)
+app.post('/api/backup/now', authenticate, async (req, res) => {
+  try {
+    const result = await backup.runBackup('manual');
+    if (result.ok) {
+      res.json({ message: 'Backup eseguito', ...result });
+    } else {
+      res.status(500).json({ error: 'Backup fallito', ...result });
+    }
+  } catch (error) {
+    console.error('Errore backup manuale:', error);
+    res.status(500).json({ error: 'Errore backup: ' + error.message });
+  }
+});
+
+// ============================================
 // API LISTINI
 // ============================================
 

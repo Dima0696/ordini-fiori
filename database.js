@@ -1950,7 +1950,16 @@ const setOrderTotal = (orderId, total) => {
   } catch (e) { /* no-op */ }
 };
 
+// Crea uno snapshot coerente del database in destPath usando l'API di backup
+// nativa di SQLite (sicura anche mentre l'app sta scrivendo, a differenza di
+// una semplice copia del file). Ritorna una Promise.
+const backupDatabase = (destPath) => {
+  return db.backup(destPath);
+};
+
 module.exports = {
+  DB_PATH,
+  backupDatabase,
   initDb,
   getAllOrders,
   getOrdersByDate,
