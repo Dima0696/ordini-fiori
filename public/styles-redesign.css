@@ -1208,3 +1208,132 @@ body { min-height: 100vh; min-height: 100dvh; }
   #orders-list, .orders-list { grid-area: list !important; }
   #filter-empty-message { grid-area: list !important; }
 }
+
+/* ============================================================
+   HOME — DATA LEGGIBILE + VISTA CALENDARIO SETTIMANALE (desktop)
+   ============================================================ */
+
+/* Le parti della data sono span separati: allineale con ordine */
+.day-date {
+  display: flex !important;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .38rem;
+}
+.day-date .day-num { font-weight: 800; }
+
+/* Intestazione settimanale: solo in vista calendario desktop */
+.calendar-weekdays { display: none; }
+
+@media (min-width: 1024px) {
+  /* Griglia pagina: toolbar, intestazione settimana, calendario */
+  .calendar-container {
+    grid-template-areas:
+      "search   month"
+      "weekdays weekdays"
+      "days     days" !important;
+    row-gap: 14px !important;
+  }
+  .calendar-weekdays {
+    grid-area: weekdays;
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0,1fr));
+    gap: 14px;
+    padding: 0 2px 2px;
+  }
+  .calendar-weekdays span {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--lf-muted);
+    text-align: left;
+    padding-left: .15rem;
+  }
+  .calendar-weekdays span:nth-child(7) { color: var(--lf-coral); }
+
+  /* CALENDARIO: 7 colonne, righe allineate, prima cella nel giorno giusto */
+  .days-list {
+    grid-template-columns: repeat(7, minmax(0,1fr)) !important;
+    grid-auto-rows: minmax(136px, auto);
+    gap: 14px !important;
+  }
+  .days-list > .day-card:first-child { grid-column-start: var(--cal-col-start, auto); }
+
+  /* Celle: uniformi, il numero del giorno è protagonista */
+  .day-card,
+  .day-card.has-orders,
+  .day-card:not(.has-orders) {
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: .7rem .75rem .7rem .95rem !important;
+    border-style: solid !important;
+  }
+  .day-card:not(.has-orders) {
+    background: rgba(255,255,255,.42) !important;
+    border-color: rgba(255,255,255,.75) !important;
+  }
+
+  /* Data: numero grande e leggibile; il giorno della settimana è in testata */
+  .day-date {
+    gap: .35rem;
+    margin-bottom: .5rem !important;
+    line-height: 1.1;
+  }
+  .day-card .day-dow { display: none; }
+  .day-card .day-mon { display: none; }
+  .day-card.month-start .day-mon {
+    display: inline;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--lf-green-700);
+    align-self: center;
+  }
+  .day-card .day-num {
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    color: var(--lf-ink) !important;
+    letter-spacing: -.02em;
+  }
+  .day-card:not(.has-orders) .day-num { color: var(--lf-muted) !important; font-weight: 700 !important; }
+  .day-card:not(.has-orders) .day-date { font-size: inherit !important; }
+  .day-card.today .day-num { color: var(--lf-green-800) !important; }
+  .day-card.sunday .day-num { color: var(--lf-coral) !important; }
+  .day-card.sunday:not(.has-orders) { background: rgba(221,81,58,.05) !important; }
+
+  /* Badge Oggi/Domani compatti */
+  .today-badge, .tomorrow-badge {
+    font-size: .6rem !important;
+    padding: .16rem .42rem !important;
+    letter-spacing: .06em;
+    align-self: center;
+  }
+  .today-badge { background: var(--lf-green-800) !important; color:#fff !important; }
+  .tomorrow-badge { background: var(--lf-sage-100) !important; color: var(--lf-green-800) !important; }
+
+  /* Numero gigante di sfondo: fuori posto in una cella calendario */
+  .day-number-bg { display: none !important; }
+
+  /* Contenuto compatto della cella */
+  .day-info { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+  .day-status-row { flex-wrap: wrap; gap: .3rem !important; margin: 0 !important; }
+  .day-count { font-size: .72rem !important; padding: .16rem .5rem !important; }
+  .day-stat-chip { font-size: .68rem !important; padding: .16rem .48rem !important; }
+  .day-stat-chip::before { width: 5px; height: 5px; }
+  .day-progress { height: 4px !important; margin: .1rem 0 !important; }
+  .day-customers { gap: .25rem !important; margin-top: auto; padding-top: .25rem; }
+  .day-customers .customer-name,
+  .day-customers .customer-more {
+    font-size: .68rem !important;
+    padding: .16rem .45rem !important;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .day-empty-label { font-size: .72rem !important; color: var(--lf-faint) !important; margin-top: auto !important; }
+}
+
+/* Oltre i 1500px resta comunque il calendario a 7 colonne */
+@media (min-width: 1500px) {
+  .days-list { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
+}

@@ -60,7 +60,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-mobile-optimized.css">
   <link rel="stylesheet" href="pull-to-refresh-styles.css">
-  <link rel="stylesheet" href="styles-redesign.css?v=10">
+  <link rel="stylesheet" href="styles-redesign.css?v=11">
   <link rel="manifest" href="manifest.json">
 </head>
 <body style="margin: 0; padding: 0;">
@@ -236,6 +236,11 @@
         <button id="next-month" class="btn-month" title="Mese successivo">→</button>
       </div>
       
+      <!-- Intestazione giorni della settimana (solo vista calendario desktop) -->
+      <div class="calendar-weekdays" id="calendar-weekdays" aria-hidden="true">
+        <span>Lunedì</span><span>Martedì</span><span>Mercoledì</span><span>Giovedì</span><span>Venerdì</span><span>Sabato</span><span>Domenica</span>
+      </div>
+
       <div id="days-list" class="days-list">
         <!-- Giorni generati dinamicamente -->
       </div>

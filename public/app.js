@@ -1455,9 +1455,19 @@ function renderCalendar() {
       dayCard.classList.add('holiday');
     }
     
-    // Formatta data italiana (usa il mese effettivo del giorno)
+    // Formatta data italiana (usa il mese effettivo del giorno).
+    // Le parti sono in span separati così su desktop il calendario può dare
+    // risalto al numero del giorno (il giorno della settimana è nell'intestazione
+    // di colonna) senza cambiare la resa su mobile.
     const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][dayOfWeek];
-    let dateFormatted = `${dayName} ${day} ${monthNames[dateMonth]}`;
+    let dateFormatted =
+      `<span class="day-dow">${dayName}</span>` +
+      `<span class="day-num">${day}</span>` +
+      `<span class="day-mon">${monthNames[dateMonth]}</span>`;
+    // Primo giorno del mese (o prima cella): mostra il mese anche in vista calendario
+    if (day === 1 || dates[0] === date) {
+      dayCard.classList.add('month-start');
+    }
     
     // Calcola domani per il badge
     const tomorrow = new Date(today);
@@ -1544,7 +1554,16 @@ function renderCalendar() {
     
     daysList.appendChild(dayCard);
   }
-  
+
+  // Vista calendario (desktop): allinea la prima cella alla colonna del suo
+  // giorno della settimana, così i giorni si incolonnano sotto Lun…Dom.
+  // Su mobile la variabile è semplicemente ignorata.
+  if (dates.length > 0) {
+    const firstDow = dates[0].getDay();            // 0 = domenica
+    const colStart = ((firstDow + 6) % 7) + 1;     // settimana che parte da lunedì
+    daysList.style.setProperty('--cal-col-start', String(colStart));
+  }
+
   // Scroll automatico al giorno corrente
   if (todayCard) {
     setTimeout(() => {
@@ -1608,8 +1627,10 @@ function renderSearchResults(query, orders) {
     daysList.parentElement.insertBefore(searchResultsContainer, daysList);
   }
   
-  // Nascondi lista giorni calendario
+  // Nascondi lista giorni calendario (e l'intestazione settimanale del desktop)
   daysList.style.display = 'none';
+  const weekdaysHeader = document.getElementById('calendar-weekdays');
+  if (weekdaysHeader) weekdaysHeader.style.display = 'none';
   
   // Renderizza risultati
   if (orders.length === 0) {
@@ -1700,7 +1721,9 @@ function clearSearchResults() {
   
   // Mostra calendario
   monthSelector.style.display = 'flex';
-  daysList.style.display = 'flex';
+  daysList.style.display = '';
+  const weekdaysHeader = document.getElementById('calendar-weekdays');
+  if (weekdaysHeader) weekdaysHeader.style.display = '';
   
   // Rimuovi risultati
   if (searchResultsContainer) {
