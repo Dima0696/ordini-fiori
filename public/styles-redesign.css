@@ -1,0 +1,539 @@
+/* ============================================================
+   LOMBARDAFLOR — DESIGN SYSTEM 2.0
+   Rinnovo grafico completo. Caricato per ultimo: definisce la nuova
+   identità e sovrascrive i componenti verso un look premium e calmo.
+   Identità: verde LombardaFlor come accento sicuro, superfici neutre e
+   chiare, tipografia netta, ombre morbide a strati.
+   ============================================================ */
+
+:root {
+  /* — Brand green — */
+  --lf-green-900: #08463D;
+  --lf-green-800: #0B5D52;   /* primary */
+  --lf-green-700: #0D7266;
+  --lf-green-600: #1B8674;
+  --lf-green-500: #2FA189;
+
+  /* — Sage tints — */
+  --lf-sage-200: #CBE4D8;
+  --lf-sage-100: #E4F1EB;
+  --lf-sage-50:  #F1F7F4;
+
+  /* — Neutrals (warm green-gray) — */
+  --lf-ink:    #15211E;
+  --lf-text:   #2A3A36;
+  --lf-muted:  #64756F;
+  --lf-faint:  #93A29D;
+  --lf-line:   #E7ECEA;
+  --lf-line-strong: #D9E1DE;
+  --lf-surface:#FFFFFF;
+  --lf-canvas: #F3F7F5;
+
+  /* — Status — */
+  --lf-amber:    #D98218;
+  --lf-amber-bg: #FBEEDA;
+  --lf-ok:       #2C9C68;
+  --lf-ok-bg:    #DDF2E7;
+  --lf-slate:    #7E8C88;
+  --lf-slate-bg: #EBF0ED;
+  --lf-coral:    #DD513A;
+  --lf-coral-bg: #FBE6E1;
+
+  /* — Elevation — */
+  --lf-sh-1: 0 1px 2px rgba(16,40,34,.06), 0 1px 3px rgba(16,40,34,.05);
+  --lf-sh-2: 0 6px 20px -6px rgba(16,40,34,.14);
+  --lf-sh-3: 0 20px 48px -14px rgba(16,40,34,.22);
+  --lf-ring: 0 0 0 4px rgba(13,114,102,.16);
+
+  /* — Radius — */
+  --lf-r-sm: 10px;
+  --lf-r-md: 14px;
+  --lf-r-lg: 20px;
+  --lf-r-xl: 26px;
+  --lf-r-pill: 999px;
+
+  /* — Repoint dei vecchi token verso la nuova palette — */
+  --color-primary: var(--lf-green-800);
+  --color-primary-dark: var(--lf-green-900);
+  --color-primary-light: var(--lf-sage-200);
+  --color-accent: var(--lf-green-600);
+  --color-accent-dark: var(--lf-green-700);
+  --color-success: var(--lf-ok);
+  --color-da-preparare: var(--lf-amber);
+  --color-pronto: var(--lf-ok);
+  --color-ritirato: var(--lf-slate);
+  --color-grey: var(--lf-faint);
+  --color-danger: var(--lf-coral);
+  --color-text: var(--lf-text);
+  --color-text-light: var(--lf-muted);
+  --color-bg: var(--lf-canvas);
+  --shadow-sm: var(--lf-sh-1);
+  --shadow-md: var(--lf-sh-2);
+  --shadow-lg: var(--lf-sh-3);
+  --glass-bg: rgba(255,255,255,.9);
+  --glass-border: var(--lf-line);
+}
+
+/* ---------- BASE / CANVAS ---------- */
+body {
+  background: var(--lf-canvas) !important;
+  background-attachment: initial !important;
+  color: var(--lf-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Sfondo verde solo per la schermata di login */
+#page-login {
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(255,255,255,.35), transparent 60%),
+    linear-gradient(160deg, #1B8674 0%, #0D7266 45%, #0B5D52 100%) !important;
+}
+
+::selection { background: var(--lf-sage-200); color: var(--lf-green-900); }
+
+/* Scrollbar discreta (desktop) */
+* { scrollbar-color: var(--lf-line-strong) transparent; }
+*::-webkit-scrollbar { height: 8px; width: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--lf-line-strong); border-radius: 99px; }
+
+/* ---------- APP HEADER ---------- */
+.app-header,
+.app-header-home {
+  background: var(--lf-surface) !important;
+  border-bottom: 1px solid var(--lf-line);
+  box-shadow: 0 1px 0 rgba(16,40,34,.02);
+  backdrop-filter: none !important;
+}
+.app-logo, .login-logo { filter: none; }
+
+/* Bottoni icona in alto a destra (refresh, password) */
+.btn-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px !important;
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  color: var(--lf-green-700) !important;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .1s;
+}
+.btn-icon:hover { background: var(--lf-sage-100) !important; }
+.btn-icon:active { transform: scale(.94); }
+
+/* Logout: ghost con nome utente */
+.btn-logout {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  color: var(--lf-green-800) !important;
+  border-radius: 12px !important;
+  padding: 0 .8rem !important;
+  height: 42px;
+  font-weight: 600;
+  gap: .45rem;
+}
+.btn-logout:hover { background: var(--lf-sage-100) !important; }
+.btn-logout svg { stroke: var(--lf-green-700); }
+
+/* ---------- QUICK NAV (barra azioni) ---------- */
+.app-header-nav { gap: .5rem !important; padding-bottom: 2px; }
+.quick-action-btn {
+  background: var(--lf-sage-100) !important;
+  color: var(--lf-green-800) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--lf-r-pill) !important;
+  padding: .55rem .95rem !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  min-height: 44px;
+  transition: background .15s, transform .1s;
+}
+.quick-action-btn svg { stroke: var(--lf-green-700); }
+.quick-action-btn .quick-action-label { font-weight: 600; letter-spacing: .1px; }
+.quick-action-btn:hover { background: var(--lf-sage-200) !important; }
+.quick-action-btn:active { transform: scale(.96); }
+
+/* La prima azione ("+ Ordine") è la CTA primaria */
+#quick-nuovo-ordine {
+  background: var(--lf-green-800) !important;
+  color: #fff !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+#quick-nuovo-ordine svg { stroke: #fff; }
+#quick-nuovo-ordine:hover { background: var(--lf-green-900) !important; }
+
+.quick-badge-pending { border: 2px solid var(--lf-surface); }
+
+/* ---------- SEARCH ---------- */
+.search-container { padding: 1rem 1rem .5rem !important; }
+#search-input {
+  background: var(--lf-surface) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-md) !important;
+  color: var(--lf-text) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  height: 52px;
+  font-size: 1rem;
+}
+#search-input::placeholder { color: var(--lf-faint); }
+#search-input:focus {
+  border-color: var(--lf-green-600) !important;
+  box-shadow: var(--lf-ring) !important;
+  outline: none !important;
+}
+
+/* ---------- MONTH NAVIGATOR ---------- */
+.month-selector {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-lg) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  padding: .4rem !important;
+}
+.btn-current-month { background: transparent !important; }
+#current-month-label {
+  color: var(--lf-green-800) !important;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.current-month-hint { color: var(--lf-faint) !important; }
+.btn-month {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  color: var(--lf-green-700) !important;
+  border-radius: 12px !important;
+  width: 44px; height: 44px;
+  font-size: 1.2rem;
+  box-shadow: none !important;
+}
+.btn-month:hover { background: var(--lf-sage-100) !important; }
+
+/* ---------- DAY CARDS ---------- */
+.day-card {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-lg) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  padding: 1rem 1.1rem !important;
+  overflow: hidden;
+  transition: box-shadow .18s, transform .12s, border-color .18s;
+}
+.day-card:hover { box-shadow: var(--lf-sh-2) !important; }
+.day-card:active { transform: scale(.995); }
+
+/* Numero gigante di sfondo: reso molto discreto */
+.day-number-bg {
+  opacity: .05 !important;
+  font-weight: 800 !important;
+  color: var(--lf-green-800) !important;
+  right: .4rem !important;
+}
+
+/* Giorni senza ordini: più leggeri */
+.day-card:not(.has-orders) {
+  background: rgba(255,255,255,.6) !important;
+  box-shadow: none !important;
+  border-color: var(--lf-line) !important;
+}
+.day-empty-label { color: var(--lf-faint) !important; }
+
+/* OGGI: anello verde, niente arancio */
+.day-card.today {
+  border: 1.5px solid var(--lf-green-600) !important;
+  box-shadow: 0 0 0 3px rgba(13,114,102,.10), var(--lf-sh-2) !important;
+}
+/* Barra accento a sinistra: semantica e sottile */
+.day-card.has-da-preparare { border-left: 4px solid var(--lf-amber) !important; }
+.day-card.has-orders:not(.has-da-preparare) { border-left: 4px solid var(--lf-ok) !important; }
+.day-card.today.has-da-preparare { border-left: 4px solid var(--lf-amber) !important; }
+
+.day-date { color: var(--lf-ink) !important; font-weight: 700; }
+
+/* Badge OGGI/DOMANI */
+.day-date .badge-today,
+.day-badge-today {
+  background: var(--lf-green-800) !important;
+  color: #fff !important;
+}
+
+/* Conteggio ordini */
+.day-count {
+  background: var(--lf-sage-100) !important;
+  color: var(--lf-green-800) !important;
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 600 !important;
+}
+
+/* Chip di stato (da preparare / pronto / ritirato) */
+.day-stat-chip {
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.day-stat-chip::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; opacity: .9;
+}
+.chip-da-preparare { background: var(--lf-amber-bg) !important; color: #9A5B08 !important; }
+.chip-pronto       { background: var(--lf-ok-bg) !important;    color: #17663F !important; }
+.chip-ritirato     { background: var(--lf-slate-bg) !important; color: #566460 !important; }
+
+/* Barra di avanzamento */
+.day-progress {
+  background: var(--lf-sage-100) !important;
+  border-radius: 99px !important;
+  height: 6px !important;
+  overflow: hidden;
+}
+.day-progress > * ,
+.day-progress::before {
+  background: var(--lf-green-600) !important;
+}
+
+/* Chip clienti */
+.day-customers .day-customer,
+.day-customer-chip,
+.day-customers > * {
+  background: var(--lf-sage-50) !important;
+  color: var(--lf-green-800) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* ---------- BOTTONI GLOBALI ---------- */
+.btn-primary, .btn-large, .btn-primary-fisso, .btn-save-prev, .btn-convert-prev {
+  background: var(--lf-green-800) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--lf-r-md) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--lf-sh-1) !important;
+  transition: background .15s, transform .1s, box-shadow .15s;
+}
+.btn-primary:hover, .btn-large:hover, .btn-primary-fisso:hover, .btn-save-prev:hover {
+  background: var(--lf-green-900) !important;
+  box-shadow: var(--lf-sh-2) !important;
+}
+.btn-primary:active, .btn-large:active { transform: translateY(1px); }
+.btn-large { min-height: 52px; }
+
+.btn-secondary, .btn-secondary-fisso, .btn-share-prev, .btn-print-prev {
+  background: var(--lf-surface) !important;
+  color: var(--lf-green-800) !important;
+  border: 1.5px solid var(--lf-line-strong) !important;
+  border-radius: var(--lf-r-md) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.btn-secondary:hover, .btn-secondary-fisso:hover { background: var(--lf-sage-50) !important; }
+
+.btn-convert-prev { background: var(--lf-green-600) !important; }
+.btn-convert-prev:hover { background: var(--lf-green-700) !important; }
+
+.btn-delete-premium, .btn-delete, .btn-danger {
+  background: var(--lf-coral-bg) !important;
+  color: #B23A25 !important;
+  border: 1px solid rgba(221,81,58,.25) !important;
+  border-radius: var(--lf-r-md) !important;
+  font-weight: 600 !important;
+}
+.btn-delete-premium:hover { background: #F7D8D0 !important; }
+
+/* ---------- INPUT / SELECT / TEXTAREA ---------- */
+input[type="text"], input[type="password"], input[type="number"],
+input[type="date"], input[type="time"], input[type="email"], input[type="search"],
+select, textarea {
+  border-radius: var(--lf-r-md) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  background: var(--lf-surface) !important;
+  color: var(--lf-text) !important;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--lf-green-600) !important;
+  box-shadow: var(--lf-ring) !important;
+  outline: none !important;
+}
+::placeholder { color: var(--lf-faint) !important; }
+
+/* ---------- STATUS BADGE (card ordine) ---------- */
+.order-status-badge {
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 600 !important;
+  letter-spacing: .2px;
+  border: 1px solid transparent !important;
+}
+.order-status-badge.da_preparare { background: var(--lf-amber-bg) !important; color: #9A5B08 !important; }
+.order-status-badge.pronto       { background: var(--lf-ok-bg) !important;    color: #17663F !important; }
+.order-status-badge.ritirato     { background: var(--lf-slate-bg) !important; color: #566460 !important; }
+
+/* ---------- MODALI ---------- */
+.modal-content {
+  border-radius: var(--lf-r-xl) !important;
+  box-shadow: var(--lf-sh-3) !important;
+  border: 1px solid var(--lf-line) !important;
+  background: var(--lf-surface) !important;
+  backdrop-filter: none !important;
+}
+.modal-header, .modal-header-order, .modal-header-fisso, .modal-header-premium {
+  background: var(--lf-green-800) !important;
+  border-bottom: none !important;
+}
+.modal-header h2 { color: #fff !important; letter-spacing: .3px; }
+.modal-subtitle { color: rgba(255,255,255,.8) !important; }
+.modal-icon, .modal-icon-order {
+  background: rgba(255,255,255,.16) !important;
+  color: #fff !important;
+  border-radius: 14px !important;
+}
+.btn-close, .btn-close-photo {
+  background: rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+.btn-close:hover { background: rgba(255,255,255,.3) !important; }
+
+/* ---------- LOGIN ---------- */
+.login-card {
+  background: var(--lf-surface) !important;
+  border: 1px solid rgba(255,255,255,.6) !important;
+  border-radius: var(--lf-r-xl) !important;
+  box-shadow: var(--lf-sh-3) !important;
+  backdrop-filter: none !important;
+}
+.login-title, .login-card h1 { color: var(--lf-green-800) !important; letter-spacing: -.3px; }
+.login-subtitle { color: var(--lf-muted) !important; }
+.login-card label, .form-group label {
+  color: var(--lf-muted) !important;
+  text-transform: none !important;
+  letter-spacing: .1px !important;
+  font-weight: 600 !important;
+  font-size: .82rem !important;
+}
+
+/* ---------- FAB ---------- */
+.fab-main {
+  background: var(--lf-green-800) !important;
+  box-shadow: var(--lf-sh-2) !important;
+}
+.fab-main:hover { background: var(--lf-green-900) !important; }
+.fab-menu-item {
+  background: var(--lf-surface) !important;
+  color: var(--lf-green-800) !important;
+  border: 1px solid var(--lf-line) !important;
+  box-shadow: var(--lf-sh-2) !important;
+}
+
+/* ---------- ORDER CARD (vista giorno) ---------- */
+.order-card {
+  border-radius: var(--lf-r-lg) !important;
+  border: 1px solid var(--lf-line) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  background: var(--lf-surface) !important;
+}
+.order-customer { color: var(--lf-ink) !important; font-weight: 700; }
+.order-icon-btn {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  color: var(--lf-green-700) !important;
+  border-radius: 12px !important;
+}
+.order-icon-btn:hover { background: var(--lf-sage-100) !important; }
+
+/* ============================================================
+   RIFINITURE (pass 2)
+   ============================================================ */
+
+/* Ricerca: un solo campo pulito (niente doppio contenitore) */
+.search-box {
+  background: var(--lf-surface) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-md) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  padding: .1rem .9rem !important;
+  min-height: 52px;
+}
+.search-box:focus-within {
+  border-color: var(--lf-green-600) !important;
+  box-shadow: var(--lf-ring) !important;
+}
+#search-input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 48px;
+}
+#search-input:focus { box-shadow: none !important; }
+
+/* Bottoni "Copia articoli per fornitore": mantengono il codice-colore
+   (IMPORT/ITA/NL/ALTRI) ma con tono più raffinato e coerente */
+.copy-supplier-btn {
+  border: none !important;
+  border-radius: var(--lf-r-md) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  letter-spacing: .4px;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.copy-supplier-import { background: #7C5CBF !important; }   /* viola raffinato */
+.copy-supplier-ita    { background: #3E9B6B !important; }   /* verde */
+.copy-supplier-nl     { background: #E08A3C !important; }   /* arancio */
+.copy-supplier-other  { background: #6E7D79 !important; }   /* neutro */
+
+/* Bottoni provenienza sulle righe (IMP/ITA/NL) — versione tenue, colore pieno se attivo */
+.supplier-btn {
+  border-radius: var(--lf-r-sm) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  background: var(--lf-surface) !important;
+  color: var(--lf-muted) !important;
+  font-weight: 700 !important;
+}
+.supplier-import.active { background: #7C5CBF !important; border-color: #7C5CBF !important; color: #fff !important; }
+.supplier-ita.active    { background: #3E9B6B !important; border-color: #3E9B6B !important; color: #fff !important; }
+.supplier-nl.active     { background: #E08A3C !important; border-color: #E08A3C !important; color: #fff !important; }
+.row-supplier-btn.active.row-supplier-imp { background: #7C5CBF !important; border-color:#7C5CBF !important; color:#fff !important; }
+.row-supplier-btn.active.row-supplier-ita { background: #3E9B6B !important; border-color:#3E9B6B !important; color:#fff !important; }
+.row-supplier-btn.active.row-supplier-nl  { background: #E08A3C !important; border-color:#E08A3C !important; color:#fff !important; }
+
+/* Linguette filtro (Tutti / Da preparare / Pronti) */
+.orders-filter-tabs {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-pill) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  padding: .3rem !important;
+}
+.filter-tab {
+  border-radius: var(--lf-r-pill) !important;
+  color: var(--lf-muted) !important;
+  font-weight: 600 !important;
+  border: none !important;
+  background: transparent !important;
+}
+.filter-tab.active {
+  background: var(--lf-green-800) !important;
+  color: #fff !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.filter-count {
+  background: var(--lf-sage-100) !important;
+  color: var(--lf-green-800) !important;
+  border-radius: 99px !important;
+  font-weight: 700 !important;
+}
+.filter-tab.active .filter-count { background: rgba(255,255,255,.22) !important; color: #fff !important; }
+
+/* "+ Nuovo ordine" (barra vista giorno) */
+.order-actions-top .btn-primary,
+#btn-new-order-top {
+  background: var(--lf-green-800) !important;
+  border-radius: var(--lf-r-md) !important;
+}
+
+/* Card "Ordine fornitore": intestazione icona coerente */
+.order-actions-top .modal-icon,
+.supplier-order-icon { background: var(--lf-sage-100) !important; color: var(--lf-green-700) !important; }
