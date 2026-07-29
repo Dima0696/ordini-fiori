@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Percorso database: usa variabile d'ambiente per Railway, altrimenti locale
 const DB_PATH = process.env.DATABASE_PATH 
@@ -362,12 +363,20 @@ const initDb = () => {
     
     const insertStmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
     users.forEach(user => {
-      insertStmt.run(user.username, user.password);
+      insertStmt.run(user.username, hashPassword(user.password));
     });
-    
+
     console.log('✓ Utenti predefiniti creati');
   }
-  
+
+  // Migrazione sicurezza: hasha eventuali password ancora in chiaro
+  const plainUsers = db.prepare("SELECT id, password FROM users WHERE password NOT LIKE 'scrypt$%'").all();
+  if (plainUsers.length > 0) {
+    const updStmt = db.prepare('UPDATE users SET password = ? WHERE id = ?');
+    plainUsers.forEach(u => updStmt.run(hashPassword(u.password), u.id));
+    console.log(`🔒 ${plainUsers.length} password migrate a hash scrypt`);
+  }
+
   console.log('✓ Database inizializzato');
 };
 
@@ -615,16 +624,43 @@ const getUserByUsername = (username) => {
   return stmt.get(username);
 };
 
+// --- Password: hash scrypt (Node built-in, nessuna dipendenza) ---
+// Formato salvato: "scrypt$<salt hex>$<hash hex>". Le password ancora in
+// chiaro (DB pre-migrazione) vengono riconosciute e ri-hashate al primo
+// login o dalla migrazione in initDb().
+const SCRYPT_KEYLEN = 64;
+
+const hashPassword = (password) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), salt, SCRYPT_KEYLEN).toString('hex');
+  return `scrypt$${salt}$${hash}`;
+};
+
+const verifyPassword = (password, stored) => {
+  if (typeof stored !== 'string' || stored === '') return false;
+  if (stored.startsWith('scrypt$')) {
+    const [, salt, hash] = stored.split('$');
+    if (!salt || !hash) return false;
+    const candidate = crypto.scryptSync(String(password), salt, SCRYPT_KEYLEN);
+    const expected = Buffer.from(hash, 'hex');
+    return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+  }
+  // Legacy: password in chiaro nel DB (non ancora migrata)
+  return stored === String(password);
+};
+
 const verifyUser = (username, password) => {
   const user = getUserByUsername(username);
   if (!user) return null;
-  
-  // Confronto diretto (password in chiaro per semplicità)
-  if (user.password === password) {
-    return { id: user.id, username: user.username };
+
+  if (!verifyPassword(password, user.password)) return null;
+
+  // Se la password era ancora in chiaro, ri-salvala hashata
+  if (!String(user.password).startsWith('scrypt$')) {
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(password), user.id);
   }
-  
-  return null;
+
+  return { id: user.id, username: user.username };
 };
 
 // Push subscriptions
@@ -1483,8 +1519,6 @@ const deletePreventivo = (id) => {
 // ============================================
 // CUSTOMERS (portale clienti)
 // ============================================
-
-const crypto = require('crypto');
 
 function generateCustomerToken() {
   return crypto.randomBytes(24).toString('hex'); // 48 caratteri hex

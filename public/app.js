@@ -5954,7 +5954,7 @@ async function handleListinoUpload(event) {
     const response = await fetch(API_URL + '/listini/upload', {
       method: 'POST',
       headers: {
-        'x-user': currentUser
+        'Authorization': `Bearer ${authToken}`
       },
       body: formData
     });

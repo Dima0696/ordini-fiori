@@ -121,9 +121,62 @@ if (process.env.DATABASE_PATH) {
 const activeSessions = new Map(); // username -> token
 const tokenToUsername = new Map(); // token -> username
 
-// Genera token casuale
+// Genera token di sessione crittograficamente sicuro
 function generateToken() {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  return nodeCrypto.randomBytes(32).toString('base64url');
+}
+
+// Rate limiting login: max 10 tentativi falliti per IP+username in 15 minuti.
+// In memoria (si azzera al riavvio): sufficiente contro il brute force.
+const LOGIN_MAX_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginAttempts = new Map(); // "ip|username" -> { count, firstAt }
+
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+function loginRateKey(req, username) {
+  return `${clientIp(req)}|${String(username || '').toLowerCase()}`;
+}
+
+function isLoginBlocked(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry) return false;
+  if (Date.now() - entry.firstAt > LOGIN_WINDOW_MS) {
+    loginAttempts.delete(key);
+    return false;
+  }
+  return entry.count >= LOGIN_MAX_ATTEMPTS;
+}
+
+function recordLoginFailure(key) {
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || now - entry.firstAt > LOGIN_WINDOW_MS) {
+    loginAttempts.set(key, { count: 1, firstAt: now });
+  } else {
+    entry.count++;
+  }
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of loginAttempts) {
+    if (now - v.firstAt > LOGIN_WINDOW_MS) loginAttempts.delete(k);
+  }
+}, 60_000).unref();
+
+// Risolve un filename dentro uploadsDir in modo sicuro.
+// path.basename elimina qualunque componente di percorso ("../", slash,
+// anche se arrivati URL-encoded nei params), bloccando il path traversal.
+// Ritorna null se il nome non è utilizzabile.
+function safeUploadFilePath(filename) {
+  const base = path.basename(String(filename || ''));
+  if (!base || base === '.' || base === '..') return null;
+  return path.join(uploadsDir, base);
 }
 
 // Middleware per verificare autenticazione
@@ -164,13 +217,21 @@ app.post('/api/login', (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'Username e password richiesti' });
     }
-    
+
+    const rateKey = loginRateKey(req, username);
+    if (isLoginBlocked(rateKey)) {
+      return res.status(429).json({ error: 'Troppi tentativi falliti. Riprova tra qualche minuto.' });
+    }
+
     const user = db.verifyUser(username, password);
-    
+
     if (!user) {
+      recordLoginFailure(rateKey);
       return res.status(401).json({ error: 'Credenziali non valide' });
     }
-    
+
+    loginAttempts.delete(rateKey);
+
     // Rimuovi vecchia sessione se esiste
     const oldToken = activeSessions.get(username);
     if (oldToken) {
@@ -217,10 +278,10 @@ app.get('/api/me', authenticate, (req, res) => {
   res.json({ username: req.user.username });
 });
 
-// GET /api/diag - Diagnostica runtime (pubblico, info non sensibili)
+// GET /api/diag - Diagnostica runtime (solo utenti autenticati)
 // Utile per verificare quale versione di Node e quali API sono disponibili
 // in produzione. Rimuovere quando la biometria sarà stabile.
-app.get('/api/diag', (req, res) => {
+app.get('/api/diag', authenticate, (req, res) => {
   res.json({
     nodeVersion: process.version,
     hasGlobalCrypto: typeof globalThis.crypto !== 'undefined',
@@ -707,9 +768,11 @@ app.post('/api/upload', authenticate, upload.array('photos', 10), (req, res) => 
 // DELETE /api/photos/:filename - Elimina foto
 app.delete('/api/photos/:filename', authenticate, (req, res) => {
   try {
-    const filename = req.params.filename;
-    const filePath = path.join(uploadsDir, filename);
-    
+    const filePath = safeUploadFilePath(req.params.filename);
+    if (!filePath) {
+      return res.status(400).json({ error: 'Nome file non valido' });
+    }
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       res.json({ message: 'Foto eliminata' });
@@ -1274,7 +1337,7 @@ app.get('/api/debug/schema', authenticate, (req, res) => {
 });
 
 // API Routes - Stats - Ottieni statistiche per date (per il calendario)
-app.get('/api/stats/dates', (req, res) => {
+app.get('/api/stats/dates', authenticate, (req, res) => {
   try {
     const stats = db.getOrdersCountByDate();
     res.json(stats);
@@ -1616,13 +1679,13 @@ app.get('/api/listini', authenticate, (req, res) => {
 });
 
 // POST /api/listini/upload - Carica nuovo listino PDF
-app.post('/api/listini/upload', uploadPdf.single('pdf'), (req, res) => {
+app.post('/api/listini/upload', authenticate, uploadPdf.single('pdf'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Nessun file caricato' });
     }
-    
-    const uploadedBy = req.headers['x-user'] || 'Anonimo';
+
+    const uploadedBy = req.user.username;
     const originalName = req.file.originalname;
     const filename = req.file.filename;
     
@@ -1640,15 +1703,22 @@ app.post('/api/listini/upload', uploadPdf.single('pdf'), (req, res) => {
 });
 
 // GET /api/listini/view/:filename - Visualizza PDF
+// Nota: aperto via window.open (niente header Authorization), quindi resta
+// senza auth ma serve SOLO file registrati nella tabella listini, con nome
+// sanitizzato contro il path traversal.
 app.get('/api/listini/view/:filename', (req, res) => {
   try {
-    const filename = req.params.filename;
-    const filePath = path.join(uploadsDir, filename);
-    
-    if (!fs.existsSync(filePath)) {
+    const filePath = safeUploadFilePath(req.params.filename);
+    if (!filePath) {
+      return res.status(400).json({ error: 'Nome file non valido' });
+    }
+
+    const filename = path.basename(filePath);
+    const registered = db.getAllListini().some(l => l.filename === filename);
+    if (!registered || !fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File non trovato' });
     }
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.sendFile(filePath);
   } catch (error) {
@@ -1667,12 +1737,12 @@ app.delete('/api/listini/:id', authenticate, (req, res) => {
       return res.status(404).json({ error: 'Listino non trovato' });
     }
     
-    // Elimina file fisico
-    const filePath = path.join(uploadsDir, listino.filename);
-    if (fs.existsSync(filePath)) {
+    // Elimina file fisico (nome sanitizzato per sicurezza)
+    const filePath = safeUploadFilePath(listino.filename);
+    if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-    
+
     // Elimina dal database
     db.deleteListino(id);
     
