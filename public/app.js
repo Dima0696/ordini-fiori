@@ -164,6 +164,17 @@ function setupDetailQuickActionDelegation() {
     } else if (e.target.closest('#btn-detail-mark-prepared')) {
       e.preventDefault();
       toggleWholeOrder('prepared');
+    } else {
+      // Apertura foto ordine (nelle card e nel dettaglio). Le thumb non avevano
+      // gestore: sembravano cliccabili ma non aprivano nulla (soprattutto su
+      // mobile). Delego qui così funziona ovunque, anche dopo ricreazione DOM.
+      const photo = e.target.closest('.order-photo-thumb, .detail-photo');
+      if (photo && photo.tagName === 'IMG') {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = photo.getAttribute('src');
+        if (url) openPhotoViewer(url);
+      }
     }
   });
 }
@@ -5398,7 +5409,7 @@ function renderOrderDetail(order) {
     `;
     
     order.photos.forEach(photo => {
-      html += `<img src="${photo}" class="detail-photo" alt="Foto ordine" onclick="openPhotoViewer('${photo}')">`;
+      html += `<img src="${photo}" class="detail-photo" alt="Foto ordine">`;
     });
     
     html += `
