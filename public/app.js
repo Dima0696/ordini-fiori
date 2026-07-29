@@ -698,7 +698,16 @@ function setupPullToRefresh() {
 }
 
 // Setup event listeners
+let eventListenersSetup = false;
 function setupEventListeners() {
+  // Aggancia i listener UNA SOLA VOLTA per caricamento pagina. initializeApp
+  // viene richiamata a ogni login: dopo un logout senza ricaricare la pagina,
+  // ri-agganciare i listener sugli stessi elementi li duplicava → la freccia
+  // "mese successivo" scattava due volte (saltava 2 mesi). Con questa guardia
+  // i listener restano singoli.
+  if (eventListenersSetup) return;
+  eventListenersSetup = true;
+
   // Notifiche
   // Logout
   document.getElementById('btn-logout').addEventListener('click', logout);
@@ -1291,24 +1300,18 @@ function renderCalendar() {
   // Crea array di date - SOLO DA OGGI IN POI + prossimi 30 giorni
   const dates = [];
   
-  // Determina il giorno di partenza: oggi o primo del mese se siamo nel futuro
-  const startDate = new Date(today);
-  
-  // Se stiamo guardando un mese futuro, parti dal primo giorno
-  if (year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth())) {
-    startDate.setFullYear(year);
-    startDate.setMonth(month);
-    startDate.setDate(1);
-  }
-  // Se stiamo guardando il mese corrente, parti da oggi
-  else if (year === today.getFullYear() && month === today.getMonth()) {
-    // startDate è già oggi
-  }
-  // Se stiamo guardando un mese passato, non mostrare nulla (o parti dal primo)
-  else {
-    startDate.setFullYear(year);
-    startDate.setMonth(month);
-    startDate.setDate(1);
+  // Determina il giorno di partenza.
+  let startDate;
+  if (year === today.getFullYear() && month === today.getMonth()) {
+    // Mese corrente: parti da oggi
+    startDate = new Date(today);
+  } else {
+    // Mese diverso (passato o futuro): parti dal primo del mese.
+    // Uso il costruttore new Date(year, month, 1) invece di setMonth su
+    // "today": setMonth andava in overflow quando oggi è a fine mese
+    // (es. il 31) e si navigava verso un mese più corto, facendo "sparire"
+    // il mese di destinazione.
+    startDate = new Date(year, month, 1);
   }
   
   // Genera i prossimi 30 giorni a partire dalla data di inizio
@@ -5399,7 +5402,20 @@ function initSwipeGestures() {
   const minSwipeDistance = 80; // px
   const maxVerticalDistance = 100; // max vertical movement allowed
   
+  // Elementi su cui la gesture "torna indietro" NON deve attivarsi: campi di
+  // testo (mentre selezioni gli articoli il gesto di selezione partiva dal
+  // bordo e veniva scambiato per "swipe indietro", chiudendo il form e
+  // perdendo le modifiche) e qualunque modale/form aperto.
+  function swipeShouldIgnore(target) {
+    if (document.querySelector('.modal.active')) return true; // form/modale aperto
+    if (target && target.closest && target.closest(
+      'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
+    )) return true;
+    return false;
+  }
+
   document.addEventListener('touchstart', (e) => {
+    if (swipeShouldIgnore(e.target)) { touchStartX = 0; return; }
     // Only detect swipe from left edge (< 50px from left)
     if (e.touches[0].clientX < 50) {
       touchStartX = e.touches[0].clientX;
@@ -5408,24 +5424,30 @@ function initSwipeGestures() {
       touchStartX = 0;
     }
   }, { passive: true });
-  
+
   document.addEventListener('touchend', (e) => {
     if (touchStartX === 0) return; // Not a swipe from edge
-    
+    if (swipeShouldIgnore(e.target)) { touchStartX = 0; return; }
+    // Se c'è del testo selezionato, l'utente stava selezionando: non è uno swipe
+    if (window.getSelection && String(window.getSelection()).length > 0) {
+      touchStartX = 0;
+      return;
+    }
+
     touchEndX = e.changedTouches[0].clientX;
     touchEndY = e.changedTouches[0].clientY;
-    
+
     const horizontalDistance = touchEndX - touchStartX;
     const verticalDistance = Math.abs(touchEndY - touchStartY);
-    
+
     // Swipe right from left edge
     if (
-      horizontalDistance > minSwipeDistance && 
+      horizontalDistance > minSwipeDistance &&
       verticalDistance < maxVerticalDistance
     ) {
       handleSwipeBack();
     }
-    
+
     // Reset
     touchStartX = 0;
   }, { passive: true });

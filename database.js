@@ -480,6 +480,71 @@ const createOrder = (orderData, username) => {
   return getOrderById(info.lastInsertRowid);
 };
 
+// Normalizza una riga per confrontarne il CONTENUTO (ignora spazi multipli,
+// spazi ai bordi e maiuscole/minuscole).
+const normalizeLine = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+// Righe "significative" di una description, con lo STESSO criterio del frontend
+// (split per newline, scarta le righe vuote). L'indice nell'array è il
+// line_number usato dalle spunte del fabbisogno.
+const significantLines = (description) =>
+  String(description || '').split('\n').filter(l => l.trim() !== '');
+
+// Rimappa le spunte del fabbisogno quando cambia la description di un ordine.
+// Le spunte (checked/prepared/fornitore/match) sono salvate per posizione di
+// riga (line_number). Inserendo, togliendo o riordinando una riga le posizioni
+// slittano e le spunte finirebbero sulla riga sbagliata. Qui le ricolleghiamo
+// per CONTENUTO: ogni spunta segue la riga con lo stesso testo nella nuova
+// versione. Le righe nuove restano senza spunta, quelle rimosse la perdono.
+const remapFabbisognoChecks = (orderId, oldDescription, newDescription) => {
+  const oldLines = significantLines(oldDescription);
+  const newLines = significantLines(newDescription);
+
+  // Nessun cambiamento nelle righe → niente da fare
+  if (oldLines.length === newLines.length &&
+      oldLines.every((l, i) => l === newLines[i])) {
+    return;
+  }
+
+  const rows = db.prepare(
+    'SELECT line_number, checked, prepared, supplier, match_key FROM fabbisogno_checks WHERE order_id = ?'
+  ).all(orderId);
+  if (rows.length === 0) return; // nessuna spunta da preservare
+
+  const byOldIndex = new Map(rows.map(r => [r.line_number, r]));
+
+  // Code di indici vecchi per ogni contenuto normalizzato, in ordine di riga.
+  // Gestisce anche righe duplicate: la prima nuova occorrenza prende la prima
+  // vecchia, e così via.
+  const oldQueues = new Map();
+  oldLines.forEach((line, idx) => {
+    const key = normalizeLine(line);
+    if (!oldQueues.has(key)) oldQueues.set(key, []);
+    oldQueues.get(key).push(idx);
+  });
+
+  const remapped = [];
+  newLines.forEach((line, newIdx) => {
+    const q = oldQueues.get(normalizeLine(line));
+    if (q && q.length > 0) {
+      const row = byOldIndex.get(q.shift());
+      if (row) remapped.push({ newIndex: newIdx, row });
+    }
+  });
+
+  // Riscrive atomicamente le spunte con i nuovi line_number
+  const rewrite = db.transaction(() => {
+    db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?').run(orderId);
+    const ins = db.prepare(
+      'INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, match_key) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    for (const { newIndex, row } of remapped) {
+      ins.run(orderId, newIndex, row.checked || 0, row.prepared || 0, row.supplier || null, row.match_key || null);
+    }
+  });
+  rewrite();
+};
+
 // Aggiorna ordine
 const updateOrder = (id, orderData, username) => {
   const {
@@ -527,10 +592,23 @@ const updateOrder = (id, orderData, username) => {
   
   updateQuery += ` WHERE id = ?`;
   params.push(id);
-  
+
+  // Leggo la description PRIMA dell'update per poter rimappare le spunte se cambia
+  const existing = getOrderById(id);
+
   const stmt = db.prepare(updateQuery);
   stmt.run(...params);
-  
+
+  // Se le righe dell'ordine sono cambiate, sposta le spunte sulla riga giusta
+  // (per contenuto) invece di lasciarle slittare per posizione.
+  if (existing && typeof description === 'string' && description !== existing.description) {
+    try {
+      remapFabbisognoChecks(id, existing.description, description);
+    } catch (e) {
+      console.error('⚠️ Remap spunte fabbisogno fallito (non bloccante):', e.message);
+    }
+  }
+
   return getOrderById(id);
 };
 
