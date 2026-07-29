@@ -922,3 +922,25 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: .55; }
 
 /* Override bulletproof: nome cliente card in sentence case */
 .order-card .order-customer { text-transform: none !important; letter-spacing: -0.01em !important; }
+
+/* ============================================================
+   PASS 5 — HOME: fai vedere lo sfondo salvia (era coperto da un pannello bianco)
+   ============================================================ */
+.calendar-container {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+/* Su desktop la colonna centrale resta larga ma senza pannello bianco */
+@media (min-width: 768px) {
+  .calendar-container, .orders-container { background: transparent !important; }
+}
+/* Giorni vuoti: tinta salvia più netta così si distinguono su desktop */
+.day-card:not(.has-orders) {
+  background: rgba(255,255,255,.45) !important;
+  border-color: rgba(255,255,255,.6) !important;
+}
+
+/* Lo sfondo salvia copre SEMPRE tutta l'altezza, anche con poco contenuto */
+html { background: var(--lf-canvas-2) !important; }
+body { min-height: 100vh; min-height: 100dvh; }
