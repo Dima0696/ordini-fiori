@@ -537,3 +537,384 @@ input:focus, select:focus, textarea:focus {
 /* Card "Ordine fornitore": intestazione icona coerente */
 .order-actions-top .modal-icon,
 .supplier-order-icon { background: var(--lf-sage-100) !important; color: var(--lf-green-700) !important; }
+
+/* ============================================================
+   DESIGN SYSTEM 2.0 — PASS 3: PROFONDITÀ E RIFINITURA
+   Tipografia, componenti, ogni schermata, micro-interazioni.
+   ============================================================ */
+
+:root {
+  --lf-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-family: var(--lf-font);
+  --lf-ease: cubic-bezier(.22,.61,.36,1);
+}
+
+/* ---------- TIPOGRAFIA ---------- */
+body, input, select, textarea, button {
+  font-family: var(--lf-font) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body { letter-spacing: -0.006em; line-height: 1.55; color: var(--lf-text); }
+
+/* Titoli: peso e tracking curati */
+h1, h2, h3, .login-title, .modal-header h2,
+.order-customer, .detail-customer-name, .day-date,
+.preventivo-cliente, .cliente-card-name, .catalog-card-name {
+  letter-spacing: -0.02em;
+  font-feature-settings: "cv05" 1, "ss01" 1;
+}
+.order-customer, .cliente-card-name, .catalog-card-name { font-weight: 700 !important; }
+.detail-customer-name { font-weight: 800 !important; letter-spacing: -0.03em; }
+
+/* Numeri tabellari dove contano gli allineamenti */
+.day-count, .filter-count, .preventivo-totale-mini, .prev-totale-cell,
+.catalog-card-price, .prev-inp, #prev-totale, .preventivo-totale-value,
+.day-chip-num, .day-number-bg {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------- FOCUS VISIBILE (accessibilità/tastiera) ---------- */
+:focus-visible {
+  outline: 2px solid var(--lf-green-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button, a { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- MICRO-INTERAZIONI COMUNI ---------- */
+.btn-primary, .btn-secondary, .btn-large, .quick-action-btn, .btn-icon,
+.btn-month, .order-icon-btn, .day-card, .order-card, .fisso-list-item,
+.preventivo-card, .cliente-card, .catalog-card, .day-chip, .copy-supplier-btn,
+.btn-primary-fisso, .btn-secondary-fisso, .filter-tab {
+  transition: background .16s var(--lf-ease), color .16s var(--lf-ease),
+              border-color .16s var(--lf-ease), box-shadow .18s var(--lf-ease),
+              transform .12s var(--lf-ease) !important;
+}
+
+/* ---------- APP BAR: allineamento e respiro ---------- */
+.app-header { background: var(--lf-surface) !important; border-bottom: 1px solid var(--lf-line); }
+.app-header-left .app-logo { height: 30px; }
+.app-header .app-title, .app-header h1 { color: var(--lf-ink) !important; font-weight: 700; letter-spacing: -0.02em; }
+
+/* ---------- ORDER CARD (vista giorno) — profondità ---------- */
+.order-card { overflow: hidden; }
+.order-card.expanded { box-shadow: var(--lf-sh-2) !important; }
+.order-header { padding-top: .2rem; }
+.order-head-meta, .order-info-badges { color: var(--lf-muted) !important; }
+.order-expand-arrow {
+  color: var(--lf-faint) !important;
+  background: var(--lf-sage-50) !important;
+  border-radius: 10px !important;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.order-card.expanded .order-expand-arrow { transform: rotate(180deg); background: var(--lf-sage-100) !important; }
+.order-quick-row { gap: .5rem; }
+
+/* Badge/azioni stato dentro la card (ORDINATO / PRONTO / RITIRATO) */
+.order-state-badge {
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 700 !important;
+  letter-spacing: .3px;
+  border: 1.5px solid var(--lf-line-strong) !important;
+  background: var(--lf-surface) !important;
+  color: var(--lf-muted) !important;
+  padding: .5rem .85rem !important;
+}
+.order-state-badge svg { opacity: .9; }
+.order-state-badge.state-ordinato.active {
+  background: var(--lf-ok-bg) !important; border-color: transparent !important; color: #17663F !important;
+}
+.order-state-badge.state-pronto.active {
+  background: var(--lf-amber-bg) !important; border-color: transparent !important; color: #9A5B08 !important;
+}
+.order-state-badge.state-ritirato {
+  background: var(--lf-slate-bg) !important; border-color: transparent !important; color: #566460 !important;
+}
+.order-state-badge.is-clickable:active { transform: scale(.96); }
+
+/* Checklist articoli (spunte) */
+.order-checklist .check-line, .check-line {
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  transition: background .15s var(--lf-ease);
+}
+.order-checklist .check-line:hover { background: var(--lf-sage-50) !important; }
+.match-chip {
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 600 !important;
+  border: 1.5px solid var(--lf-line) !important;
+}
+.match-chip-linked { background: var(--lf-sage-100) !important; color: var(--lf-green-800) !important; border-color: transparent !important; }
+.match-chip-empty { background: var(--lf-surface) !important; color: var(--lf-faint) !important; }
+
+/* ---------- DETTAGLIO ORDINE ---------- */
+.detail-hero {
+  background: linear-gradient(135deg, var(--lf-green-700), var(--lf-green-800)) !important;
+  border-radius: var(--lf-r-lg) !important;
+  color: #fff !important;
+}
+.detail-customer-name { color: #fff !important; }
+.detail-date { color: rgba(255,255,255,.82) !important; }
+.detail-section-title {
+  color: var(--lf-muted) !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .74rem !important;
+  font-weight: 700 !important;
+}
+.detail-info-grid { gap: .6rem; }
+.detail-info-item {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: 14px !important;
+}
+.detail-info-label { color: var(--lf-faint) !important; font-weight: 600; }
+.detail-info-value { color: var(--lf-ink) !important; font-weight: 700; }
+.detail-goods-content {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: 14px !important;
+  color: var(--lf-text) !important;
+}
+.detail-metadata { color: var(--lf-faint) !important; }
+.detail-photo { border-radius: 14px !important; border: 1px solid var(--lf-line) !important; }
+
+/* ---------- SECTION HEADERS (nei form) ---------- */
+.section-header, .section-header-order {
+  border-bottom: 1px solid var(--lf-line) !important;
+  padding-bottom: .55rem !important;
+}
+.section-header h3, .section-header-order h3 {
+  color: var(--lf-ink) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+  text-transform: none !important;
+}
+.section-header svg, .section-header-order svg { stroke: var(--lf-green-600); }
+
+/* Form label generiche (sentence case, discrete) */
+.form-group label, .form-group-fisso label, label {
+  color: var(--lf-muted) !important;
+  font-weight: 600 !important;
+  letter-spacing: .1px !important;
+  text-transform: none !important;
+}
+
+/* ---------- BOTTONI SECONDARI / PICCOLI ---------- */
+.btn-add-row, .btn-text-clear {
+  background: var(--lf-sage-50) !important;
+  border: 1px dashed var(--lf-line-strong) !important;
+  color: var(--lf-green-700) !important;
+  border-radius: var(--lf-r-md) !important;
+  font-weight: 600 !important;
+}
+.btn-add-row:hover { background: var(--lf-sage-100) !important; }
+.btn-add-photo-premium {
+  background: var(--lf-sage-50) !important;
+  border: 1.5px dashed var(--lf-line-strong) !important;
+  color: var(--lf-green-700) !important;
+  border-radius: var(--lf-r-md) !important;
+  font-weight: 600 !important;
+}
+.btn-small {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  border: 1px solid var(--lf-line) !important;
+}
+.btn-approve-inline { background: var(--lf-ok-bg) !important; color: #17663F !important; border-color: transparent !important; }
+.btn-reject-inline { background: var(--lf-coral-bg) !important; color: #B23A25 !important; border-color: transparent !important; }
+.btn-collected, .btn-undo-collected { background: var(--lf-sage-100) !important; color: var(--lf-green-800) !important; border-color: transparent !important; }
+
+/* ---------- DAY CHIPS (selettore giorni ordine fornitore) ---------- */
+.day-chip {
+  background: var(--lf-surface) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  border-radius: 14px !important;
+  color: var(--lf-text) !important;
+}
+.day-chip.active, .day-chip-current.active {
+  background: var(--lf-green-800) !important;
+  border-color: var(--lf-green-800) !important;
+  color: #fff !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.day-chip-name, .day-chip-month { color: inherit !important; opacity: .8; }
+.day-chip.active .day-chip-name, .day-chip.active .day-chip-month { opacity: .85; }
+
+/* ---------- PREVENTIVI (lista) ---------- */
+.preventivo-card {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-lg) !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.preventivo-card:hover { box-shadow: var(--lf-sh-2) !important; transform: translateY(-1px); }
+.preventivo-numero {
+  background: var(--lf-sage-100) !important;
+  color: var(--lf-green-800) !important;
+  border-radius: var(--lf-r-pill) !important;
+  font-weight: 700 !important;
+}
+.preventivo-cliente { color: var(--lf-ink) !important; font-weight: 700; }
+.preventivo-meta, .preventivo-sub { color: var(--lf-muted) !important; }
+.preventivo-totale-mini { color: var(--lf-green-800) !important; font-weight: 800 !important; }
+
+/* Editor preventivo: intestazione tabella + celle */
+.preventivo-items-head {
+  color: var(--lf-faint) !important;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .72rem !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid var(--lf-line) !important;
+}
+.preventivo-item-row .prev-inp {
+  border-radius: 10px !important;
+  border: 1.5px solid var(--lf-line) !important;
+}
+.prev-totale-cell { color: var(--lf-green-800) !important; font-weight: 700 !important; }
+.preventivo-totale-box {
+  background: var(--lf-sage-50) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-md) !important;
+}
+.preventivo-totale-label { color: var(--lf-muted) !important; font-weight: 700; letter-spacing: .06em; }
+.preventivo-totale-value { color: var(--lf-green-800) !important; font-weight: 800 !important; }
+
+/* ---------- CLIENTI ---------- */
+.cliente-card {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-lg) !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.cliente-card:hover { box-shadow: var(--lf-sh-2) !important; transform: translateY(-1px); }
+.cliente-card-name { color: var(--lf-ink) !important; }
+.cliente-card-info, .cliente-card-meta { color: var(--lf-muted) !important; }
+
+/* ---------- CATALOGO ---------- */
+.catalog-card {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-lg) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  overflow: hidden;
+}
+.catalog-card:hover { box-shadow: var(--lf-sh-2) !important; transform: translateY(-2px); }
+.catalog-card-photo { background: var(--lf-sage-50) !important; }
+.catalog-photo-placeholder { color: var(--lf-faint) !important; background: var(--lf-sage-50) !important; }
+.catalog-card-name { color: var(--lf-ink) !important; }
+.catalog-card-cat { color: var(--lf-green-700) !important; background: var(--lf-sage-100) !important; border-radius: var(--lf-r-pill) !important; font-weight: 600; }
+.catalog-card-desc, .catalog-card-meta { color: var(--lf-muted) !important; }
+.catalog-card-price { color: var(--lf-green-800) !important; font-weight: 800 !important; }
+.catalog-card-qty { color: var(--lf-faint) !important; }
+.catalog-card-badge-inactive { background: var(--lf-slate-bg) !important; color: #566460 !important; border-radius: var(--lf-r-pill) !important; }
+
+/* ---------- EMPTY STATES ---------- */
+.empty-state, .search-no-results, .fisso-list-empty, .empty-title, .empty-subtitle {
+  color: var(--lf-faint) !important;
+}
+.empty-title { color: var(--lf-muted) !important; font-weight: 700; }
+
+/* ---------- TOAST ---------- */
+.mini-toast {
+  background: var(--lf-ink) !important;
+  color: #fff !important;
+  border-radius: var(--lf-r-pill) !important;
+  box-shadow: var(--lf-sh-3) !important;
+  font-weight: 600;
+}
+
+/* ---------- SCROLLBAR OMBRE LATERALI barra nav ---------- */
+.app-header-nav::-webkit-scrollbar { display: none; }
+.app-header-nav { scrollbar-width: none; }
+
+/* ============================================================
+   PASS 4 — RIFINITURE DI DETTAGLIO
+   ============================================================ */
+
+/* Nomi cliente nelle card ordine: sentence case (coerente coi chip) */
+.order-customer,
+.order-card-toggle .order-customer {
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  font-weight: 700 !important;
+  color: var(--lf-ink) !important;
+}
+
+/* Ricerca preventivi: campo singolo pulito */
+.preventivi-search-box {
+  background: var(--lf-surface) !important;
+  border: 1.5px solid var(--lf-line) !important;
+  border-radius: var(--lf-r-md) !important;
+  box-shadow: var(--lf-sh-1) !important;
+  padding: .1rem .9rem !important;
+  min-height: 52px;
+}
+.preventivi-search-box:focus-within {
+  border-color: var(--lf-green-600) !important;
+  box-shadow: var(--lf-ring) !important;
+}
+#preventivi-search {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#preventivi-search:focus { box-shadow: none !important; }
+
+/* Mini-bottoni lista preventivi (Apri / Duplica / Elimina) coerenti */
+.btn-mini {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  border: 1px solid var(--lf-line) !important;
+  background: var(--lf-sage-50) !important;
+  color: var(--lf-green-800) !important;
+}
+.btn-mini:hover { background: var(--lf-sage-100) !important; }
+.btn-mini-dup { color: var(--lf-green-800) !important; }
+.btn-mini-del { background: var(--lf-coral-bg) !important; color: #B23A25 !important; border-color: transparent !important; }
+.btn-mini-edit { background: var(--lf-sage-50) !important; color: var(--lf-green-800) !important; }
+
+/* Pill statistiche (catalogo / liste) */
+.stat-pill, .catalog-stats > *, .list-stats > * {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  color: var(--lf-muted) !important;
+  border-radius: var(--lf-r-pill) !important;
+}
+
+/* Titoli sezione pagina (es. "Clienti registrati") */
+.page-section-title, .section-title, .clienti-section-title {
+  color: var(--lf-ink) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Datepicker input: coerente */
+input[type="date"], input[type="time"] {
+  color: var(--lf-text) !important;
+  font-weight: 600;
+}
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: .55; }
+
+/* Sfumatura ai bordi della barra nav orizzontale (indica che scorre) */
+.app-header-nav {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+}
+
+/* Barra "+ Nuovo ordine" (vista giorno): peso e ombra coerenti */
+.btn-primary.btn-block, .order-new-btn, #btn-new-order-day {
+  box-shadow: var(--lf-sh-1) !important;
+}
+
+/* Header di pagina (back/home/titolo) allineati e puliti */
+.app-header .page-title, .app-header h2, .app-header .header-title {
+  color: var(--lf-ink) !important; font-weight: 700; letter-spacing: -0.01em;
+}
+
+/* Override bulletproof: nome cliente card in sentence case */
+.order-card .order-customer { text-transform: none !important; letter-spacing: -0.01em !important; }
