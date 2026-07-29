@@ -1337,3 +1337,100 @@ body { min-height: 100vh; min-height: 100dvh; }
 @media (min-width: 1500px) {
   .days-list { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
 }
+
+/* ============================================================
+   CALENDARIO — ORDINE E ALLINEAMENTO (rifinitura finale)
+   Celle di altezza uniforme, accento discreto, contenuto ordinato.
+   ============================================================ */
+@media (min-width: 1024px) {
+
+  /* Righe uniformi: ogni cella occupa esattamente la stessa altezza.
+     Prima, con align-items:start, i giorni carichi si allungavano e
+     sfondavano la griglia. */
+  .days-list {
+    align-items: stretch !important;
+    grid-auto-rows: 150px !important;
+  }
+
+  .day-card {
+    overflow: hidden !important;
+    padding: .7rem .8rem .6rem 1.05rem !important;
+  }
+
+  /* Accento laterale: sottile e proporzionato alla cella */
+  .day-card::before {
+    top: 10px !important;
+    bottom: 10px !important;
+    left: 7px !important;
+    width: 3px !important;
+  }
+
+  /* Struttura interna: intestazione fissa, contenuto che riempie e si ferma */
+  .day-date { flex: 0 0 auto; margin-bottom: .45rem !important; }
+  .day-info {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column; gap: .3rem;
+  }
+
+  /* I clienti riempiono lo spazio residuo senza spingere la cella */
+  .day-customers {
+    margin-top: .1rem !important;
+    padding-top: 0 !important;
+    overflow: hidden;
+    align-content: flex-start;
+  }
+  /* Sfumatura in basso: segnala con discrezione che l'elenco continua */
+  .day-card.has-orders .day-info::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 92%);
+    pointer-events: none;
+  }
+
+  /* Allineamenti fini della riga di stato */
+  .day-status-row { align-items: center; }
+  .day-count, .day-stat-chip { line-height: 1.35; }
+  .day-progress { flex: 0 0 auto; }
+
+  /* Giorni vuoti: contenuto centrato verticalmente, niente sfumatura */
+  .day-card:not(.has-orders) .day-info { justify-content: flex-start; }
+  .day-card:not(.has-orders) .day-empty-label { margin-top: .1rem !important; }
+}
+
+/* ============================================================
+   VISTA GIORNO — RESPIRO INTERNO (testi non più attaccati ai bordi)
+   ============================================================ */
+.order-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.order-content { padding: 0 !important; }
+.order-header, .order-card-toggle {
+  padding: 1rem 1.1rem .55rem !important;
+}
+.order-quick-row {
+  padding: 0 1.1rem 1rem !important;
+  gap: .55rem !important;
+}
+.order-body { padding: 0 1.1rem 1.1rem !important; }
+.order-description, .order-checklist { padding: 0 !important; }
+.order-customer-badges { margin-bottom: .5rem; }
+.order-photos { padding-top: .6rem; }
+
+/* Checklist articoli: righe con respiro e separatori discreti */
+.order-checklist .check-line {
+  padding: .5rem .6rem !important;
+  margin: 0 -.25rem !important;
+}
+
+@media (min-width: 1024px) {
+  .order-header, .order-card-toggle { padding: 1.05rem 1.25rem .6rem !important; }
+  .order-quick-row { padding: 0 1.25rem 1.05rem !important; }
+  .order-body { padding: 0 1.25rem 1.15rem !important; }
+  /* Pannello fornitore e barre: stesso respiro laterale */
+  .orders-toolbar-fornitore { padding: 1.15rem 1.25rem !important; }
+  .orders-filter-tabs { padding: .35rem !important; }
+}
