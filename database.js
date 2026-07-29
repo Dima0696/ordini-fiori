@@ -729,57 +729,11 @@ const getOrdersSyncSnapshot = (dates) => {
 // PASSKEYS / WebAuthn
 // ===========================================
 
-const savePasskey = ({ username, credentialID, publicKey, counter, transports, deviceName }) => {
-  const stmt = db.prepare(`
-    INSERT INTO passkeys (username, credential_id, public_key, counter, transports, device_name)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
-    username,
-    credentialID,
-    publicKey,
-    counter,
-    transports ? JSON.stringify(transports) : null,
-    deviceName || null
-  );
-};
-
-const getPasskeysByUsername = (username) => {
-  const rows = db.prepare(`
-    SELECT id, credential_id AS credentialID, public_key AS publicKey, counter,
-           transports, device_name AS deviceName, created_at AS createdAt,
-           last_used_at AS lastUsedAt
-    FROM passkeys WHERE username = ?
-    ORDER BY created_at DESC
-  `).all(username);
-  return rows.map(r => ({
-    ...r,
-    transports: r.transports ? JSON.parse(r.transports) : []
-  }));
-};
-
-const getPasskeyByCredentialId = (credentialID) => {
-  const r = db.prepare(`
-    SELECT id, username, credential_id AS credentialID, public_key AS publicKey,
-           counter, transports
-    FROM passkeys WHERE credential_id = ?
-  `).get(credentialID);
-  if (!r) return null;
-  return {
-    ...r,
-    transports: r.transports ? JSON.parse(r.transports) : []
-  };
-};
-
-const updatePasskeyCounter = (credentialID, newCounter) => {
-  db.prepare(`
-    UPDATE passkeys SET counter = ?, last_used_at = CURRENT_TIMESTAMP
-    WHERE credential_id = ?
-  `).run(newCounter, credentialID);
-};
-
-const deletePasskey = (id, username) => {
-  return db.prepare('DELETE FROM passkeys WHERE id = ? AND username = ?').run(id, username);
+// Aggiorna la password di un utente (salvata come hash scrypt).
+const updateUserPassword = (username, newPassword) => {
+  const stmt = db.prepare('UPDATE users SET password = ? WHERE username = ?');
+  const info = stmt.run(hashPassword(newPassword), username);
+  return info.changes > 0;
 };
 
 const getAllSubscriptions = () => {
@@ -1973,15 +1927,11 @@ module.exports = {
   searchOrders,
   getUserByUsername,
   verifyUser,
+  updateUserPassword,
   saveSubscription,
   getAllSubscriptions,
   deleteSubscription,
   getOrdersSyncSnapshot,
-  savePasskey,
-  getPasskeysByUsername,
-  getPasskeyByCredentialId,
-  updatePasskeyCounter,
-  deletePasskey,
   getFabbisognoChecks,
   toggleFabbisognoCheck,
   setFabbisognoCheck,

@@ -21,7 +21,6 @@
     "node": "20.x"
   },
   "dependencies": {
-    "@simplewebauthn/server": "^13.3.0",
     "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
