@@ -46,6 +46,10 @@ let uploadedPhotos = []; // Array di URL foto caricate
 // Nuovo/Modifica ordine: { [rowIndex]: { matchKey, supplier } }.
 // Viene applicato al server SOLO al submit, dopo che l'ordine è stato creato/aggiornato.
 let pendingOrderLineState = {};
+// Snapshot (righe normalizzate) allineato agli indici di pendingOrderLineState.
+// Serve a ri-agganciare provenienza/match alla riga giusta PER CONTENUTO quando
+// l'utente aggiunge/toglie/riordina righe nella textarea durante la modifica.
+let pendingOrderLinesSnapshot = [];
 let authToken = null;
 let currentUser = null;
 let autoRefreshInterval = null;
@@ -2728,9 +2732,53 @@ const ORDER_ROW_SUPPLIERS = ['IMPORT', 'ITA', 'NL'];
 const ORDER_ROW_SUPPLIER_LABELS = { IMPORT: 'IMP', ITA: 'ITA', NL: 'NL' };
 const ORDER_ROW_SUPPLIER_CLASS = { IMPORT: 'imp', ITA: 'ita', NL: 'nl' };
 
+// Normalizza una riga per confrontarne il contenuto (come fa il server).
+function _normOrderLine(s) {
+  return String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+// Righe significative (non vuote) normalizzate, stesso criterio del server
+// e dell'anteprima. L'indice nell'array è il line_number del fabbisogno.
+function _significantOrderLinesNorm(text) {
+  return String(text || '').split('\n').filter(l => l.trim() !== '').map(_normOrderLine);
+}
+
+// Ri-aggancia pendingOrderLineState alla riga con lo STESSO contenuto quando
+// le righe cambiano (inserimento/rimozione/riordino nella textarea). Senza
+// questo, provenienza e abbinamento restavano legati alla posizione e finivano
+// sulla riga sbagliata, sia in anteprima sia al salvataggio.
+function reindexPendingLineStateByContent() {
+  const ta = document.getElementById('order-description');
+  const newLines = _significantOrderLinesNorm((ta && ta.value) || '');
+  const oldLines = pendingOrderLinesSnapshot || [];
+
+  const identical = oldLines.length === newLines.length &&
+    oldLines.every((l, i) => l === newLines[i]);
+  if (identical) return;
+
+  // Code di indici vecchi per ogni contenuto (gestisce righe duplicate in ordine)
+  const oldQueues = new Map();
+  oldLines.forEach((line, idx) => {
+    if (!oldQueues.has(line)) oldQueues.set(line, []);
+    oldQueues.get(line).push(idx);
+  });
+
+  const newState = {};
+  newLines.forEach((line, newIdx) => {
+    const q = oldQueues.get(line);
+    if (q && q.length > 0) {
+      const oldIdx = q.shift();
+      if (pendingOrderLineState[oldIdx]) newState[newIdx] = pendingOrderLineState[oldIdx];
+    }
+  });
+
+  pendingOrderLineState = newState;
+  pendingOrderLinesSnapshot = newLines;
+}
+
 // Reset dello stato pendente all'apertura della modal Nuovo ordine.
 function resetPendingOrderLineState() {
   pendingOrderLineState = {};
+  pendingOrderLinesSnapshot = [];
 }
 
 // Pre-carica lo stato pendente da allOrderChecks quando si apre la modal
@@ -2753,6 +2801,10 @@ function loadPendingOrderLineStateFromOrder(orderId) {
       pendingOrderLineState[idx] = entry;
     }
   });
+  // Snapshot iniziale: le righe dell'ordine così com'è ora. Gli indici di
+  // pendingOrderLineState corrispondono a queste righe.
+  const ta = document.getElementById('order-description');
+  pendingOrderLinesSnapshot = _significantOrderLinesNorm((ta && ta.value) || '');
 }
 
 // Renderizza un singolo bottone provenienza (chiuso o aperto).
@@ -2781,9 +2833,15 @@ function renderOrderRowsPreview() {
   if (rows.length === 0) {
     preview.innerHTML = '';
     preview.classList.remove('has-rows');
+    // Snapshot allineato alle righe attualmente mostrate (qui: nessuna)
+    pendingOrderLinesSnapshot = [];
     return;
   }
-  
+
+  // Mantiene lo snapshot allineato alle righe correnti: è la base con cui
+  // reindexPendingLineStateByContent ricollega provenienza/match per contenuto.
+  pendingOrderLinesSnapshot = rows.map(r => _normOrderLine(r.text));
+
   preview.classList.add('has-rows');
   preview.innerHTML = `
     <div class="order-rows-preview-header">
@@ -2884,7 +2942,11 @@ function setupOrderDescriptionLiveRender() {
   let timer = null;
   ta.addEventListener('input', () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(renderOrderRowsPreview, 80);
+    timer = setTimeout(() => {
+      // Prima ri-aggancia provenienza/match per contenuto, poi ridisegna
+      reindexPendingLineStateByContent();
+      renderOrderRowsPreview();
+    }, 80);
   });
 }
 
@@ -3796,6 +3858,7 @@ async function checkDraftOrderRecovery() {
     document.getElementById('order-date').value = draft.date;
     document.getElementById('order-customer').value = draft.customer || '';
     document.getElementById('order-description').value = draft.description || '';
+    renderOrderRowsPreview(); // mostra subito le righe della bozza + sincronizza snapshot
     if (draft.goodsType) {
       document.getElementById('goods-type').value = draft.goodsType;
       document.querySelectorAll('.btn-goods').forEach(btn => {
