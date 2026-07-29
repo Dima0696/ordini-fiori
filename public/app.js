@@ -1585,7 +1585,7 @@ function renderSearchResults(query, orders) {
         </div>
         <div style="font-size: 0.875rem;">
           Nessun ordine trovato per "<strong>${escapeHtml(query)}</strong>"<br>
-          (ricerca negli ordini da 1 settimana fa a 3 settimane avanti)
+          (ricerca in tutto lo storico ordini)
         </div>
       </div>
     `;
@@ -4513,13 +4513,28 @@ window.testNotification = testNotification;
 async function handlePhotoUpload(e) {
   const files = e.target.files;
   if (!files || files.length === 0) return;
-  
-  const formData = new FormData();
-  for (let file of files) {
-    formData.append('photos', file);
-  }
-  
+
+  const btn = document.getElementById('btn-add-photo');
+  const setBusy = (busy) => { if (btn) btn.classList.toggle('is-uploading', busy); if (btn) btn.disabled = busy; };
+  setBusy(true);
+  showToast(files.length > 1 ? `Ottimizzazione ${files.length} foto…` : 'Ottimizzazione foto…', 'info');
+
   try {
+    // Comprimi ogni foto lato client (ridimensiona a max 1400px, JPEG 82%,
+    // rispetta l'orientamento EXIF). Prima venivano caricate a piena
+    // risoluzione: upload lenti e storage pesante, specie da telefono.
+    const formData = new FormData();
+    for (let file of files) {
+      let toSend = file;
+      try {
+        toSend = await compressImageFile(file, { maxDim: 1400, quality: 0.82 });
+      } catch (err) {
+        console.warn('Compressione foto fallita, invio originale:', err.message);
+        toSend = file;
+      }
+      formData.append('photos', toSend, (toSend.name || 'photo.jpg'));
+    }
+
     const response = await authenticatedFetch(`${API_URL}/upload`, {
       method: 'POST',
       body: formData,
@@ -4547,12 +4562,14 @@ async function handlePhotoUpload(e) {
     }
     uploadedPhotos = [...uploadedPhotos, ...data.photos];
     renderPhotoPreview();
-    
+
     // Reset input
     e.target.value = '';
   } catch (error) {
     console.error('Errore upload foto:', error);
     alert('Errore nel caricamento delle foto');
+  } finally {
+    setBusy(false);
   }
 }
 

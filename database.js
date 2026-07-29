@@ -746,41 +746,41 @@ const getOrdersCountByDate = () => {
 };
 
 // Ricerca ordini per cliente o descrizione (con limite temporale, esclusi ritirati)
-const searchOrders = (searchTerm, startDate, endDate) => {
+const searchOrders = (searchTerm, startDate, endDate, today = null) => {
   try {
-    console.log('[DB] searchOrders chiamato:', { searchTerm, startDate, endDate });
-    
     if (!db) {
       throw new Error('Database non inizializzato');
     }
-    
+
+    // Include anche gli ordini 'ritirato' (storico) così si possono ritrovare
+    // gli ordini vecchi di un cliente. Ordina: prima i prossimi/di oggi in
+    // ordine crescente, poi lo storico dal più recente. Limite per sicurezza.
+    const todayStr = today || localTodayIso();
     const stmt = db.prepare(`
-      SELECT 
+      SELECT
         id, date, customer, description, status,
         order_type, delivery_type, delivery_time, delivery_address,
-        goods_type, photos, created_by, updated_by, updated_at
+        goods_type, photos, fisso_group_id, created_by, updated_by, updated_at
       FROM orders
       WHERE (
         customer LIKE ? OR description LIKE ?
       )
-      AND status != 'ritirato'
       AND date >= ? AND date <= ?
-      ORDER BY date ASC, customer ASC
+      ORDER BY
+        CASE WHEN date >= ? THEN 0 ELSE 1 END,
+        CASE WHEN date >= ? THEN date END ASC,
+        date DESC
+      LIMIT 200
     `);
-    
+
     const searchPattern = `%${searchTerm}%`;
-    console.log('[DB] searchPattern:', searchPattern);
-    
-    const results = stmt.all(searchPattern, searchPattern, startDate, endDate);
-    console.log('[DB] Risultati trovati:', results.length);
-    
+    const results = stmt.all(searchPattern, searchPattern, startDate, endDate, todayStr, todayStr);
+
     // Deserializza photos
-    const mappedResults = results.map(row => ({
+    return results.map(row => ({
       ...row,
       photos: row.photos ? JSON.parse(row.photos) : []
     }));
-    
-    return mappedResults;
   } catch (error) {
     console.error('[DB] Errore in searchOrders:', error);
     throw error;

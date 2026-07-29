@@ -344,21 +344,19 @@ app.get('/api/orders/search', authenticate, (req, res) => {
     const searchTerm = q.trim();
     console.log('[API] searchTerm:', searchTerm);
     
-    // Calcola date limite: -7 giorni, +21 giorni da oggi
+    // Finestra ampia: da 3 anni fa a 1 anno avanti, così la ricerca trova
+    // anche gli ordini vecchi di un cliente (storico), non solo quelli recenti.
     const today = new Date();
     const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 7);
+    startDate.setFullYear(today.getFullYear() - 3);
     const endDate = new Date(today);
-    endDate.setDate(today.getDate() + 21);
-    
-    // Formatta date manualmente per evitare problemi
+    endDate.setFullYear(today.getFullYear() + 1);
+
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
-    
-    console.log(`[API] Ricerca: "${searchTerm}" dal ${startDateStr} al ${endDateStr}`);
-    
-    console.log('[API] Chiamata db.searchOrders...');
-    const orders = db.searchOrders(searchTerm, startDateStr, endDateStr);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const orders = db.searchOrders(searchTerm, startDateStr, endDateStr, todayStr);
     
     console.log(`[API] Trovati ${orders.length} ordini`);
     console.log('[API] Invio risposta...');
