@@ -944,3 +944,50 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: .55; }
 /* Lo sfondo salvia copre SEMPRE tutta l'altezza, anche con poco contenuto */
 html { background: var(--lf-canvas-2) !important; }
 body { min-height: 100vh; min-height: 100dvh; }
+
+/* ============================================================
+   PASS 6 — RIFINITURE PREMIUM
+   ============================================================ */
+
+/* Accento giorni "attivi": pillola arrotondata inset (era un bordo squadrato) */
+.day-card::before {
+  top: 15px !important;
+  bottom: 15px !important;
+  height: auto !important;
+  left: 9px !important;
+  width: 4px !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  background: var(--lf-ok) !important;
+  opacity: 0;
+}
+.day-card.has-orders::before { opacity: 1; }
+.day-card.has-da-preparare::before { background: var(--lf-amber) !important; width: 4px !important; }
+
+/* Card "da preparare": niente più bordo/gradiente arancione pieno — resta
+   pulita e bianca, è la pillola a dare il colore. */
+.day-card.has-da-preparare {
+  background: var(--lf-surface) !important;
+  border: 1px solid var(--lf-line) !important;
+  box-shadow: var(--lf-sh-1) !important;
+}
+.day-card.has-da-preparare,
+.day-card.has-orders:not(.has-da-preparare) {
+  border-left: 1px solid var(--lf-line) !important;
+  padding-left: 1.35rem !important; /* spazio per la pillola */
+}
+/* "Oggi": mantiene l'anello verde, la pillola resta (ambra o verde) */
+.day-card.today { padding-left: 1.35rem !important; }
+
+/* Hover bottoni copia fornitore: spazio verticale così il sollevamento
+   (translateY) non viene tagliato dal contenitore che scorre in orizzontale. */
+.copy-suppliers-chips {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  overflow-y: visible;
+}
+.copy-supplier-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--lf-sh-2) !important;
+  filter: brightness(1.05) !important;
+}
