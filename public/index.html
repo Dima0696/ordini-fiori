@@ -977,13 +977,32 @@
             <div id="preventivo-items" class="preventivo-items">
               <!-- Righe generate dinamicamente -->
             </div>
-            <button type="button" id="btn-add-prev-row" class="btn-add-row">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span>Aggiungi riga</span>
-            </button>
+
+            <!-- Box: incolla il testo del cliente e genera le righe -->
+            <div id="prev-paste-box" class="prev-paste-box" hidden>
+              <textarea id="prev-paste-text" rows="4" placeholder="Incolla qui il testo del cliente, una riga per articolo. Es:&#10;3 casse rose rosse&#10;5 mazzi eucalyptus&#10;2 gerbere bianche"></textarea>
+              <div class="prev-paste-actions">
+                <button type="button" id="btn-prev-paste-cancel" class="btn-secondary">Annulla</button>
+                <button type="button" id="btn-prev-paste-apply" class="btn-primary">Genera righe dal testo</button>
+              </div>
+            </div>
+
+            <div class="prev-row-buttons">
+              <button type="button" id="btn-add-prev-row" class="btn-add-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>Aggiungi riga</span>
+              </button>
+              <button type="button" id="btn-prev-paste-toggle" class="btn-add-row">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </svg>
+                <span>Incolla testo cliente</span>
+              </button>
+            </div>
           </div>
           
           <div class="preventivo-totale-box">
@@ -1034,6 +1053,13 @@
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
             </svg>
             Condividi
+          </button>
+          <button type="button" id="btn-convert-preventivo" class="btn-primary btn-convert-prev" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            Trasforma in ordine
           </button>
           <button type="button" id="btn-save-preventivo" class="btn-primary btn-save-prev">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -6314,6 +6314,24 @@ function setupPreventiviListeners() {
       deletePreventivoHandler(currentPreventivo.id, true);
     }
   });
+
+  // Incolla testo cliente → genera righe
+  const btnPasteToggle = document.getElementById('btn-prev-paste-toggle');
+  if (btnPasteToggle) btnPasteToggle.addEventListener('click', () => {
+    const box = document.getElementById('prev-paste-box');
+    if (box) { box.hidden = !box.hidden; if (!box.hidden) document.getElementById('prev-paste-text').focus(); }
+  });
+  const btnPasteCancel = document.getElementById('btn-prev-paste-cancel');
+  if (btnPasteCancel) btnPasteCancel.addEventListener('click', () => {
+    const box = document.getElementById('prev-paste-box');
+    if (box) box.hidden = true;
+  });
+  const btnPasteApply = document.getElementById('btn-prev-paste-apply');
+  if (btnPasteApply) btnPasteApply.addEventListener('click', applyPastedPreventivoText);
+
+  // Trasforma preventivo in ordine
+  const btnConvert = document.getElementById('btn-convert-preventivo');
+  if (btnConvert) btnConvert.addEventListener('click', convertPreventivoToOrder);
 }
 
 function openPreventivoEditor(id) {
@@ -6321,7 +6339,15 @@ function openPreventivoEditor(id) {
   const modal = document.getElementById('modal-preventivo');
   const itemsBox = document.getElementById('preventivo-items');
   if (itemsBox) itemsBox.innerHTML = '';
-  
+
+  // Reset del box "incolla testo" e visibilità del pulsante "Trasforma in ordine"
+  const pasteBox = document.getElementById('prev-paste-box');
+  if (pasteBox) pasteBox.hidden = true;
+  const pasteTa = document.getElementById('prev-paste-text');
+  if (pasteTa) pasteTa.value = '';
+  const convBtn = document.getElementById('btn-convert-preventivo');
+  if (convBtn) convBtn.style.display = 'flex';
+
   const titleEl = document.getElementById('preventivo-modal-title');
   const delBtn = document.getElementById('btn-delete-preventivo');
   
@@ -6425,6 +6451,71 @@ function addPrevRow(data = {}) {
 
 function escapeAttr(s) {
   return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// Interpreta una riga di testo incollato dal cliente: estrae la quantità
+// iniziale (opzionale, anche "3x") e usa il resto come descrizione.
+function parsePrevLine(line) {
+  let s = String(line || '').trim().replace(/^[-•*·]\s*/, '');
+  if (!s) return null;
+  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|×)?\s+(.+)$/i);
+  if (m) return { qt: parseFloat(m[1].replace(',', '.')) || '', desc: m[2].trim() };
+  return { qt: '', desc: s };
+}
+
+// Aggiunge righe al preventivo a partire dal testo incollato.
+function applyPastedPreventivoText() {
+  const ta = document.getElementById('prev-paste-text');
+  const text = (ta && ta.value) || '';
+  const parsed = text.split('\n').map(parsePrevLine).filter(Boolean);
+  if (parsed.length === 0) {
+    alert('Incolla del testo (una riga per articolo) prima di generare le righe.');
+    return;
+  }
+  // Rimuovi le righe completamente vuote già presenti
+  document.querySelectorAll('#preventivo-items .preventivo-item-row').forEach(row => {
+    const desc = row.querySelector('.prev-desc').value.trim();
+    const qt = parseFloat(row.querySelector('.prev-qt').value) || 0;
+    const prezzo = parseFloat(row.querySelector('.prev-prezzo').value) || 0;
+    if (!desc && !qt && !prezzo) row.remove();
+  });
+  parsed.forEach(l => addPrevRow({ qt: l.qt, qt_min: '', desc: l.desc, prezzo: '' }));
+  recalcPreventivoTotale();
+  if (ta) ta.value = '';
+  const box = document.getElementById('prev-paste-box');
+  if (box) box.hidden = true;
+  showToast(`${parsed.length} righe aggiunte — ora inserisci i prezzi`, 'success');
+}
+
+// Trasforma il preventivo corrente in un nuovo ordine: pre-compila la modal
+// ordine con cliente e merce (una riga per articolo), lasciando all'operatore
+// data e provenienza. L'ordine si salva col normale flusso.
+function convertPreventivoToOrder() {
+  const rows = [...document.querySelectorAll('#preventivo-items .preventivo-item-row')];
+  const lines = [];
+  rows.forEach(r => {
+    const qt = parseFloat(r.querySelector('.prev-qt').value) || 0;
+    const desc = r.querySelector('.prev-desc').value.trim();
+    if (!desc) return;
+    lines.push(qt > 0 ? `${qt} ${desc}` : desc);
+  });
+  if (lines.length === 0) {
+    alert('Aggiungi almeno un articolo prima di trasformare in ordine.');
+    return;
+  }
+  const cliente = document.getElementById('prev-cliente').value.trim();
+  const dataConsegna = document.getElementById('prev-data-consegna').value || '';
+
+  closePreventivoEditor();
+  openNewOrderModal();
+  document.getElementById('order-customer').value = cliente;
+  document.getElementById('order-description').value = lines.join('\n');
+  const dateEl = document.getElementById('order-date');
+  if (dataConsegna) dateEl.value = dataConsegna;
+  else if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  // Mostra subito le righe con i bottoni provenienza e sincronizza lo snapshot
+  renderOrderRowsPreview();
+  showToast('Preventivo pronto come ordine: scegli provenienza e data, poi salva', 'info');
 }
 
 function updateRowTotale(row) {

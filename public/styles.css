@@ -10055,3 +10055,41 @@ body.printing-quick #modal-detail.active {
   flex-shrink: 0;
 }
 .fisso-list-edit:hover { background: rgba(39, 174, 96, 0.22); }
+
+/* ============================================
+   PREVENTIVI — incolla testo + trasforma in ordine
+   ============================================ */
+.prev-row-buttons {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.prev-row-buttons .btn-add-row { flex: 1 1 auto; }
+.prev-paste-box {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  background: rgba(39, 174, 96, 0.06);
+  border: 1px dashed rgba(39, 174, 96, 0.4);
+  border-radius: 14px;
+}
+.prev-paste-box textarea {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.prev-paste-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.prev-paste-actions button { padding: 0.5rem 1rem; border-radius: 10px; }
+.btn-convert-prev {
+  background: #27ae60 !important;
+}
+.btn-convert-prev:hover { background: #219150 !important; }
