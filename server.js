@@ -657,6 +657,179 @@ app.delete('/api/orders/:id', authenticate, (req, res) => {
   }
 });
 
+// ============================================
+// ORDINI FISSI (gruppi ricorrenti)
+// ============================================
+// Un "fisso" genera più ordini (uno per data) che condividono fisso_group_id.
+// Si riconoscono col pallino verde e si modificano insieme dalla sezione Fisso.
+// Le modifiche si propagano SOLO agli ordini con data >= oggi.
+
+// GET /api/fissi - Elenco dei gruppi fissi
+app.get('/api/fissi', authenticate, (req, res) => {
+  try {
+    res.json(db.getFissoGroups());
+  } catch (error) {
+    console.error('Errore lista fissi:', error);
+    res.status(500).json({ error: 'Errore nel recupero degli ordini fissi' });
+  }
+});
+
+// GET /api/fissi/:groupId - Dettaglio gruppo (contenuto + occorrenze + provenienze)
+app.get('/api/fissi/:groupId', authenticate, (req, res) => {
+  try {
+    const group = db.getFissoGroup(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Ordine fisso non trovato' });
+    // Provenienze/abbinamenti dal rappresentativo, come mappa lineStates
+    const checks = db.getFabbisognoChecks(group.representativeOrderId) || {};
+    const lineStates = {};
+    Object.keys(checks).forEach(idx => {
+      const c = checks[idx] || {};
+      const entry = {};
+      if (c.supplier) entry.supplier = c.supplier;
+      if (c.matchKey) entry.matchKey = c.matchKey;
+      if (Object.keys(entry).length) lineStates[idx] = entry;
+    });
+    res.json({ ...group, lineStates });
+  } catch (error) {
+    console.error('Errore dettaglio fisso:', error);
+    res.status(500).json({ error: 'Errore nel recupero del fisso' });
+  }
+});
+
+// POST /api/fissi - Crea un nuovo fisso (N ordini con lo stesso gruppo)
+// body: { customer, description, dates: [YYYY-MM-DD...], lineStates? }
+app.post('/api/fissi', authenticate, (req, res) => {
+  try {
+    const { customer, description, dates, lineStates } = req.body || {};
+    if (!customer || !description) {
+      return res.status(400).json({ error: 'Cliente e merce sono obbligatori' });
+    }
+    const cleanDates = Array.isArray(dates)
+      ? [...new Set(dates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)))]
+      : [];
+    if (cleanDates.length === 0) {
+      return res.status(400).json({ error: 'Seleziona almeno una data valida' });
+    }
+
+    const groupId = nodeCrypto.randomBytes(12).toString('hex');
+    const created = [];
+    for (const date of cleanDates) {
+      const order = db.createOrder({
+        date, customer, description,
+        status: 'da_preparare', goods_type: 'da_ordinare',
+        photos: [], fisso_group_id: groupId
+      }, req.user.username);
+      if (lineStates && typeof lineStates === 'object') {
+        try { applyLineStatesToFabbisogno(order.id, lineStates); } catch (e) { /* non bloccante */ }
+      }
+      created.push(order);
+    }
+
+    // Una sola notifica riassuntiva agli altri operatori
+    setImmediate(() => {
+      sendNotificationToAll(
+        '🔁 Nuovo ordine fisso',
+        `${capitalize(req.user.username)} · ${customer} — ${created.length} date`,
+        'fisso-new',
+        { excludeUsername: req.user.username }
+      );
+    });
+
+    res.status(201).json({ groupId, created: created.length });
+  } catch (error) {
+    console.error('Errore creazione fisso:', error);
+    res.status(500).json({ error: 'Errore nella creazione del fisso' });
+  }
+});
+
+// PUT /api/fissi/:groupId - Modifica il fisso; propaga agli ordini con data >= oggi
+// body: { customer, description, dates: [YYYY-MM-DD...], lineStates? }
+app.put('/api/fissi/:groupId', authenticate, (req, res) => {
+  try {
+    const groupId = req.params.groupId;
+    const { customer, description, dates, lineStates } = req.body || {};
+    if (!customer || !description) {
+      return res.status(400).json({ error: 'Cliente e merce sono obbligatori' });
+    }
+    const existing = db.getFissoGroupOrders(groupId);
+    if (existing.length === 0) return res.status(404).json({ error: 'Ordine fisso non trovato' });
+
+    const today = db.localTodayIso();
+    const targetFuture = Array.isArray(dates)
+      ? [...new Set(dates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= today))]
+      : [];
+
+    const existingByDate = new Map();
+    existing.forEach(o => existingByDate.set(o.date, o));
+
+    let updated = 0, addedCount = 0, removed = 0;
+
+    // 1) Aggiorna o crea gli ordini per le date target (solo future)
+    for (const date of targetFuture) {
+      const ord = existingByDate.get(date);
+      if (ord && ord.date >= today) {
+        const full = db.getOrderById(ord.id);
+        db.updateOrder(ord.id, {
+          date: ord.date,
+          customer,
+          description,
+          status: full.status,
+          order_type: full.order_type,
+          delivery_type: full.delivery_type,
+          delivery_time: full.delivery_time,
+          delivery_address: full.delivery_address,
+          goods_type: full.goods_type || 'da_ordinare',
+          photos: full.photos || []
+        }, req.user.username);
+        if (lineStates && typeof lineStates === 'object') {
+          try { applyLineStatesToFabbisogno(ord.id, lineStates); } catch (e) { /* no-op */ }
+        }
+        updated++;
+      } else {
+        const order = db.createOrder({
+          date, customer, description,
+          status: 'da_preparare', goods_type: 'da_ordinare',
+          photos: [], fisso_group_id: groupId
+        }, req.user.username);
+        if (lineStates && typeof lineStates === 'object') {
+          try { applyLineStatesToFabbisogno(order.id, lineStates); } catch (e) { /* no-op */ }
+        }
+        addedCount++;
+      }
+    }
+
+    // 2) Elimina gli ordini FUTURI del gruppo non più previsti
+    for (const o of existing) {
+      if (o.date >= today && !targetFuture.includes(o.date)) {
+        db.deleteOrder(o.id);
+        removed++;
+      }
+    }
+
+    res.json({ groupId, updated, added: addedCount, removed });
+  } catch (error) {
+    console.error('Errore modifica fisso:', error);
+    res.status(500).json({ error: 'Errore nella modifica del fisso' });
+  }
+});
+
+// DELETE /api/fissi/:groupId - Elimina le occorrenze FUTURE del fisso
+app.delete('/api/fissi/:groupId', authenticate, (req, res) => {
+  try {
+    const existing = db.getFissoGroupOrders(req.params.groupId);
+    if (existing.length === 0) return res.status(404).json({ error: 'Ordine fisso non trovato' });
+    const today = db.localTodayIso();
+    let removed = 0;
+    for (const o of existing) {
+      if (o.date >= today) { db.deleteOrder(o.id); removed++; }
+    }
+    res.json({ removed });
+  } catch (error) {
+    console.error('Errore eliminazione fisso:', error);
+    res.status(500).json({ error: 'Errore nell\'eliminazione del fisso' });
+  }
+});
+
 // API Routes - Fabbisogno Checks
 
 // GET /api/fabbisogno-checks/batch/:orderIds - Ottieni checks di più ordini in una chiamata

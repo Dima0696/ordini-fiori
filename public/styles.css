@@ -9989,3 +9989,69 @@ body.printing-quick #modal-detail.active {
     font-size: 0.7rem;
   }
 }
+
+/* ============================================
+   ORDINI FISSI — pallino verde + lista gruppi
+   ============================================ */
+.fisso-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #27ae60;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+  margin-right: 7px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.fisso-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.fisso-list-empty {
+  text-align: center;
+  color: #7f8c8d;
+  padding: 1.5rem 1rem;
+  font-size: 0.95rem;
+}
+.fisso-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.fisso-list-item:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-1px); }
+.fisso-list-main { flex: 1; min-width: 0; }
+.fisso-list-customer {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+}
+.fisso-list-desc {
+  color: #5a6b7b;
+  font-size: 0.88rem;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fisso-list-meta { color: #95a5a6; font-size: 0.78rem; margin-top: 3px; }
+.fisso-list-edit {
+  background: rgba(39, 174, 96, 0.12);
+  border: none;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #27ae60;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.fisso-list-edit:hover { background: rgba(39, 174, 96, 0.22); }

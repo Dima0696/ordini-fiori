@@ -87,6 +87,11 @@ function getPrintedOrders() {
 // Ordini Fissi - Date selezionate
 const fissoSelectedDates = new Set();
 let fissoCurrentMonth = new Date();
+// Stato provenienza/righe del form fisso (come pendingOrderLineState per gli ordini)
+let fissoPendingLineState = {};
+let fissoLinesSnapshot = [];
+// Modalità del form fisso: null = creazione, oppure il groupId in modifica
+let fissoEditGroupId = null;
 
 // Cache in-memory per performance
 let calendarCache = null;
@@ -891,7 +896,41 @@ function setupEventListeners() {
   
   // Form submit
   document.getElementById('ordine-fisso-form').addEventListener('submit', handleOrdineFissoSubmit);
-  
+
+  // Nuovo fisso / torna alla lista / elimina fisso
+  document.getElementById('btn-new-fisso').addEventListener('click', openNewFissoForm);
+  document.getElementById('btn-back-fisso-list').addEventListener('click', showFissoListView);
+  document.getElementById('btn-delete-fisso').addEventListener('click', deleteFissoGroup);
+
+  // Click su un fisso della lista → modifica
+  document.getElementById('fisso-list').addEventListener('click', (e) => {
+    const item = e.target.closest('.fisso-list-item, .fisso-list-edit');
+    if (!item) return;
+    const gid = item.dataset.gid;
+    if (gid) openEditFissoForm(gid);
+  });
+
+  // Anteprima provenienza: input sulla textarea merce + click sui bottoni fornitore
+  const fissoTa = document.getElementById('fisso-description');
+  if (fissoTa) {
+    let ft = null;
+    fissoTa.addEventListener('input', () => {
+      if (ft) clearTimeout(ft);
+      ft = setTimeout(() => { reindexFissoLineStateByContent(); renderFissoRowsPreview(); }, 80);
+    });
+  }
+  const fissoPreview = document.getElementById('fisso-rows-preview');
+  if (fissoPreview) {
+    fissoPreview.addEventListener('click', (e) => {
+      const supBtn = e.target.closest('.row-supplier-btn');
+      if (!supBtn) return;
+      e.preventDefault();
+      const rowIdx = parseInt(supBtn.dataset.row);
+      const code = supBtn.dataset.supplier;
+      if (!Number.isNaN(rowIdx) && code) toggleFissoRowSupplier(rowIdx, code);
+    });
+  }
+
   // Listini
   document.getElementById('fab-listini').addEventListener('click', () => {
     closeFabMenu();
@@ -2274,7 +2313,7 @@ function createOrderCard(order, index) {
       <div class="order-content">
         <div class="order-header order-card-toggle" role="button" tabindex="0" aria-expanded="${isExpanded}" title="${isExpanded ? 'Chiudi ordine' : 'Apri ordine'}">
           <div class="order-head-main">
-            <div class="order-customer">${escapeHtml(order.customer)}</div>
+            <div class="order-customer">${order.fisso_group_id ? '<span class="fisso-dot" title="Ordine fisso ricorrente"></span>' : ''}${escapeHtml(order.customer)}</div>
             ${metaHtml}
           </div>
           <span class="order-expand-arrow" aria-hidden="true">
@@ -5546,20 +5585,201 @@ if (document.readyState === 'loading') {
 // ORDINI FISSI (Ricorrenti)
 // ===========================
 
+// Apre la modal Fissi mostrando la LISTA dei fissi esistenti.
 function openOrdineFissoModal() {
-  fissoSelectedDates.clear();
-  fissoCurrentMonth = new Date();
-  
-  document.getElementById('fisso-customer').value = '';
-  document.getElementById('fisso-description').value = '';
-  
-  renderFissoCalendar();
   document.getElementById('modal-ordine-fisso').classList.add('active');
+  showFissoListView();
 }
 
 function closeOrdineFissoModal() {
   document.getElementById('modal-ordine-fisso').classList.remove('active');
   fissoSelectedDates.clear();
+}
+
+// ---- Vista LISTA ----
+function showFissoListView() {
+  document.getElementById('fisso-list-pane').hidden = false;
+  document.getElementById('fisso-form-pane').hidden = true;
+  document.getElementById('fisso-modal-title').textContent = 'Ordini Fissi';
+  document.getElementById('fisso-modal-subtitle').textContent = 'Gestisci i tuoi ordini ricorrenti';
+  loadFissoList();
+}
+
+async function loadFissoList() {
+  const listEl = document.getElementById('fisso-list');
+  listEl.innerHTML = '<div class="fisso-list-empty">Caricamento…</div>';
+  try {
+    const res = await authenticatedFetch(`${API_URL}/fissi`);
+    const groups = await res.json();
+    renderFissoList(Array.isArray(groups) ? groups : []);
+  } catch (e) {
+    listEl.innerHTML = '<div class="fisso-list-empty">Errore nel caricamento</div>';
+  }
+}
+
+function renderFissoList(groups) {
+  const listEl = document.getElementById('fisso-list');
+  if (!groups.length) {
+    listEl.innerHTML = '<div class="fisso-list-empty">Nessun ordine fisso. Creane uno col pulsante qui sopra.</div>';
+    return;
+  }
+  const fmt = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+  };
+  listEl.innerHTML = groups.map(g => {
+    const firstLine = (g.description || '').split('\n').find(l => l.trim() !== '') || '';
+    const future = g.futureCount > 0 ? `${g.futureCount} da oggi in poi` : 'solo storico';
+    return `
+      <div class="fisso-list-item" data-gid="${escapeHtml(g.fisso_group_id)}">
+        <div class="fisso-list-main">
+          <div class="fisso-list-customer"><span class="fisso-dot"></span>${escapeHtml(g.customer || '')}</div>
+          <div class="fisso-list-desc">${escapeHtml(firstLine)}${(g.description||'').split('\n').filter(l=>l.trim()).length > 1 ? ' …' : ''}</div>
+          <div class="fisso-list-meta">${g.count} ordini · ${future}${g.nextDate ? ' · prossimo ' + fmt(g.nextDate) : ''}</div>
+        </div>
+        <button type="button" class="fisso-list-edit" data-gid="${escapeHtml(g.fisso_group_id)}" title="Modifica">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+// ---- Vista FORM (crea/modifica) ----
+function showFissoFormView(mode) {
+  document.getElementById('fisso-list-pane').hidden = true;
+  document.getElementById('fisso-form-pane').hidden = false;
+  const isEdit = mode === 'edit';
+  document.getElementById('fisso-modal-title').textContent = isEdit ? 'Modifica ordine fisso' : 'Nuovo ordine fisso';
+  document.getElementById('fisso-modal-subtitle').textContent = isEdit
+    ? 'Le modifiche valgono dagli ordini di oggi in poi'
+    : 'Seleziona più date e crea ordini automaticamente';
+  document.getElementById('btn-submit-fisso-label').textContent = isEdit ? 'Salva modifiche' : 'Crea Ordini Ricorrenti';
+  document.getElementById('btn-delete-fisso').style.display = isEdit ? '' : 'none';
+}
+
+// Apre il form per un NUOVO fisso
+function openNewFissoForm() {
+  fissoEditGroupId = null;
+  fissoSelectedDates.clear();
+  fissoCurrentMonth = new Date();
+  fissoPendingLineState = {};
+  fissoLinesSnapshot = [];
+  document.getElementById('fisso-customer').value = '';
+  document.getElementById('fisso-description').value = '';
+  renderFissoCalendar();
+  renderFissoRowsPreview();
+  showFissoFormView('create');
+}
+
+// Apre il form per MODIFICARE un fisso esistente (pre-compilato)
+async function openEditFissoForm(groupId) {
+  try {
+    const res = await authenticatedFetch(`${API_URL}/fissi/${groupId}`);
+    if (!res.ok) throw new Error('Fisso non trovato');
+    const g = await res.json();
+    fissoEditGroupId = groupId;
+    fissoCurrentMonth = new Date();
+    document.getElementById('fisso-customer').value = g.customer || '';
+    document.getElementById('fisso-description').value = g.description || '';
+    // Seleziona SOLO le date future (le modifiche valgono da oggi in poi)
+    const today = fissoTodayIso();
+    fissoSelectedDates.clear();
+    (g.dates || []).forEach(d => { if (d >= today) fissoSelectedDates.add(d); });
+    // Provenienze dal rappresentativo
+    fissoPendingLineState = {};
+    Object.keys(g.lineStates || {}).forEach(idx => {
+      fissoPendingLineState[idx] = { ...g.lineStates[idx] };
+    });
+    fissoLinesSnapshot = _significantOrderLinesNorm(g.description || '');
+    renderFissoCalendar();
+    renderFissoRowsPreview();
+    showFissoFormView('edit');
+  } catch (e) {
+    alert('Errore nel caricamento del fisso: ' + e.message);
+  }
+}
+
+function fissoTodayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ---- Anteprima righe con provenienza (form fisso) ----
+function renderFissoRowsPreview() {
+  const preview = document.getElementById('fisso-rows-preview');
+  if (!preview) return;
+  const ta = document.getElementById('fisso-description');
+  const text = (ta && ta.value) || '';
+  const rows = [];
+  text.split('\n').forEach(line => {
+    const t = line.trim();
+    if (t !== '') rows.push({ idx: rows.length, text: t });
+  });
+  if (rows.length === 0) {
+    preview.innerHTML = '';
+    preview.classList.remove('has-rows');
+    fissoLinesSnapshot = [];
+    return;
+  }
+  fissoLinesSnapshot = rows.map(r => _normOrderLine(r.text));
+  preview.classList.add('has-rows');
+  preview.innerHTML = `
+    <div class="order-rows-preview-header">
+      <span>Righe (${rows.length})</span>
+      <span class="order-rows-hint">Scegli la provenienza di ogni riga</span>
+    </div>
+    ${rows.map(r => {
+      const supplier = (fissoPendingLineState[r.idx] && fissoPendingLineState[r.idx].supplier) || '';
+      const btns = ORDER_ROW_SUPPLIERS.map(code => renderRowSupplierBtn(r.idx, code, supplier === code)).join('');
+      return `
+        <div class="order-row" data-row="${r.idx}">
+          <div class="order-row-text">${escapeHtml(r.text)}</div>
+          <div class="order-row-controls">
+            <div class="order-row-suppliers">${btns}</div>
+          </div>
+        </div>`;
+    }).join('')}
+  `;
+}
+
+function reindexFissoLineStateByContent() {
+  const ta = document.getElementById('fisso-description');
+  const newLines = _significantOrderLinesNorm((ta && ta.value) || '');
+  const oldLines = fissoLinesSnapshot || [];
+  if (oldLines.length === newLines.length && oldLines.every((l, i) => l === newLines[i])) return;
+  const oldQueues = new Map();
+  oldLines.forEach((line, idx) => {
+    if (!oldQueues.has(line)) oldQueues.set(line, []);
+    oldQueues.get(line).push(idx);
+  });
+  const newState = {};
+  newLines.forEach((line, newIdx) => {
+    const q = oldQueues.get(line);
+    if (q && q.length > 0) {
+      const oldIdx = q.shift();
+      if (fissoPendingLineState[oldIdx]) newState[newIdx] = fissoPendingLineState[oldIdx];
+    }
+  });
+  fissoPendingLineState = newState;
+  fissoLinesSnapshot = newLines;
+}
+
+function toggleFissoRowSupplier(rowIdx, code) {
+  if (!fissoPendingLineState[rowIdx]) fissoPendingLineState[rowIdx] = {};
+  const cur = fissoPendingLineState[rowIdx].supplier || '';
+  fissoPendingLineState[rowIdx].supplier = (cur === code) ? '' : code;
+  renderFissoRowsPreview();
+}
+
+function buildFissoLineStatesPayload() {
+  const out = {};
+  let count = 0;
+  Object.keys(fissoPendingLineState).forEach(idx => {
+    const s = fissoPendingLineState[idx] || {};
+    if (typeof s.supplier === 'string' && s.supplier) { out[idx] = { supplier: s.supplier }; count++; }
+  });
+  return count > 0 ? out : null;
 }
 
 function renderFissoCalendar() {
@@ -5644,77 +5864,82 @@ function updateFissoCalendar() {
 
 async function handleOrdineFissoSubmit(e) {
   e.preventDefault();
-  
+
   const customer = document.getElementById('fisso-customer').value.trim();
   const description = document.getElementById('fisso-description').value.trim();
-  
+
   if (!customer || !description) {
     alert('Compila i campi obbligatori: Cliente e Merce');
     return;
   }
-  
   if (fissoSelectedDates.size === 0) {
     alert('Seleziona almeno una data dal calendario');
     return;
   }
-  
-  // Conferma
-  const datesCount = fissoSelectedDates.size;
+
+  // Assicura che le provenienze siano allineate al testo corrente
+  reindexFissoLineStateByContent();
+  const lineStates = buildFissoLineStatesPayload();
   const datesArray = Array.from(fissoSelectedDates).sort();
-  console.log(`📅 ORDINI FISSI: Creazione di ${datesCount} ordini per le date:`, datesArray);
-  
-  if (!confirm(`Confermi la creazione di ${datesCount} ordini "Da ordinare" per le date selezionate?`)) {
-    return;
+  const isEdit = !!fissoEditGroupId;
+
+  if (isEdit) {
+    if (!confirm(`Salvare le modifiche? Valgono per gli ordini da oggi in poi (${datesArray.length} date selezionate).`)) return;
+  } else {
+    if (!confirm(`Confermi la creazione di ${datesArray.length} ordini "Da ordinare" per le date selezionate?`)) return;
   }
-  
-  closeOrdineFissoModal();
-  
-  // Ordini fissi sono SEMPRE "da_ordinare" e "da_preparare"
-  const goodsType = GOODS_TYPE.DA_ORDINARE;
-  const status = ORDER_STATUS.DA_PREPARARE;
-  
+
   try {
-    console.log('🔄 Inizio creazione ordini fissi...');
-    
-    // Crea ordini per ogni data selezionata
-    const promises = datesArray.map(async (date) => {
-      console.log(`📤 Invio ordine per data: ${date}`);
-      const response = await authenticatedFetch(`${API_URL}/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date,
-          customer,
-          description,
-          status,
-          goods_type: goodsType,
-          photos: []
-        })
+    let response;
+    if (isEdit) {
+      response = await authenticatedFetch(`${API_URL}/fissi/${fissoEditGroupId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ customer, description, dates: datesArray, lineStates })
       });
-      
-      if (!response.ok) {
-        throw new Error(`Errore HTTP ${response.status} per data ${date}`);
-      }
-      
-      const result = await response.json();
-      console.log(`✅ Ordine creato per ${date}:`, result);
-      return result;
-    });
-    
-    const results = await Promise.all(promises);
-    console.log(`✅ Tutti i ${results.length} ordini creati con successo!`, results);
-    
+    } else {
+      response = await authenticatedFetch(`${API_URL}/fissi`, {
+        method: 'POST',
+        body: JSON.stringify({ customer, description, dates: datesArray, lineStates })
+      });
+    }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Errore HTTP ${response.status}`);
+    }
+    const result = await response.json();
+
     // Invalida cache e ricarica calendario
-    console.log('🔄 Ricarico calendario...');
     calendarCache = null;
     calendarCacheTime = 0;
     await loadCalendar(true);
-    console.log('✅ Calendario ricaricato!');
-    
-    alert(`✅ Creati ${datesCount} ordini con successo!\nPuoi modificarli singolarmente dal calendario.`);
+    if (typeof currentDate !== 'undefined' && currentDate) {
+      try { await loadOrders(currentDate); } catch (_) {}
+    }
+
+    showToast(isEdit ? 'Ordine fisso aggiornato' : `Creati ${result.created} ordini`, 'success');
+    // Torna alla lista aggiornata
+    showFissoListView();
   } catch (error) {
-    console.error('❌ Errore creazione ordini fissi:', error);
-    alert('Errore nella creazione degli ordini: ' + error.message);
+    console.error('❌ Errore salvataggio fisso:', error);
+    alert('Errore: ' + error.message);
+  }
+}
+
+// Elimina il fisso corrente (occorrenze future)
+async function deleteFissoGroup() {
+  if (!fissoEditGroupId) return;
+  if (!confirm('Eliminare gli ordini futuri di questo fisso? Gli ordini passati restano nello storico.')) return;
+  try {
+    const res = await authenticatedFetch(`${API_URL}/fissi/${fissoEditGroupId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Errore eliminazione');
+    const r = await res.json();
+    calendarCache = null; calendarCacheTime = 0;
+    await loadCalendar(true);
+    if (typeof currentDate !== 'undefined' && currentDate) { try { await loadOrders(currentDate); } catch (_) {} }
+    showToast(`Rimossi ${r.removed} ordini futuri`, 'success');
+    showFissoListView();
+  } catch (e) {
+    alert('Errore: ' + e.message);
   }
 }
 

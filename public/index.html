@@ -1334,13 +1334,30 @@
             </svg>
           </div>
           <div>
-            <h2>Crea Ordini Ricorrenti</h2>
-            <p class="modal-subtitle">Seleziona più date e crea ordini automaticamente</p>
+            <h2 id="fisso-modal-title">Ordini Fissi</h2>
+            <p class="modal-subtitle" id="fisso-modal-subtitle">Gestisci i tuoi ordini ricorrenti</p>
           </div>
         </div>
         <button id="btn-close-ordine-fisso" class="btn-close">✕</button>
       </div>
-      
+
+      <!-- VISTA LISTA: fissi esistenti -->
+      <div id="fisso-list-pane" style="padding: 1rem 1.5rem 1.5rem;">
+        <button type="button" id="btn-new-fisso" class="btn-primary-fisso" style="width:100%; justify-content:center; margin-bottom:1rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Nuovo ordine fisso
+        </button>
+        <div id="fisso-list" class="fisso-list"><!-- gruppi generati dinamicamente --></div>
+      </div>
+
+      <!-- VISTA FORM: crea/modifica -->
+      <div id="fisso-form-pane" hidden>
+      <div style="padding: 0.75rem 1.5rem 0;">
+        <button type="button" id="btn-back-fisso-list" class="btn-text-clear">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          Torna alla lista
+        </button>
+      </div>
       <form id="ordine-fisso-form" class="form-fisso">
         <!-- SEZIONE DETTAGLI ORDINE -->
         <div class="form-section">
@@ -1376,7 +1393,10 @@
             </label>
             <textarea id="fisso-description" rows="3" placeholder="es. 3 casse rose rosse, 5 mazzi eucalyptus, 2 casse gerbere..." required></textarea>
           </div>
-          
+
+          <!-- Anteprima righe con provenienza (come nel form ordine) -->
+          <div id="fisso-rows-preview" class="order-rows-preview"></div>
+
           <div class="form-info-box">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
@@ -1440,6 +1460,10 @@
         
         <!-- AZIONI -->
         <div class="form-actions-fisso">
+          <button type="button" id="btn-delete-fisso" class="btn-secondary-fisso" style="display:none; color:#c0392b;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Elimina fisso
+          </button>
           <button type="button" id="btn-cancel-fisso" class="btn-secondary-fisso">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1447,16 +1471,17 @@
             </svg>
             Annulla
           </button>
-          <button type="submit" class="btn-primary-fisso">
+          <button type="submit" class="btn-primary-fisso" id="btn-submit-fisso">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            Crea Ordini Ricorrenti
+            <span id="btn-submit-fisso-label">Crea Ordini Ricorrenti</span>
           </button>
         </div>
       </form>
+      </div><!-- /fisso-form-pane -->
     </div>
   </div>
 

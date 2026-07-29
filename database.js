@@ -346,7 +346,19 @@ const initDb = () => {
       console.error('⚠️ Errore aggiungendo total_price:', error.message);
     }
   }
-  
+  // Ordini fissi (ricorrenti): tutti gli ordini generati da uno stesso "fisso"
+  // condividono questo id di gruppo, così si possono riconoscere (pallino verde)
+  // e modificare insieme dalla sezione Fisso.
+  if (!columnExists('orders', 'fisso_group_id')) {
+    try {
+      db.exec("ALTER TABLE orders ADD COLUMN fisso_group_id TEXT DEFAULT NULL");
+      db.exec('CREATE INDEX IF NOT EXISTS idx_orders_fisso_group ON orders(fisso_group_id)');
+      console.log('✅ Aggiunta colonna: fisso_group_id (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo fisso_group_id:', error.message);
+    }
+  }
+
   // Aggiungi utenti predefiniti se la tabella è vuota
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
   const { count } = countStmt.get();
@@ -442,6 +454,84 @@ const getOrderById = (id) => {
   return order;
 };
 
+// Data di oggi in formato YYYY-MM-DD (ora locale, coerente col resto dell'app)
+const localTodayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// ------- ORDINI FISSI (gruppi ricorrenti) -------
+// Un "fisso" è l'insieme degli ordini che condividono lo stesso fisso_group_id.
+// Non c'è una tabella separata: gli ordini stessi sono la fonte di verità.
+
+// Ordine "rappresentativo" di un gruppo: il primo con data >= oggi (il contenuto
+// futuro è quello che conta per le modifiche), altrimenti l'ultimo in ordine di data.
+const _fissoRepresentative = (list, today) => {
+  const sorted = [...list].sort((a, b) => (a.date < b.date ? -1 : 1));
+  return sorted.find(o => o.date >= today) || sorted[sorted.length - 1];
+};
+
+// Elenco dei gruppi fissi con contenuto rappresentativo + date.
+const getFissoGroups = () => {
+  const rows = db.prepare("SELECT * FROM orders WHERE fisso_group_id IS NOT NULL").all();
+  const today = localTodayIso();
+  const byGroup = new Map();
+  for (const r of rows) {
+    if (!byGroup.has(r.fisso_group_id)) byGroup.set(r.fisso_group_id, []);
+    byGroup.get(r.fisso_group_id).push(r);
+  }
+  const out = [];
+  for (const [gid, list] of byGroup) {
+    const rep = _fissoRepresentative(list, today);
+    const dates = list.map(o => o.date).sort();
+    const futureDates = dates.filter(d => d >= today);
+    out.push({
+      fisso_group_id: gid,
+      customer: rep.customer,
+      description: rep.description,
+      count: list.length,
+      futureCount: futureDates.length,
+      firstDate: dates[0],
+      lastDate: dates[dates.length - 1],
+      nextDate: futureDates[0] || null,
+      dates,
+    });
+  }
+  // Ordina: prima i gruppi con una prossima data più vicina
+  out.sort((a, b) => {
+    if (a.nextDate && b.nextDate) return a.nextDate < b.nextDate ? -1 : 1;
+    if (a.nextDate) return -1;
+    if (b.nextDate) return 1;
+    return a.lastDate < b.lastDate ? 1 : -1;
+  });
+  return out;
+};
+
+// Tutti gli ordini di un gruppo, ordinati per data.
+const getFissoGroupOrders = (groupId) => {
+  const rows = db.prepare("SELECT * FROM orders WHERE fisso_group_id = ? ORDER BY date ASC").all(groupId);
+  return rows.map(r => {
+    if (r.photos) { try { r.photos = JSON.parse(r.photos); } catch { r.photos = []; } }
+    return r;
+  });
+};
+
+// Dettaglio di un gruppo: contenuto rappresentativo + elenco occorrenze.
+const getFissoGroup = (groupId) => {
+  const list = getFissoGroupOrders(groupId);
+  if (list.length === 0) return null;
+  const today = localTodayIso();
+  const rep = _fissoRepresentative(list, today);
+  return {
+    fisso_group_id: groupId,
+    customer: rep.customer,
+    description: rep.description,
+    representativeOrderId: rep.id,
+    occurrences: list.map(o => ({ id: o.id, date: o.date, status: o.status })),
+    dates: list.map(o => o.date).sort(),
+  };
+};
+
 // Crea nuovo ordine
 const createOrder = (orderData, username) => {
   const {
@@ -456,25 +546,26 @@ const createOrder = (orderData, username) => {
     goods_type = 'in_cella',
     photos = null,
     customer_id = null,
-    customer_order_status = null
+    customer_order_status = null,
+    fisso_group_id = null
   } = orderData;
-  
+
   const stmt = db.prepare(`
     INSERT INTO orders (
       date, customer, description, status,
       order_type, delivery_type, delivery_time, delivery_address, goods_type, photos,
-      customer_id, customer_order_status,
+      customer_id, customer_order_status, fisso_group_id,
       created_by, updated_by,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
-  
+
   const photosJson = photos ? JSON.stringify(photos) : null;
   const info = stmt.run(
     date, customer, description, status,
     order_type, delivery_type, delivery_time, delivery_address, goods_type, photosJson,
-    customer_id, customer_order_status,
+    customer_id, customer_order_status, fisso_group_id || null,
     username, username
   );
   return getOrderById(info.lastInsertRowid);
@@ -2003,6 +2094,10 @@ module.exports = {
   deleteOrder,
   getOrdersCountByDate,
   searchOrders,
+  getFissoGroups,
+  getFissoGroup,
+  getFissoGroupOrders,
+  localTodayIso,
   getUserByUsername,
   verifyUser,
   updateUserPassword,
