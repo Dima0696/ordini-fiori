@@ -98,6 +98,14 @@ let calendarCache = null;
 let calendarCacheTime = 0;
 const CALENDAR_CACHE_TTL = 5000; // 5 secondi (ridotto per aggiornamenti più rapidi)
 
+// Da 1024px la home non è più una lista di giorni ma un vero calendario
+// mensile a 7 colonne: cambia cosa generiamo, non solo come lo impaginiamo.
+// Mobile resta la lista "da oggi in poi".
+const calendarGridMQ = window.matchMedia('(min-width: 1024px)');
+function isCalendarGridView() {
+  return calendarGridMQ.matches;
+}
+
 // Festività italiane (formato MM-DD)
 const holidays = [
   '01-01', // Capodanno
@@ -1376,12 +1384,21 @@ function renderCalendar() {
   daysList.innerHTML = '';
   let todayCard = null;
   
+  // Vista calendario (desktop) vs lista giorni (mobile)
+  const gridView = isCalendarGridView();
+
   // Crea array di date - SOLO DA OGGI IN POI + prossimi 30 giorni
   const dates = [];
-  
+
   // Determina il giorno di partenza.
   let startDate;
-  if (year === today.getFullYear() && month === today.getMonth()) {
+  if (gridView) {
+    // Vista calendario: il mese mostrato è SEMPRE quello intero, dal 1 all'ultimo
+    // giorno. Prima si partiva da oggi e si sforava nel mese successivo, quindi
+    // l'intestazione diceva "Luglio" mentre metà griglia era agosto, e i giorni
+    // già passati del mese semplicemente non esistevano.
+    startDate = new Date(year, month, 1);
+  } else if (year === today.getFullYear() && month === today.getMonth()) {
     // Mese corrente: parti da oggi
     startDate = new Date(today);
   } else {
@@ -1399,7 +1416,8 @@ function renderCalendar() {
   // generavano solo 30 giorni da inizio mese).
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysToEndOfMonth = Math.round((lastDay.getTime() - startDate.getTime()) / msPerDay) + 1;
-  const numDays = Math.max(30, daysToEndOfMonth);
+  // In vista calendario si mostra esattamente il mese, senza sforare.
+  const numDays = gridView ? daysToEndOfMonth : Math.max(30, daysToEndOfMonth);
 
   // Genera i giorni a partire dalla data di inizio
   for (let i = 0; i < numDays; i++) {
@@ -1407,7 +1425,19 @@ function renderCalendar() {
     date.setDate(startDate.getDate() + i);
     dates.push(date);
   }
-  
+
+  // Vista calendario: celle vuote iniziali, così il 1° del mese cade davvero
+  // sotto la colonna del suo giorno della settimana (settimana da lunedì).
+  if (gridView) {
+    const leadingCells = (startDate.getDay() + 6) % 7; // lun = 0 … dom = 6
+    for (let i = 0; i < leadingCells; i++) {
+      const pad = document.createElement('div');
+      pad.className = 'day-pad';
+      pad.setAttribute('aria-hidden', 'true');
+      daysList.appendChild(pad);
+    }
+  }
+
   // Renderizza giorni nell'ordine corretto
   for (let date of dates) {
     const dateStr = formatDate(date);
@@ -1443,6 +1473,12 @@ function renderCalendar() {
       dayCard.classList.add('today');
       todayCard = dayCard;
     }
+
+    // Giorni già passati: esistono solo in vista calendario, e vanno smorzati
+    // così l'occhio va su oggi e sui giorni da lavorare.
+    if (date < today) {
+      dayCard.classList.add('day-past');
+    }
     
     // Classe DOMENICA e FESTIVITÀ (usa il mese effettivo del giorno)
     const monthDay = String(dateMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
@@ -1450,6 +1486,11 @@ function renderCalendar() {
     
     if (dayOfWeek === 0) {
       dayCard.classList.add('sunday');
+    }
+    // Sabato: serve solo alla vista calendario, per dare ritmo alle settimane
+    // (la coppia sabato+domenica chiude visivamente la riga).
+    if (dayOfWeek === 6) {
+      dayCard.classList.add('saturday');
     }
     if (isHoliday) {
       dayCard.classList.add('holiday');
@@ -1510,17 +1551,22 @@ function renderCalendar() {
       if (stat.customers && stat.customers.length > 0) {
         content += `<div class="day-customers">`;
         
-        // Mostra max 4 nomi, poi "e altri X"
-        const maxToShow = 4;
+        // Nomi mostrati: nella cella calendario ce ne stanno 3, poi "+X".
+        // Il contatore deve restare SEMPRE visibile: prima le celle avevano
+        // altezza fissa e tagliavano i nomi (e il "e altri X") senza dirlo.
+        const maxToShow = gridView ? 3 : 4;
         const customersToShow = stat.customers.slice(0, maxToShow);
         const remaining = stat.customers.length - maxToShow;
         
         customersToShow.forEach(customer => {
-          content += `<span class="customer-name clickable" data-customer="${escapeHtml(customer)}" data-date="${dateStr}">${escapeHtml(customer)}</span>`;
+          content += `<span class="customer-name clickable" role="button" tabindex="0" data-customer="${escapeHtml(customer)}" data-date="${dateStr}">${escapeHtml(customer)}</span>`;
         });
         
         if (remaining > 0) {
-          content += `<span class="customer-more">e altri ${remaining}</span>`;
+          // Nella cella calendario lo spazio è quello che è: "+3" occupa una
+          // pillola invece di tre, e resta comunque leggibile a colpo d'occhio.
+          const moreLabel = gridView ? `+${remaining}` : `e altri ${remaining}`;
+          content += `<span class="customer-more" title="Altri ${remaining} client${remaining === 1 ? 'e' : 'i'}">${moreLabel}</span>`;
         }
         
         content += `</div>`;
@@ -1532,7 +1578,23 @@ function renderCalendar() {
     
     content += `</div>`;
     dayCard.innerHTML = content;
-    
+
+    // La cella è un comando, non un riquadro decorativo: deve essere
+    // raggiungibile da tastiera e leggibile da uno screen reader. Su desktop
+    // si lavora con Tab/Invio tutto il giorno.
+    const fullDayName = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'][dayOfWeek];
+    let ariaLabel = `${fullDayName} ${day} ${monthNames[dateMonth]}`;
+    if (isToday) ariaLabel += ', oggi';
+    if (stat && stat.total > 0) {
+      ariaLabel += `, ${stat.total} ordin${stat.total === 1 ? 'e' : 'i'}`;
+      if (stat.da_preparare > 0) ariaLabel += `, ${stat.da_preparare} da preparare`;
+    } else {
+      ariaLabel += ', nessun ordine';
+    }
+    dayCard.setAttribute('role', 'button');
+    dayCard.setAttribute('tabindex', '0');
+    dayCard.setAttribute('aria-label', ariaLabel);
+
     // Click sul giorno intero → apre lista ordini
     dayCard.addEventListener('click', (e) => {
       // Se ho cliccato su un nome cliente, non aprire la lista
@@ -1541,7 +1603,19 @@ function renderCalendar() {
       }
       openDayOrders(dateStr);
     });
-    
+
+    // Invio / Spazio: stesso effetto del click
+    dayCard.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      if (e.target.classList.contains('customer-name')) {
+        const customer = e.target.dataset.customer;
+        openOrderByCustomerAndDate(customer, e.target.dataset.date);
+        return;
+      }
+      openDayOrders(dateStr);
+    });
+
     // Click sui nomi clienti → apre direttamente dettaglio ordine
     dayCard.querySelectorAll('.customer-name.clickable').forEach(nameEl => {
       nameEl.addEventListener('click', async (e) => {
@@ -1555,25 +1629,39 @@ function renderCalendar() {
     daysList.appendChild(dayCard);
   }
 
-  // Vista calendario (desktop): allinea la prima cella alla colonna del suo
-  // giorno della settimana, così i giorni si incolonnano sotto Lun…Dom.
-  // Su mobile la variabile è semplicemente ignorata.
-  if (dates.length > 0) {
+  // In vista calendario l'allineamento della prima settimana lo fanno le celle
+  // vuote (.day-pad), quindi la variabile non serve più. Su mobile resta
+  // ininfluente ma la puliamo comunque.
+  if (gridView) {
+    daysList.style.removeProperty('--cal-col-start');
+  } else if (dates.length > 0) {
     const firstDow = dates[0].getDay();            // 0 = domenica
     const colStart = ((firstDow + 6) % 7) + 1;     // settimana che parte da lunedì
     daysList.style.setProperty('--cal-col-start', String(colStart));
   }
 
-  // Scroll automatico al giorno corrente
+  // Scroll automatico al giorno corrente. Serve anche in vista calendario: il
+  // mese ora parte dal giorno 1, quindi a fine mese "oggi" sarebbe fuori
+  // schermo, e la home esiste per dire cosa c'è da fare oggi. L'intestazione
+  // Lun…Dom resta agganciata (sticky), quindi lo scroll non fa perdere il
+  // riferimento delle colonne.
   if (todayCard) {
     setTimeout(() => {
-      todayCard.scrollIntoView({ 
-        behavior: 'smooth', 
+      todayCard.scrollIntoView({
+        behavior: 'smooth',
         block: 'center'
       });
     }, 300);
   }
 }
+
+// Al passaggio mobile ⇄ desktop cambia la struttura del calendario (lista vs
+// mese intero), non solo il CSS: serve un nuovo render.
+calendarGridMQ.addEventListener('change', () => {
+  if (!pageCalendar || !pageCalendar.classList.contains('active')) return;
+  if (isSearchActive) return;
+  renderCalendar();
+});
 
 // ==========================================
 // RICERCA ORDINI
@@ -1631,6 +1719,9 @@ function renderSearchResults(query, orders) {
   daysList.style.display = 'none';
   const weekdaysHeader = document.getElementById('calendar-weekdays');
   if (weekdaysHeader) weekdaysHeader.style.display = 'none';
+  // Su desktop la riga dell'intestazione settimana ha altezza fissa: durante la
+  // ricerca va azzerata, altrimenti resta una fascia vuota sopra i risultati.
+  daysList.parentElement.classList.add('searching');
   
   // Renderizza risultati
   if (orders.length === 0) {
@@ -1724,11 +1815,18 @@ function clearSearchResults() {
   daysList.style.display = '';
   const weekdaysHeader = document.getElementById('calendar-weekdays');
   if (weekdaysHeader) weekdaysHeader.style.display = '';
+  daysList.parentElement.classList.remove('searching');
   
   // Rimuovi risultati
   if (searchResultsContainer) {
     searchResultsContainer.remove();
   }
+
+  // Ridisegna: se la finestra è stata ridimensionata mentre la ricerca era
+  // attiva, il re-render al cambio di breakpoint è stato saltato e il
+  // calendario tornerebbe nella modalità sbagliata (la lista mobile dentro la
+  // griglia desktop, o viceversa).
+  renderCalendar();
 }
 
 // Apri ordine di un cliente specifico in una data (dal calendario)

@@ -1339,22 +1339,47 @@ body { min-height: 100vh; min-height: 100dvh; }
 }
 
 /* ============================================================
-   CALENDARIO — ORDINE E ALLINEAMENTO (rifinitura finale)
-   Celle di altezza uniforme, accento discreto, contenuto ordinato.
+   CALENDARIO — MESE VERO, LEGGIBILE A COLPO D'OCCHIO (≥1024px)
+
+   Il JS ora genera il mese intero (1 → ultimo giorno) più le celle vuote
+   iniziali, quindi qui non si "impagina una lista": si veste un calendario.
+   Tre regole guida:
+   1. niente informazione tagliata in silenzio → righe che si adattano;
+   2. una cosa sola per riga dentro la cella → gerarchia leggibile;
+   3. il vuoto resta vuoto → il carico di lavoro salta all'occhio.
    ============================================================ */
 @media (min-width: 1024px) {
 
-  /* Righe uniformi: ogni cella occupa esattamente la stessa altezza.
-     Prima, con align-items:start, i giorni carichi si allungavano e
-     sfondavano la griglia. */
+  /* Righe: altezza minima uniforme ma libere di crescere. Prima erano fisse a
+     150px con overflow:hidden, e nei giorni carichi i nomi dei clienti (e il
+     contatore "e altri X") venivano tagliati senza dirlo. */
   .days-list {
     align-items: stretch !important;
-    grid-auto-rows: 150px !important;
+    grid-auto-rows: minmax(148px, auto) !important;
+    /* styles.css dà alla lista un padding laterale di 1.5rem: le sue colonne
+       risultavano più strette (192px) di quelle dell'intestazione (198px), e le
+       etichette Lun…Dom cadevano 43px a sinistra del numero del giorno. Il
+       respiro laterale lo dà già .calendar-container. */
+    padding: 0 !important;
   }
 
-  .day-card {
+  /* Celle vuote di inizio mese: occupano la colonna e stanno zitte */
+  .day-pad {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  /* Padding uniforme: il numero del giorno deve stare sulla stessa verticale
+     in tutte le celle, piene o vuote (prima piene 1.35rem, vuote 1.05rem). */
+  .day-card,
+  .day-card.has-orders,
+  .day-card.has-da-preparare,
+  .day-card.today,
+  .day-card.no-orders {
     overflow: hidden !important;
-    padding: .7rem .8rem .6rem 1.05rem !important;
+    padding: .65rem .8rem .6rem 1.25rem !important;
   }
 
   /* Accento laterale: sottile e proporzionato alla cella */
@@ -1365,39 +1390,150 @@ body { min-height: 100vh; min-height: 100dvh; }
     width: 3px !important;
   }
 
-  /* Struttura interna: intestazione fissa, contenuto che riempie e si ferma */
-  .day-date { flex: 0 0 auto; margin-bottom: .45rem !important; }
+  /* Struttura interna: intestazione in alto, contenuto sotto, niente tagli */
+  .day-date { flex: 0 0 auto; margin-bottom: .4rem !important; }
   .day-info {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
-    position: relative;
     display: flex; flex-direction: column; gap: .3rem;
   }
 
-  /* I clienti riempiono lo spazio residuo senza spingere la cella */
+  /* ---- I clienti: una riga per cliente, come in un calendario vero ----
+     A pillole affiancate, in una colonna larga ~215px, i nomi andavano a capo
+     in modo casuale e la cella diventava un mosaico. In colonna si leggono
+     dall'alto in basso e si troncano in modo prevedibile. */
   .day-customers {
-    margin-top: .1rem !important;
-    padding-top: 0 !important;
-    overflow: hidden;
-    align-content: flex-start;
+    margin-top: auto !important;
+    padding-top: .3rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: .18rem !important;
   }
-  /* Sfumatura in basso: segnala con discrezione che l'elenco continua */
-  .day-card.has-orders .day-info::after {
-    content: "";
-    position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
-    background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 92%);
-    pointer-events: none;
+  .day-customers .customer-name {
+    display: block !important;
+    width: 100%;
+    text-align: left;
+    /* i nomi sono nomi propri: in maiuscoletto si leggono peggio e occupano più
+       spazio, e qui lo spazio è la risorsa scarsa */
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    padding: .14rem .4rem !important;
+  }
+  /* Il contatore "+N" è informazione, non decorazione: sempre in chiaro */
+  .day-customers .customer-more {
+    align-self: flex-start;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    padding: .14rem .4rem !important;
   }
 
-  /* Allineamenti fini della riga di stato */
+  /* ---- Riga di stato: totale + ciò che è urgente ----
+     "N pronti" e "N ritirati" li racconta già la barra di avanzamento (verde
+     piena = giorno chiuso); nella cella restano il totale e il "da preparare",
+     cioè l'unico dato che chiede un'azione. Il dettaglio è nella vista giorno. */
   .day-status-row { align-items: center; }
   .day-count, .day-stat-chip { line-height: 1.35; }
-  .day-progress { flex: 0 0 auto; }
+  .day-stat-chip.chip-pronto,
+  .day-stat-chip.chip-ritirato { display: none !important; }
+  .day-progress {
+    flex: 0 0 auto;
+    height: 5px !important;
+  }
 
-  /* Giorni vuoti: contenuto centrato verticalmente, niente sfumatura */
-  .day-card:not(.has-orders) .day-info { justify-content: flex-start; }
-  .day-card:not(.has-orders) .day-empty-label { margin-top: .1rem !important; }
+  /* ---- Il vuoto resta vuoto ----
+     "Nessun ordine" ripetuto in venti celle era rumore, e in #bbb su bianco
+     non passava nemmeno il contrasto AA. Una cella senza contenuto dice già
+     tutto: così le celle piene sono le uniche a chiedere attenzione. */
+  .day-card:not(.has-orders) .day-empty-label { display: none !important; }
+  .day-card:not(.has-orders) { box-shadow: none !important; }
+
+  /* ---- Giorni già passati: in secondo piano, senza spegnere la pagina ----
+     Niente opacity sulla cella: a fine mese quasi tutte le celle sono passate e
+     il calendario sembrava disattivato. Basta il numero più tenue, e un velo
+     leggero solo sui giorni passati che hanno ordini (storico consultabile). */
+  .day-card.day-past .day-num { color: var(--lf-faint) !important; }
+  .day-card.day-past.has-orders { opacity: .8; }
+  .day-card.day-past.has-orders:hover { opacity: 1; }
+
+  /* ---- Ritmo della settimana ----
+     Dopo il blocco dei giorni passati: a parità di specificità vince l'ultima
+     regola, e il weekend deve restare riconoscibile anche nel passato. */
+  .day-card.saturday:not(.has-orders),
+  .day-card.sunday:not(.has-orders) {
+    background: rgba(16,40,34,.045) !important;
+  }
+  .day-card.saturday .day-num { color: var(--lf-green-700) !important; }
+  .day-card.day-past.saturday .day-num,
+  .day-card.day-past.sunday .day-num { color: var(--lf-faint) !important; }
+
+  /* Il mese mostrato è solo il suo: lo stile "mese successivo" (bordo
+     tratteggiato) non ha più motivo di comparire nella griglia. */
+  .day-card.next-month { border-style: solid !important; opacity: 1; }
+
+  /* ---- Intestazione Lun…Dom: resta agganciata mentre si scorre il mese ----
+     È il riferimento per capire in che colonna si sta guardando.
+
+     Nota tecnica: un grid item sticky non si muove se il suo track è alto
+     quanto lui (il containing block coincide con l'elemento). Quindi l'header
+     si estende sulle righe 2-3 con align-self:start, e la riga 2 ha altezza
+     fissa così i giorni non gli finiscono sotto. */
+  .calendar-container {
+    grid-template-rows: auto 34px minmax(0, auto) !important;
+    /* styles.css mette overflow:hidden per contenere il pannello grigio, che su
+       desktop è già trasparente. Quell'hidden però rende il contenitore uno
+       scroll container: l'intestazione sticky si aggancerebbe a lui (che non
+       scorre) invece che alla finestra, e non si aggancerebbe mai. */
+    overflow: visible !important;
+  }
+  /* ---- Durante la ricerca il calendario deve sparire davvero ----
+     renderSearchResults() nasconde griglia e intestazione con style.display =
+     'none' inline, ma qui sopra entrambe hanno `display: grid !important`, e
+     l'!important batte lo stile inline senza !important: i risultati finivano
+     sovrapposti al mese, con numeri dei giorni e colonne Lun…Dom di sfondo.
+     Lo stato lo dice la classe sul contenitore, non lo stile inline. */
+  .calendar-container.searching {
+    grid-template-rows: auto 0 minmax(0, auto) !important;
+  }
+  .calendar-container.searching .calendar-weekdays,
+  .calendar-container.searching .days-list {
+    display: none !important;
+  }
+  .calendar-weekdays {
+    /* !important su tutte: la regola più sopra assegna `grid-area: weekdays`,
+       e un'area di una riga sola non lascia spazio allo sticky. */
+    grid-row: 2 / 4 !important;
+    grid-column: 1 / -1 !important;
+    align-self: start;
+    height: 34px;
+    align-items: center;
+    position: sticky;
+    top: 68px; /* altezza della barra superiore desktop */
+    z-index: 20;
+    /* Stesso gradiente fisso del body: così la barra agganciata non si vede
+       come un rettangolo più scuro, combacia con lo sfondo a ogni scroll. */
+    background: linear-gradient(180deg, var(--lf-canvas) 0%, var(--lf-canvas-2) 100%);
+    background-attachment: fixed;
+    /* Nessun padding orizzontale: le colonne devono coincidere con quelle
+       della griglia dei giorni, non essere più larghe di 6px. */
+    padding: 0 !important;
+  }
+  /* Etichetta allineata al numero del giorno, non al bordo della cella:
+     stesso rientro del padding interno della cella (1.25rem). */
+  .calendar-weekdays span {
+    padding-left: 1.25rem !important;
+  }
+
+  /* ---- Tastiera: il focus deve essere ovvio ---- */
+  .day-card:focus-visible {
+    outline: 2px solid var(--lf-green-700);
+    outline-offset: 2px;
+  }
+  .day-customers .customer-name:focus-visible {
+    outline: 2px solid var(--lf-green-700);
+    outline-offset: 1px;
+  }
 }
 
 /* ============================================================
@@ -1470,10 +1606,83 @@ body { min-height: 100vh; min-height: 100dvh; }
   .order-icon-btn svg { width: 17px; height: 17px; }
 }
 
+/* ============================================================
+   CARD DEI RISULTATI RICERCA — RIENTRO DEL CONTENUTO
+   Nella vista giorno il rientro lo dà .order-body, quindi .order-description ha
+   padding 0. Nella card dei risultati invece descrizione e piede sono figli
+   diretti di .order-content (padding 0): il nome cliente rientrava e il resto
+   restava incollato al bordo. Vale su tutte le larghezze, non solo desktop.
+   ============================================================ */
+.search-results-list .order-description {
+  padding: 0 1.1rem !important;
+}
+.search-results-list .order-footer {
+  padding: .7rem 1.1rem .9rem !important;
+}
+
 /* Schermi molto stretti (≤360px): ancora più compatto */
 @media (max-width: 380px) {
   .order-header, .order-card-toggle { padding: .9rem .85rem .5rem !important; }
   .order-quick-row { padding: 0 .85rem .9rem !important; }
   .order-body { padding: 0 .85rem .9rem !important; }
   .order-state-badge { padding: .42rem .5rem !important; font-size: .68rem !important; }
+  /* stesso rientro dell'intestazione della card */
+  .search-results-list .order-description { padding: 0 .85rem !important; }
+  .search-results-list .order-footer { padding: .6rem .85rem .8rem !important; }
+}
+
+/* ============================================================
+   RISULTATI RICERCA — DESKTOP (≥1024px)
+   Erano una colonna di card larghe 1376px con tre righe di testo piccolo
+   addossate a sinistra: metà schermo vuoto e nulla di scansionabile.
+   Diventano una griglia di schede, con il respiro interno delle altre card.
+   ============================================================ */
+@media (min-width: 1024px) {
+
+  /* Griglia che si adatta alla larghezza: ~4 colonne a 1680px, 3 a 1440px.
+     align-items:start perché le descrizioni hanno lunghezze diverse e non
+     vogliamo card gonfiate per pareggiare la riga. */
+  .search-results-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)) !important;
+    gap: 16px !important;
+    align-items: start;
+  }
+
+  /* Intestazione: stessa aria della toolbar, non una fascia schiacciata */
+  .search-results-header {
+    padding: .8rem 1.15rem !important;
+    margin-bottom: 1.1rem !important;
+    border-radius: 14px;
+  }
+
+  /* Respiro interno. La descrizione e il piede ereditano `padding: 0` dalle
+     regole della vista giorno: qui finivano a filo del bordo sinistro mentre
+     il nome cliente era rientrato di 1.25rem, e la card sembrava sfasata. */
+  .search-results-list .order-description {
+    padding: 0 1.25rem !important;
+    color: var(--lf-muted);
+  }
+  .search-results-list .order-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .6rem;
+    padding: .8rem 1.25rem 1.05rem !important;
+  }
+  /* Data: è il dato che si cerca in una lista di risultati, non una nota */
+  .search-results-list .order-date {
+    font-weight: 700;
+    color: var(--lf-ink);
+  }
+  /* I due badge stanno su assi diversi (stato dell'ordine in alto, stato della
+     merce nel piede): restano entrambi, ma con pesi visivi distinti. */
+  .search-results-list .order-info-badges { margin: 0 !important; }
+
+  /* Nessun risultato: il vuoto non deve essere una macchia in mezzo a 1600px */
+  .search-no-results {
+    max-width: 460px;
+    margin: 2rem auto !important;
+  }
 }
