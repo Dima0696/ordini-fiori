@@ -98,12 +98,12 @@ let calendarCache = null;
 let calendarCacheTime = 0;
 const CALENDAR_CACHE_TTL = 5000; // 5 secondi (ridotto per aggiornamenti più rapidi)
 
-// Da 1024px la home non è più una lista di giorni ma un vero calendario
-// mensile a 7 colonne: cambia cosa generiamo, non solo come lo impaginiamo.
-// Mobile resta la lista "da oggi in poi".
-const calendarGridMQ = window.matchMedia('(min-width: 1024px)');
-function isCalendarGridView() {
-  return calendarGridMQ.matches;
+// Da 1024px il layout è desktop: la home diventa un vero calendario mensile a
+// 7 colonne (cambia cosa generiamo, non solo come lo impaginiamo) e la vista
+// giorno mostra gli ordini già aperti. Sotto i 1024px resta l'app mobile.
+const desktopMQ = window.matchMedia('(min-width: 1024px)');
+function isDesktopLayout() {
+  return desktopMQ.matches;
 }
 
 // Festività italiane (formato MM-DD)
@@ -1385,7 +1385,7 @@ function renderCalendar() {
   let todayCard = null;
   
   // Vista calendario (desktop) vs lista giorni (mobile)
-  const gridView = isCalendarGridView();
+  const gridView = isDesktopLayout();
 
   // Crea array di date - SOLO DA OGGI IN POI + prossimi 30 giorni
   const dates = [];
@@ -1657,7 +1657,7 @@ function renderCalendar() {
 
 // Al passaggio mobile ⇄ desktop cambia la struttura del calendario (lista vs
 // mese intero), non solo il CSS: serve un nuovo render.
-calendarGridMQ.addEventListener('change', () => {
+desktopMQ.addEventListener('change', () => {
   if (!pageCalendar || !pageCalendar.classList.contains('active')) return;
   if (isSearchActive) return;
   renderCalendar();
@@ -1953,7 +1953,17 @@ async function loadOrders(date) {
     const response = await fetchNoCache(`${API_URL}/orders/date/${date}`);
     const orders = await response.json();
     currentDayOrders = orders;
-    
+
+    // Su desktop gli ordini si aprono già espansi: il contenuto (gli articoli)
+    // è il motivo per cui si apre il giorno, e lo spazio c'è. Con le card
+    // chiuse bisognava cliccare ogni freccetta, e in griglia a due colonne
+    // ogni apertura spostava le card sotto: leggere diventava un inseguimento.
+    // Restano richiudibili: la chiusura viene rispettata fino a quando non si
+    // riapre il giorno.
+    if (isDesktopLayout()) {
+      orders.forEach(o => expandedOrderIds.add(o.id));
+    }
+
     // Carica i checks di tutti gli ordini in batch
     if (orders.length > 0) {
       try {

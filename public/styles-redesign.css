@@ -1125,7 +1125,14 @@ body { min-height: 100vh; min-height: 100dvh; }
 /* ---- Schermi molto ampi: quarta colonna e ordini affiancati ---- */
 @media (min-width: 1500px) {
   .days-list { grid-template-columns: repeat(4, minmax(0,1fr)) !important; }
-  .orders-list { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  /* Due colonne a riempimento (non grid): le card hanno altezze molto diverse
+     e una griglia lascerebbe buchi sotto quelle corte. Vedi la sezione
+     "VISTA GIORNO — DESKTOP" per il resto delle regole. */
+  .orders-list {
+    display: block !important;
+    column-count: 2;
+  }
+  .orders-list > .order-card { margin-bottom: 18px; }
 }
 
 /* ============================================================
@@ -1629,6 +1636,60 @@ body { min-height: 100vh; min-height: 100dvh; }
   /* stesso rientro dell'intestazione della card */
   .search-results-list .order-description { padding: 0 .85rem !important; }
   .search-results-list .order-footer { padding: .6rem .85rem .8rem !important; }
+}
+
+/* ============================================================
+   VISTA GIORNO — DESKTOP (≥1024px): LEGGERE, NON INSEGUIRE
+
+   Le card ora si aprono già espanse (vedi loadOrders), quindi il layout non
+   salta più mentre si legge. Restano due problemi di prossimità, nati dal
+   fatto che la card è larga il triplo di quanto serve al suo contenuto:
+   informazioni legate fra loro finivano ai due capi opposti della riga.
+   ============================================================ */
+@media (min-width: 1024px) {
+
+  /* La provenienza (IMP/ITA/NL) appartiene alla riga articolo: con
+     margin-left:auto finiva a ~700px dal nome dell'articolo, e associare
+     "3 casse rose" al suo fornitore diventava un salto dell'occhio.
+     Se il testo è lungo il gruppo va a capo, restando comunque sotto la
+     sua riga e non in fondo alla card. */
+  .order-checklist .check-line { flex-wrap: wrap; }
+  .order-checklist .check-text { flex: 0 1 auto !important; }
+  .order-checklist .supplier-group { margin-left: .85rem !important; }
+
+  /* Stessa logica per la riga azioni: i badge di stato (Ordinato/Pronto) e le
+     icone modifica/stampa erano separati da tutta la larghezza della card.
+     Uno stacco fisso tiene la gerarchia — stato prima, azioni dopo — senza
+     spedirle in capo opposto. */
+  .order-quick-row .order-quick-spacer { flex: 0 0 2rem !important; }
+
+  /* ---- Due colonne senza buchi (≥1500px la lista è affiancata) ----
+     Con la griglia e card di altezze molto diverse (322px vs 500px) ogni riga
+     si allineava alla card più alta, lasciando vuoti di oltre 100px sotto
+     quelle corte. Il riempimento a colonne impila le card senza spazi: si
+     legge una colonna alla volta, come le colonne di un giornale. */
+  .orders-list {
+    column-gap: 18px;
+  }
+  .orders-list > .order-card {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+  }
+
+  /* Chi ha creato o modificato l'ordine è informazione di servizio: aveva lo
+     stesso peso del contenuto e occupava due righe piene in fondo a ogni card. */
+  .order-user-info {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: .15rem 1.1rem !important;
+    margin-top: .55rem !important;
+    padding-top: .55rem !important;
+  }
+  .order-user-info .user-info-item {
+    font-size: .7rem !important;
+    color: var(--lf-faint) !important;
+  }
+  .order-user-info .user-info-item strong { color: var(--lf-muted) !important; font-weight: 600 !important; }
 }
 
 /* ============================================================
