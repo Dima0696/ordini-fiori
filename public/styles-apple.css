@@ -1,0 +1,129 @@
+/* ============================================================
+   LOMBARDAFLOR — APPLE POLISH LAYER
+   Caricato per ultimo. Non ridisegna nulla: raffina ciò che c'è
+   secondo i principi Apple (Designing Fluid Interfaces, HIG).
+   - Font di sistema (SF Pro su dispositivi Apple, Inter altrove)
+   - Feedback istantaneo alla pressione, rilascio morbido
+   - Chrome traslucido (materiale) con contenuto che scorre sotto
+   - Curve ease-out decise, durate < 300ms
+   - Rispetto di reduced-motion / reduced-transparency
+   ============================================================ */
+
+:root {
+  /* Ease-out deciso: parte subito, si posa dolcemente (≈ spring criticamente smorzata) */
+  --apple-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --apple-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Il token già usato da tutto il design system: basta cambiarlo qui
+     e ogni transizione esistente eredita la curva nuova. */
+  --lf-ease: var(--apple-ease-out);
+
+  /* SF Pro sui dispositivi Apple, Inter come fallback identico altrove */
+  --lf-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter',
+             'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* ---------- TIPOGRAFIA: ottica e numeri ---------- */
+html { font-optical-sizing: auto; }
+
+/* Titoli grandi: tracking negativo (il tracking è funzione della dimensione) */
+h1, .login-title, .detail-customer-name { letter-spacing: -0.03em; }
+
+/* ---------- RISPOSTA: feedback sul pointer-down, non sul rilascio ----------
+   Pressione istantanea (~100ms), rilascio più calmo: l'asimmetria è ciò
+   che fa sembrare l'interfaccia "in ascolto". */
+.btn-primary:active, .btn-large:active, .btn-secondary:active,
+.btn-primary-fisso:active, .btn-secondary-fisso:active,
+.btn-nav:active, .btn-icon:active, .btn-close:active,
+.quick-action-btn:active, .fab-menu-item:active,
+.copy-supplier-btn:active, .filter-tab:active,
+.btn-save-prev:active, .btn-convert-prev:active,
+.btn-share-prev:active, .btn-print-prev:active {
+  transform: scale(0.97) !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Card e superfici toccabili: pressione più sottile */
+.day-card:active, .preventivo-card:active, .cliente-card:active,
+.catalog-card:active, .day-chip:active, .fisso-list-item:active,
+.order-card:not(.expanded):active {
+  transform: scale(0.99) !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Niente ritardo di 300ms / doppio-tap zoom sui controlli */
+button, a, .filter-tab, .day-chip, .order-state-badge, .check-line {
+  touch-action: manipulation;
+}
+
+/* ---------- MATERIALE: header traslucido, contenuto che scorre sotto ---------- */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .app-header, .app-header-home {
+    background: rgba(255, 255, 255, 0.72) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(21, 33, 30, 0.08) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ---------- MODALI: ingresso rapido, mai da scale(0), origine centrata ---------- */
+.modal.active { animation: lfScrimIn 0.25s var(--apple-ease-out); }
+
+.modal-content {
+  animation: lfSheetIn 0.32s var(--apple-ease-out) !important;
+  transform-origin: center;
+}
+
+@keyframes lfScrimIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes lfSheetIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- HOVER SOLO DOVE ESISTE DAVVERO (niente stati appiccicosi su touch) ---------- */
+@media (hover: none) {
+  .btn-nav:hover {
+    background: rgba(11, 93, 82, 0.08);
+    color: var(--lf-green-800, #0B5D52);
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .btn-primary:hover, .btn-large:hover { box-shadow: var(--lf-sh-1) !important; }
+}
+
+/* ---------- ACCESSIBILITÀ: reduced motion = cross-fade, non slide ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .modal-content { animation: lfScrimIn 0.15s ease !important; }
+  .modal.active { animation-duration: 0.15s; }
+
+  .btn-primary:active, .btn-large:active, .btn-secondary:active,
+  .btn-nav:active, .btn-icon:active, .quick-action-btn:active,
+  .day-card:active, .order-card:active, .preventivo-card:active,
+  .cliente-card:active, .catalog-card:active, .day-chip:active {
+    transform: none !important;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.15s !important;
+    transition-duration: 0.12s !important;
+  }
+}
+
+/* ---------- ACCESSIBILITÀ: reduced transparency = superfici solide ---------- */
+@media (prefers-reduced-transparency: reduce) {
+  .app-header, .app-header-home {
+    background: #ffffff !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none !important;
+  }
+  .modal-content {
+    background: #ffffff !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none !important;
+  }
+}
