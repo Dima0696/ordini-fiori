@@ -8035,3 +8035,66 @@ function setupCatalogoListeners() {
 }
 
 window.openCatalogoPage = openCatalogoPage;
+
+// ============================================================
+// SCROLL LOCK MODALI — fix "il calendario copre l'ordine fisso"
+// Con la finestra scrollata (il calendario desktop autoscrolla alla
+// settimana corrente) il browser dipinge le modali position:fixed
+// spostate in basso di scrollY: la pagina sotto copre la modale.
+// Congelare il body e azzerare lo scroll all'apertura riporta la
+// modale ancorata al viewport; alla chiusura lo scroll si ripristina.
+// Osserva i cambi di classe così copre OGNI modale senza toccare i
+// singoli punti di apertura.
+// ============================================================
+(() => {
+  let savedScrollY = 0;
+  let locked = false;
+
+  const lock = () => {
+    if (locked) return;
+    locked = true;
+    savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const b = document.body.style;
+    b.position = 'fixed';
+    b.top = `-${savedScrollY}px`;
+    b.left = '0';
+    b.right = '0';
+    b.width = '100%';
+  };
+
+  const unlock = () => {
+    if (!locked) return;
+    locked = false;
+    const b = document.body.style;
+    b.position = '';
+    b.top = '';
+    b.left = '';
+    b.right = '';
+    b.width = '';
+    window.scrollTo(0, savedScrollY);
+  };
+
+  const sync = () => {
+    if (document.querySelector('.modal.active')) lock();
+    else unlock();
+  };
+
+  const start = () => {
+    const observer = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.target.classList && m.target.classList.contains('modal')) {
+          sync();
+          return;
+        }
+      }
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+    sync();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();

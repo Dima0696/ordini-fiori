@@ -1,8 +1,8 @@
 // Service Worker per LombardaFlor Orders PWA
 // v142 - Selettore anagrafica: testo prepopolato selezionato + tasto pulisci + soglia 1 char
-const CACHE_NAME = 'lombardaflor-orders-v170-apple-polish';
-const STATIC_CACHE = 'lombardaflor-static-v170-apple-polish';
-const API_CACHE = 'lombardaflor-api-v170-apple-polish';
+const CACHE_NAME = 'lombardaflor-orders-v171-fix-modale-fisso';
+const STATIC_CACHE = 'lombardaflor-static-v171-fix-modale-fisso';
+const API_CACHE = 'lombardaflor-api-v171-fix-modale-fisso';
 
 const urlsToCache = [
   '/',

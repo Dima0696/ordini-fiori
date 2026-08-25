@@ -1747,3 +1747,30 @@ body { min-height: 100vh; min-height: 100dvh; }
     margin: 2rem auto !important;
   }
 }
+
+/* ============================================================
+   FIX — Il calendario della modale FISSO condivide la classe
+   .calendar-container con quello della home: la griglia desktop
+   qui sopra (aree search/month/days, riga fissa 34px) gli
+   auto-piazzava i figli in track sbagliati, facendolo traboccare
+   sopra intestazione e pulsanti. Dentro la modale torna un
+   normale blocco in flusso.
+   ============================================================ */
+#modal-ordine-fisso .calendar-container {
+  display: block !important;
+  grid-template-areas: none !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Su desktop la modale è ampia e scorre già di suo: il doppio scroll
+   interno del calendarietto (max-height 450px) nascondeva metà mese. */
+@media (min-width: 768px) {
+  #modal-ordine-fisso .fisso-calendar {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
