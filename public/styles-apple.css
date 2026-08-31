@@ -125,3 +125,42 @@ button, a, .filter-tab, .day-chip, .order-state-badge, .check-line {
     backdrop-filter: none !important;
   }
 }
+
+/* ============================================================
+   STAMPA ORDINI — correzioni
+   ============================================================ */
+@media print {
+  /* Lo scroll-lock delle modali (stile inline sul body) non deve valere
+     sulla carta: con body fixed la stampa usciva vuota o tagliata. */
+  body {
+    position: static !important;
+    top: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Le regole desktop (max-height 88vh + scroll interno) strozzavano la
+     modale a una schermata: gli ordini lunghi perdevano le ultime righe.
+     In stampa il contenuto deve fluire su più pagine. */
+  .modal.active .modal-content {
+    max-height: none !important;
+    overflow: visible !important;
+    animation: none !important;
+  }
+  .modal.active {
+    overflow: visible !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Carta intestata: il foglio ha già il logo dell'azienda in alto.
+     La prima pagina parte più in basso (regola qui i mm se serve) e il
+     logo dell'app non viene ristampato. Le pagine successive ripartono
+     dal margine normale. */
+  #modal-detail.active .modal-content {
+    padding-top: 35mm !important;
+  }
+  #modal-detail.active .print-stack-logo {
+    display: none !important;
+  }
+}
