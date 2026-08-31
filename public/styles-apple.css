@@ -108,10 +108,8 @@ button, a, .filter-tab, .day-chip, .order-state-badge, .check-line {
     transform: none !important;
   }
 
-  *, *::before, *::after {
-    animation-duration: 0.15s !important;
-    transition-duration: 0.12s !important;
-  }
+  /* NB: niente regola universale sulle durate — accorciare le animazioni
+     infinite (spinner, shimmer, pulse) non le calma, le rende frenetiche. */
 }
 
 /* ---------- ACCESSIBILITÀ: reduced transparency = superfici solide ---------- */
