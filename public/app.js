@@ -865,6 +865,16 @@ function setupEventListeners() {
   document.getElementById('btn-home').addEventListener('click', () => {
     showPage('calendar');
   });
+
+  // Frecce giorno precedente/successivo nella vista giorno
+  const shiftDay = (delta) => {
+    if (!currentDate) return;
+    const d = new Date(currentDate + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    openDayOrders(formatDate(d));
+  };
+  document.getElementById('btn-prev-day').addEventListener('click', () => shiftDay(-1));
+  document.getElementById('btn-next-day').addEventListener('click', () => shiftDay(1));
   
   document.getElementById('btn-new-order').addEventListener('click', () => {
     openNewOrderModal();
@@ -1865,10 +1875,16 @@ function updateOrdersDateTitle(date) {
 
   const dateObj = new Date(date + 'T00:00:00');
   const dayOfWeek = dateObj.getDay();
-  const dayName = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][dayOfWeek];
+  // Su schermi stretti (frecce ai lati del titolo) formato compatto
+  const compact = window.matchMedia('(max-width: 480px)').matches;
+  const dayName = (compact
+    ? ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab']
+    : ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'])[dayOfWeek];
   const day = dateObj.getDate();
-  const monthNames = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-                      'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+  const monthNames = compact
+    ? ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+    : ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+       'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
   const month = monthNames[dateObj.getMonth()];
 
   let titleText = `${dayName} ${day} ${month}`;
@@ -1878,9 +1894,9 @@ function updateOrdersDateTitle(date) {
   const isSunday = dayOfWeek === 0;
 
   if (isSunday) {
-    titleText += ' 🔒 Domenica';
+    titleText += compact ? ' 🔒' : ' 🔒 Domenica';
   } else if (isHoliday) {
-    titleText += ' 🎉 Festività';
+    titleText += compact ? ' 🎉' : ' 🎉 Festività';
   }
 
   titleEl.textContent = titleText;

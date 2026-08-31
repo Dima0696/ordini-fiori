@@ -60,7 +60,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-mobile-optimized.css">
   <link rel="stylesheet" href="pull-to-refresh-styles.css">
-  <link rel="stylesheet" href="styles-redesign.css?v=24">
+  <link rel="stylesheet" href="styles-redesign.css?v=25">
   <link rel="stylesheet" href="styles-apple.css?v=3">
   <link rel="manifest" href="manifest.json">
 </head>
@@ -336,7 +336,17 @@
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
         </button>
+        <button id="btn-prev-day" class="btn-nav btn-day-nav" title="Giorno precedente" aria-label="Giorno precedente">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
         <h1 id="orders-date-title" class="orders-title">Ordini</h1>
+        <button id="btn-next-day" class="btn-nav btn-day-nav" title="Giorno successivo" aria-label="Giorno successivo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
       </div>
       <div class="app-header-right">
         <button id="btn-refresh-orders" class="btn-icon" title="Ricarica ordini">
@@ -1527,7 +1537,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <!-- Versionato come i CSS: la vista calendario desktop richiede JS e CSS
        aggiornati insieme (il CSS si aspetta il mese intero e le celle vuote). -->
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
 

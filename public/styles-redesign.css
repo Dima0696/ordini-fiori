@@ -1774,3 +1774,29 @@ body { min-height: 100vh; min-height: 100dvh; }
     overflow-y: visible !important;
   }
 }
+
+/* ============================================================
+   VISTA GIORNO — frecce giorno precedente/successivo nel titolo
+   ============================================================ */
+.btn-day-nav {
+  min-width: 38px !important;
+  min-height: 38px !important;
+  width: 38px;
+  height: 38px;
+  padding: 0 !important;
+  flex-shrink: 0;
+}
+/* Il titolo sta tra le frecce e può accorciarsi con l'ellissi */
+#page-orders .orders-title { flex: 0 1 auto; min-width: 0; }
+/* Su schermi stretti compattiamo gli spazi per far stare le frecce */
+@media (max-width: 480px) {
+  #page-orders .app-header-left { gap: 8px !important; }
+  #page-orders .orders-title { flex: 1 1 auto; text-align: center; }
+  .btn-day-nav { min-width: 34px !important; min-height: 34px !important; width: 34px; height: 34px; }
+}
+/* Su mobile il pulsante home nella vista giorno è un doppione della
+   freccia indietro (entrambi tornano al calendario): lo spazio serve
+   alla data e alle frecce giorno prec/succ. */
+@media (max-width: 480px) {
+  #page-orders .btn-home { display: none !important; }
+}
