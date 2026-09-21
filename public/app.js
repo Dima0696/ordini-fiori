@@ -3233,7 +3233,12 @@ function loadPendingOrderLineStateFromOrder(orderId) {
     const c = checks[idx];
     const supplier = (c && c.supplier) || '';
     const matchKey = (c && c.matchKey) || '';
-    const arrivalDate = (c && c.arrivalDate) || '';
+    let arrivalDate = (c && c.arrivalDate) || '';
+    // Righe ITA/IMP taggate prima di questa funzionalità (o senza data):
+    // precompila con l'arrivo Olanda dell'ordine, senza bloccare nessuno.
+    if (!arrivalDate && (supplier === 'ITA' || supplier === 'IMPORT')) {
+      arrivalDate = lastArrivalUsed[supplier] || document.getElementById('order-arrival-date').value || '';
+    }
     const entry = {};
     if (supplier) entry.supplier = supplier;
     if (matchKey) entry.matchKey = matchKey;
@@ -4555,14 +4560,19 @@ async function handleOrderSubmit(e) {
     return;
   }
 
-  // Le righe ITA/IMPORT devono avere la loro data di arrivo (evidenziata nel form)
+  // Le righe ITA/IMPORT dovrebbero avere la loro data di arrivo. Conta solo
+  // le righe realmente presenti nel form (niente stati orfani di righe
+  // cancellate) e chiedi conferma invece di bloccare: gli ordini vecchi
+  // non devono restare intrappolati.
+  const righeVisibili = description.split('\n').filter(l => l.trim() !== '').length;
   const righeSenzaData = Object.keys(pendingOrderLineState).filter(idx => {
+    if (parseInt(idx) >= righeVisibili) return false;
     const s = pendingOrderLineState[idx] || {};
     return (s.supplier === 'ITA' || s.supplier === 'IMPORT') && !s.arrivalDate;
   });
   if (righeSenzaData.length > 0) {
-    alert('Metti la data di arrivo sulle righe ITA/IMPORT (campo evidenziato accanto al fornitore)');
-    return;
+    const ok = confirm(righeSenzaData.length + (righeSenzaData.length === 1 ? ' riga ITA/IMPORT è senza' : ' righe ITA/IMPORT sono senza') + ' data di arrivo.\nSalvare comunque?');
+    if (!ok) return;
   }
   
   // Snapshot dello stato pendente PRIMA di chiudere la modal: così se

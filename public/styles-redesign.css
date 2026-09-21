@@ -1969,3 +1969,10 @@ body { min-height: 100vh; min-height: 100dvh; }
 .arrival-line-meta { font-size: .78rem; color: var(--lf-muted); }
 .arrival-bd { color: #9A5B08; font-weight: 700; }
 .btn-print-arrivals { margin-top: .75rem; width: 100%; }
+
+/* Righe arrivi più compatte a schermo */
+.arrivals-lines { gap: .5rem; }
+.arrival-line { padding: .35rem .6rem; margin-bottom: .25rem; border-radius: 8px; }
+.arrival-line-text { font-size: .88rem; }
+.arrival-line-meta { font-size: .72rem; }
+.arrivals-supplier-title { font-size: .72rem; margin-bottom: .25rem; }
