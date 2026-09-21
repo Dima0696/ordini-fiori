@@ -1887,3 +1887,34 @@ body { min-height: 100vh; min-height: 100dvh; }
 .arrival-card { cursor: pointer; }
 .arrival-card .arrival-card-print { flex-shrink: 0; }
 .arrival-card .arrival-card-print.printed { color: var(--lf-green-700); background: var(--lf-sage-100); }
+
+/* ============================================================
+   MERCE IN ARRIVO — su desktop sta nella colonna sinistra,
+   sotto il pannello "Ordine fornitore"
+   ============================================================ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .orders-container {
+    grid-template-areas:
+      "aside    tabs"
+      "aside    list"
+      "arrivals list";
+  }
+  #arrivals-section { grid-area: arrivals; }
+}
+@media (min-width: 1024px) {
+  .orders-container {
+    grid-template-areas:
+      "newbtn   tabs"
+      "panel    list"
+      "arrivals list";
+  }
+  #arrivals-section {
+    grid-area: arrivals;
+    align-self: start;
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+  /* Nella colonna le card stanno una sotto l'altra */
+  #arrivals-section .arrivals-list { grid-template-columns: 1fr; }
+}
