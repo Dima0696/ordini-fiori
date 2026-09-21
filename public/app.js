@@ -2031,6 +2031,7 @@ async function loadOrders(date) {
     renderDaysSelector();
     renderOrdersView();
     setupLineArrivalListener();
+    updateFornitoreHeightVar();
 
     // Merce in arrivo questo giorno per ordini di altri giorni
     // (non bloccante: se fallisce, la sezione resta semplicemente nascosta)
@@ -2050,6 +2051,18 @@ async function loadOrders(date) {
     alert('Errore nel caricamento degli ordini: ' + error.message);
   }
 }
+
+// Altezza del pannello "Ordine fornitore": serve allo sticky della sezione
+// arrivi per fermarsi esattamente sotto di lui (l'altezza varia coi giorni).
+function updateFornitoreHeightVar() {
+  const panel = document.querySelector('.orders-toolbar-fornitore');
+  if (!panel) return;
+  document.documentElement.style.setProperty('--fornitore-h', panel.offsetHeight + 'px');
+}
+window.addEventListener('resize', () => {
+  clearTimeout(window.__fornH);
+  window.__fornH = setTimeout(updateFornitoreHeightVar, 150);
+});
 
 // ===========================================
 // MERCE IN ARRIVO — ordini di altri giorni con arrivo in questa data

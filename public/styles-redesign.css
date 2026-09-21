@@ -1907,6 +1907,9 @@ body { min-height: 100vh; min-height: 100dvh; }
       "newbtn   tabs"
       "panel    list"
       "arrivals list";
+    /* riga del pannello = solo la sua altezza: gli arrivi stanno SUBITO sotto,
+       non in fondo alla lista */
+    grid-template-rows: auto auto 1fr;
   }
   #arrivals-section {
     grid-area: arrivals;
@@ -1914,6 +1917,12 @@ body { min-height: 100vh; min-height: 100dvh; }
     margin-top: 0;
     border-top: none;
     padding-top: 0;
+    /* resta fermo sotto il pannello fornitore mentre la lista scorre;
+       --fornitore-h è misurata via JS (l'altezza del pannello varia) */
+    position: sticky;
+    top: calc(96px + var(--fornitore-h, 0px) + 16px);
+    max-height: calc(100vh - 130px - var(--fornitore-h, 0px));
+    overflow-y: auto;
   }
   /* Nella colonna le card stanno una sotto l'altra */
   #arrivals-section .arrivals-list { grid-template-columns: 1fr; }
