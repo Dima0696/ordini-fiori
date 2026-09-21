@@ -74,6 +74,15 @@ const initDb = () => {
     )
   `;
   
+  const createSessionsTableQuery = `
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
   const createSubscriptionsTableQuery = `
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -212,6 +221,7 @@ const initDb = () => {
   
   db.exec(createOrdersTableQuery);
   db.exec(createUsersTableQuery);
+  db.exec(createSessionsTableQuery);
   db.exec(createSubscriptionsTableQuery);
   db.exec(createPasskeysTableQuery);
   db.exec(createFabbisognoChecksTableQuery);
@@ -903,6 +913,53 @@ const updateUserPassword = (username, newPassword) => {
   const stmt = db.prepare('UPDATE users SET password = ? WHERE username = ?');
   const info = stmt.run(hashPassword(newPassword), username);
   return info.changes > 0;
+};
+
+
+// ===========================================
+// SESSIONI PERSISTENTI
+// ===========================================
+// Le sessioni vivono nel database, non in memoria: sopravvivono ai
+// riavvii/deploy del server e ogni utente puo' avere piu' dispositivi
+// collegati insieme (telefono + computer). Scadono dopo 90 giorni di
+// inattivita'; ogni uso rinnova la scadenza (sessione "scorrevole").
+const SESSION_MAX_IDLE_DAYS = 90;
+
+const createSession = (username, token) => {
+  db.prepare('INSERT INTO sessions (token, username) VALUES (?, ?)').run(token, username);
+};
+
+const getSessionUser = (token) => {
+  const row = db.prepare(
+    "SELECT username FROM sessions WHERE token = ? AND last_seen_at >= datetime('now', '-' || ? || ' days')"
+  ).get(token, SESSION_MAX_IDLE_DAYS);
+  if (!row) return null;
+  // Rinnovo scorrevole, ma al massimo una scrittura l'ora per token
+  db.prepare(
+    "UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE token = ? AND last_seen_at < datetime('now', '-1 hour')"
+  ).run(token);
+  return row.username;
+};
+
+const deleteSession = (token) => {
+  db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+};
+
+// Al cambio password si scollegano gli ALTRI dispositivi (sicurezza),
+// mantenendo la sessione da cui si sta operando.
+const deleteUserSessions = (username, exceptToken = null) => {
+  if (exceptToken) {
+    db.prepare('DELETE FROM sessions WHERE username = ? AND token != ?').run(username, exceptToken);
+  } else {
+    db.prepare('DELETE FROM sessions WHERE username = ?').run(username);
+  }
+};
+
+const purgeExpiredSessions = () => {
+  const info = db.prepare(
+    "DELETE FROM sessions WHERE last_seen_at < datetime('now', '-' || ? || ' days')"
+  ).run(SESSION_MAX_IDLE_DAYS);
+  return info.changes;
 };
 
 const getAllSubscriptions = () => {
@@ -2101,6 +2158,11 @@ module.exports = {
   getUserByUsername,
   verifyUser,
   updateUserPassword,
+  createSession,
+  getSessionUser,
+  deleteSession,
+  deleteUserSessions,
+  purgeExpiredSessions,
   saveSubscription,
   getAllSubscriptions,
   deleteSubscription,

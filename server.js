@@ -98,9 +98,9 @@ if (process.env.DATABASE_PATH) {
   app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), uploadsStaticOptions));
 }
 
-// Semplice autenticazione con token in memoria
-const activeSessions = new Map(); // username -> token
-const tokenToUsername = new Map(); // token -> username
+// Autenticazione con sessioni persistenti nel database: sopravvivono ai
+// riavvii/deploy e ogni utente puo' restare collegato da piu' dispositivi.
+// (La pulizia periodica delle sessioni scadute parte dopo db.initDb, sotto.)
 
 // Genera token di sessione crittograficamente sicuro
 function generateToken() {
@@ -169,7 +169,7 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ error: 'Non autorizzato' });
   }
   
-  const username = tokenToUsername.get(token);
+  const username = db.getSessionUser(token);
   if (!username) {
     return res.status(401).json({ error: 'Sessione non valida' });
   }
@@ -180,6 +180,12 @@ const authenticate = (req, res, next) => {
 
 // Inizializza database
 db.initDb();
+
+// Pulizia sessioni scadute (90 giorni di inattivita'): all'avvio e poi ogni 24h
+db.purgeExpiredSessions();
+setInterval(() => {
+  try { db.purgeExpiredSessions(); } catch (e) { console.error('Purge sessioni:', e); }
+}, 24 * 60 * 60 * 1000).unref();
 
 // Configura Web Push
 webpush.setVapidDetails(
@@ -213,16 +219,10 @@ app.post('/api/login', (req, res) => {
 
     loginAttempts.delete(rateKey);
 
-    // Rimuovi vecchia sessione se esiste
-    const oldToken = activeSessions.get(username);
-    if (oldToken) {
-      tokenToUsername.delete(oldToken);
-    }
-    
-    // Crea nuovo token
+    // Nuova sessione per QUESTO dispositivo: le sessioni degli altri
+    // dispositivi dell'utente restano valide (telefono + computer insieme).
     const token = generateToken();
-    activeSessions.set(username, token);
-    tokenToUsername.set(token, username);
+    db.createSession(user.username, token);
     
     res.json({ 
       success: true, 
@@ -241,10 +241,8 @@ app.post('/api/logout', authenticate, (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
-    const username = tokenToUsername.get(token);
-    if (username) {
-      activeSessions.delete(username);
-      tokenToUsername.delete(token);
+    if (token) {
+      db.deleteSession(token);
     }
     
     res.json({ success: true });
@@ -282,6 +280,13 @@ app.post('/api/change-password', authenticate, (req, res) => {
     }
 
     db.updateUserPassword(req.user.username, newPassword);
+
+    // Sicurezza: il cambio password scollega gli altri dispositivi,
+    // la sessione corrente resta attiva.
+    const authHeader2 = req.headers['authorization'];
+    const currentToken = authHeader2 && authHeader2.split(' ')[1];
+    db.deleteUserSessions(req.user.username, currentToken || null);
+
     res.json({ success: true, message: 'Password aggiornata' });
   } catch (error) {
     console.error('Errore cambio password:', error);
