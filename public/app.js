@@ -234,8 +234,39 @@ async function initializeApp() {
   // Registra service worker per PWA
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/service-worker.js');
+      const swReg = await navigator.serviceWorker.register('/service-worker.js');
       console.log('✓ Service Worker registrato');
+
+      // Con le sessioni persistenti l'app non passa più dal login (che di
+      // fatto ricaricava tutto): controlliamo noi se c'è una versione nuova,
+      // a ogni ritorno in primo piano e comunque ogni ora.
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) swReg.update().catch(() => {});
+      });
+      setInterval(() => swReg.update().catch(() => {}), 60 * 60 * 1000);
+
+      // Quando il service worker nuovo prende il controllo, adotta la
+      // versione nuova ricaricando la pagina — subito se non si sta
+      // lavorando, altrimenti appena l'app va in background.
+      let hadController = !!navigator.serviceWorker.controller;
+      let reloadingForUpdate = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) { hadController = true; return; } // prima installazione: niente reload
+        if (reloadingForUpdate) return;
+        reloadingForUpdate = true;
+        const busy = document.querySelector('.modal.active');
+        if (!busy) {
+          window.location.reload();
+        } else {
+          const reloadWhenHidden = () => {
+            if (document.hidden) {
+              document.removeEventListener('visibilitychange', reloadWhenHidden);
+              window.location.reload();
+            }
+          };
+          document.addEventListener('visibilitychange', reloadWhenHidden);
+        }
+      });
     } catch (error) {
       console.log('Service Worker non registrato:', error);
     }
