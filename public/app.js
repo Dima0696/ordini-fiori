@@ -2051,6 +2051,32 @@ async function loadOrders(date) {
 // MERCE IN ARRIVO — ordini di altri giorni con arrivo in questa data
 // ===========================================
 
+// Stampa "silenziosa" di un ordine: renderizza il dettaglio nel modal
+// (serve al layout di stampa) tenendolo invisibile a schermo, stampa,
+// poi ripulisce. Stesso flusso del bottone stampante sulle card ordine.
+function printOrderSilently(order) {
+  document.body.classList.add('printing-quick');
+  openOrderDetail(order);
+
+  const afterPrintHandler = () => {
+    window.removeEventListener('afterprint', afterPrintHandler);
+    document.body.classList.remove('printing-quick');
+    const modalDetail = document.getElementById('modal-detail');
+    if (modalDetail) modalDetail.classList.remove('active');
+    markOrderAsPrinted(order.id);
+  };
+
+  setTimeout(() => {
+    window.addEventListener('afterprint', afterPrintHandler);
+    window.print();
+  }, 300);
+
+  // Rete di sicurezza se afterprint non arriva
+  setTimeout(() => {
+    if (document.body.classList.contains('printing-quick')) afterPrintHandler();
+  }, 90000);
+}
+
 async function loadArrivalsForDay(date) {
   const section = document.getElementById('arrivals-section');
   const list = document.getElementById('arrivals-list');
@@ -2069,18 +2095,33 @@ async function loadArrivalsForDay(date) {
       const d = new Date(order.date + 'T00:00:00');
       const consegnaShort = giorniBrevi[d.getDay()] + ' ' + d.getDate() + ' ' + mesiBrevi[d.getMonth()];
       const nLines = String(order.description || '').split('\n').filter(l => l.trim() !== '').length;
-      const card = document.createElement('button');
-      card.type = 'button';
+      const card = document.createElement('div');
       card.className = 'arrival-card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      const printedCls = isOrderPrinted(order.id) ? ' printed' : '';
       card.innerHTML = `
         <div class="arrival-card-main">
           <span class="arrival-card-customer">${escapeHtml(order.customer)}</span>
           <span class="arrival-card-meta">${nLines} ${nLines === 1 ? 'articolo' : 'articoli'} · consegna ${consegnaShort}</span>
         </div>
+        <button type="button" class="order-icon-btn arrival-card-print${printedCls}" title="${isOrderPrinted(order.id) ? 'Già stampato — ristampa' : 'Stampa ordine'}" aria-label="Stampa ordine">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+        </button>
         <span class="arrival-card-go" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </span>`;
       card.addEventListener('click', () => openDayOrders(order.date));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDayOrders(order.date); }
+      });
+      const printBtn = card.querySelector('.arrival-card-print');
+      printBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        printOrderSilently(order);
+        printBtn.classList.add('printed');
+        printBtn.title = 'Già stampato — ristampa';
+      });
       list.appendChild(card);
     });
     section.hidden = false;

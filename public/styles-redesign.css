@@ -1882,3 +1882,8 @@ body { min-height: 100vh; min-height: 100dvh; }
 }
 .arrival-card-meta { font-size: .82rem; color: var(--lf-muted); }
 .arrival-card-go { color: var(--lf-faint); flex-shrink: 0; }
+
+/* Bottone stampa sulle card "merce in arrivo" */
+.arrival-card { cursor: pointer; }
+.arrival-card .arrival-card-print { flex-shrink: 0; }
+.arrival-card .arrival-card-print.printed { color: var(--lf-green-700); background: var(--lf-sage-100); }
