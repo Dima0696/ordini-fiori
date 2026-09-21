@@ -61,8 +61,8 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-mobile-optimized.css">
   <link rel="stylesheet" href="pull-to-refresh-styles.css">
-  <link rel="stylesheet" href="styles-redesign.css?v=25">
-  <link rel="stylesheet" href="styles-apple.css?v=3">
+  <link rel="stylesheet" href="styles-redesign.css?v=26">
+  <link rel="stylesheet" href="styles-apple.css?v=4">
   <link rel="manifest" href="manifest.json">
 </head>
 <body style="margin: 0; padding: 0;">
@@ -1126,6 +1126,13 @@
               <input type="text" id="order-customer" placeholder="Fioreria Rossi" required>
             </div>
           </div>
+
+          <div class="form-row-compact">
+            <div class="form-group-premium form-group-date">
+              <label for="order-arrival-date">Arrivo merce <span class="label-hint">facoltativo</span></label>
+              <input type="date" id="order-arrival-date">
+            </div>
+          </div>
           
           <div class="form-group-premium">
             <label for="order-description">Merce <span class="label-hint">una riga per articolo</span></label>
@@ -1538,7 +1545,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <!-- Versionato come i CSS: la vista calendario desktop richiede JS e CSS
        aggiornati insieme (il CSS si aspetta il mese intero e le celle vuote). -->
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
 

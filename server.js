@@ -393,6 +393,14 @@ app.get('/api/orders/:id', authenticate, (req, res) => {
 });
 
 // POST /api/orders - Crea nuovo ordine
+
+// arrival_date: accetta solo YYYY-MM-DD oppure null/vuoto
+function normalizeArrivalDate(v) {
+  if (!v) return null;
+  const s = String(v);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
 app.post('/api/orders', authenticate, async (req, res) => {
   try {
     const {
@@ -402,7 +410,8 @@ app.post('/api/orders', authenticate, async (req, res) => {
       status,
       goods_type,
       photos,
-      lineStates
+      lineStates,
+      arrival_date
     } = req.body;
     
     if (!date || !customer || !description) {
@@ -415,7 +424,8 @@ app.post('/api/orders', authenticate, async (req, res) => {
       description,
       status: status || 'da_preparare', // Default: da preparare
       goods_type: goods_type || 'in_cella',
-      photos: photos || []
+      photos: photos || [],
+      arrival_date: normalizeArrivalDate(arrival_date)
     };
     
     const order = db.createOrder(orderData, req.user.username);
@@ -498,7 +508,8 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       status,
       goods_type,
       photos,
-      lineStates
+      lineStates,
+      arrival_date
     } = req.body;
     
     if (!customer || !description || !status) {
@@ -516,7 +527,8 @@ app.put('/api/orders/:id', authenticate, async (req, res) => {
       description,
       status,
       goods_type: goods_type || 'in_cella',
-      photos: photos || []
+      photos: photos || [],
+      arrival_date: normalizeArrivalDate(arrival_date)
     };
     
     // Se goods_type cambia a "da_ordinare", cancella i flag del fabbisogno

@@ -164,3 +164,13 @@ button, a, .filter-tab, .day-chip, .order-state-badge, .check-line {
     display: none !important;
   }
 }
+
+/* Riga "Arrivo merce" nell'intestazione di stampa */
+@media print {
+  .print-stack-arrival {
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+    color: #000 !important;
+    line-height: 1.2 !important;
+  }
+}

@@ -357,6 +357,17 @@ const initDb = () => {
     }
   }
   // Ordini fissi (ricorrenti): tutti gli ordini generati da uno stesso "fisso"
+  // Giorno di arrivo della merce: quando i fiori arrivano dal fornitore
+  // (puo' differire dalla data di consegna al cliente). Facoltativo.
+  if (!columnExists('orders', 'arrival_date')) {
+    try {
+      db.exec("ALTER TABLE orders ADD COLUMN arrival_date TEXT DEFAULT NULL");
+      console.log('✅ Aggiunta colonna: arrival_date (orders)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo arrival_date:', error.message);
+    }
+  }
+
   // condividono questo id di gruppo, così si possono riconoscere (pallino verde)
   // e modificare insieme dalla sezione Fisso.
   if (!columnExists('orders', 'fisso_group_id')) {
@@ -557,25 +568,26 @@ const createOrder = (orderData, username) => {
     photos = null,
     customer_id = null,
     customer_order_status = null,
-    fisso_group_id = null
+    fisso_group_id = null,
+    arrival_date = null
   } = orderData;
 
   const stmt = db.prepare(`
     INSERT INTO orders (
       date, customer, description, status,
       order_type, delivery_type, delivery_time, delivery_address, goods_type, photos,
-      customer_id, customer_order_status, fisso_group_id,
+      customer_id, customer_order_status, fisso_group_id, arrival_date,
       created_by, updated_by,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `);
 
   const photosJson = photos ? JSON.stringify(photos) : null;
   const info = stmt.run(
     date, customer, description, status,
     order_type, delivery_type, delivery_time, delivery_address, goods_type, photosJson,
-    customer_id, customer_order_status, fisso_group_id || null,
+    customer_id, customer_order_status, fisso_group_id || null, arrival_date || null,
     username, username
   );
   return getOrderById(info.lastInsertRowid);
@@ -658,15 +670,25 @@ const updateOrder = (id, orderData, username) => {
     delivery_time,
     delivery_address,
     goods_type,
-    photos
+    photos,
+    arrival_date
   } = orderData;
-  
+
+  // Leggo l'ordine PRIMA dell'update: serve sia per rimappare le spunte
+  // se cambia la description, sia per preservare arrival_date quando il
+  // chiamante non lo passa (es. cambio tipo merce, aggiornamento fissi).
+  const existing = getOrderById(id);
+  const arrivalFinal = (arrival_date === undefined)
+    ? (existing ? existing.arrival_date : null)
+    : (arrival_date || null);
+
   // Se la data è presente, aggiornala; altrimenti mantieni la vecchia
   let updateQuery = `
     UPDATE orders 
     SET customer = ?, description = ?, status = ?,
         order_type = ?, delivery_type = ?, delivery_time = ?,
         delivery_address = ?, goods_type = ?, photos = ?,
+        arrival_date = ?,
         updated_by = ?,
         updated_at = CURRENT_TIMESTAMP
   `;
@@ -675,6 +697,7 @@ const updateOrder = (id, orderData, username) => {
     customer, description, status,
     order_type, delivery_type, delivery_time, delivery_address, goods_type, 
     photos ? JSON.stringify(photos) : null,
+    arrivalFinal,
     username
   ];
   
@@ -685,6 +708,7 @@ const updateOrder = (id, orderData, username) => {
       SET date = ?, customer = ?, description = ?, status = ?,
           order_type = ?, delivery_type = ?, delivery_time = ?,
           delivery_address = ?, goods_type = ?, photos = ?,
+          arrival_date = ?,
           updated_by = ?,
           updated_at = CURRENT_TIMESTAMP
     `;
@@ -693,9 +717,6 @@ const updateOrder = (id, orderData, username) => {
   
   updateQuery += ` WHERE id = ?`;
   params.push(id);
-
-  // Leggo la description PRIMA dell'update per poter rimappare le spunte se cambia
-  const existing = getOrderById(id);
 
   const stmt = db.prepare(updateQuery);
   stmt.run(...params);

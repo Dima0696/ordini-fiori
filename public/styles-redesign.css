@@ -1800,3 +1800,29 @@ body { min-height: 100vh; min-height: 100dvh; }
 @media (max-width: 480px) {
   #page-orders .btn-home { display: none !important; }
 }
+
+/* ============================================================
+   ARRIVO MERCE — chip sulla card ordine
+   ============================================================ */
+.order-arrival-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: .8em;
+  background: var(--lf-amber-bg);
+  color: #9A5B08;
+  white-space: nowrap;
+}
+.order-arrival-chip.arrived {
+  background: var(--lf-ok-bg);
+  color: #17663F;
+}
+.detail-arrival {
+  margin: .2rem 0 0;
+  font-size: .9rem;
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+}

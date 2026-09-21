@@ -2512,6 +2512,18 @@ function createOrderCard(order, index) {
       metaParts.push(`${lineCount} ${lineCount === 1 ? 'articolo' : 'articoli'}`);
       if (preparedProg.done > 0) metaParts.push(`${preparedProg.done}/${preparedProg.total} pronti`);
     }
+    // Giorno di arrivo merce: verde se gia' arrivata (rispetto a oggi)
+    if (order.arrival_date) {
+      const todayIso = formatDate(new Date());
+      const arrObj = new Date(order.arrival_date + 'T00:00:00');
+      const giorniBrevi = ['dom','lun','mar','mer','gio','ven','sab'];
+      const mesiBrevi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+      const arrShort = giorniBrevi[arrObj.getDay()] + ' ' + arrObj.getDate() + ' ' + mesiBrevi[arrObj.getMonth()];
+      const arrived = order.arrival_date <= todayIso;
+      const chipCls = arrived ? 'order-arrival-chip arrived' : 'order-arrival-chip';
+      const chipTxt = (arrived ? 'Arrivata ' : 'Arriva ') + arrShort;
+      metaParts.push('<span class="' + chipCls + '">\uD83D\uDCE6 ' + chipTxt + '</span>');
+    }
     const metaHtml = (metaParts.length > 0 || indicators)
       ? `<div class="order-head-meta">${metaParts.join(' · ')}${indicators ? ` <span class="order-indicators">${indicators}</span>` : ''}</div>`
       : '';
@@ -4211,6 +4223,7 @@ function openEditOrderModal(order) {
   document.getElementById('modal-title').textContent = 'Modifica ordine';
   document.getElementById('order-id').value = order.id;
   document.getElementById('order-date').value = order.date;
+  document.getElementById('order-arrival-date').value = order.arrival_date || '';
   document.getElementById('order-customer').value = order.customer;
   document.getElementById('order-description').value = order.description;
   document.getElementById('order-status').value = order.status;
@@ -4258,6 +4271,7 @@ async function handleOrderSubmit(e) {
   const customer = document.getElementById('order-customer').value.trim();
   const description = document.getElementById('order-description').value.trim();
   const goodsType = document.getElementById('goods-type').value;
+  const arrivalDate = document.getElementById('order-arrival-date').value || null;
   
   // LOGICA STATO: se merce è "pronto" → stato "pronto", altrimenti "da_preparare"
   const status = (goodsType === GOODS_TYPE.IN_CELLA) 
@@ -4280,7 +4294,8 @@ async function handleOrderSubmit(e) {
     description,
     status,
     goods_type: goodsType,
-    photos: uploadedPhotos
+    photos: uploadedPhotos,
+    arrival_date: arrivalDate
   };
   if (lineStatesPayload) orderData.lineStates = lineStatesPayload;
   
@@ -5484,6 +5499,14 @@ function renderOrderDetail(order) {
   
   // Aggiorna titolo per stampa (cliente + data)
   document.getElementById('detail-header-title').textContent = `${order.customer} - ${dateShort}`;
+
+  // Giorno di arrivo merce (facoltativo)
+  let arrivalFormatted = null;
+  if (order.arrival_date) {
+    arrivalFormatted = new Date(order.arrival_date + 'T00:00:00').toLocaleDateString('it-IT', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+  }
   
   // Layout ottimizzato per stampa su una pagina
   let html = `
@@ -5496,6 +5519,7 @@ function renderOrderDetail(order) {
         <div class="print-stack-date">
           ${dateFormatted}
         </div>
+        ${arrivalFormatted ? `<div class="print-stack-arrival">Arrivo merce: ${arrivalFormatted}</div>` : ''}
       </div>
       <img src="logo.png" alt="LombardaFlor" class="print-stack-logo">
     </div>
@@ -5504,6 +5528,7 @@ function renderOrderDetail(order) {
     <div class="detail-hero no-print">
       <h2 class="detail-customer-name">${escapeHtml(order.customer)}</h2>
       <p class="detail-date">${dateFormatted}</p>
+      ${arrivalFormatted ? `<p class="detail-arrival">\uD83D\uDCE6 Arrivo merce: ${arrivalFormatted}</p>` : ''}
       
       <!-- SEGMENTED CONTROL iOS per cambio stato -->
       <div class="status-segmented-control">
