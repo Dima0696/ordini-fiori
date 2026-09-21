@@ -318,6 +318,16 @@ app.get('/api/orders/date/:date', authenticate, (req, res) => {
 });
 
 // GET /api/orders/date-range - Ordini per range di date
+// GET /api/orders/arrivals/:date - Ordini di ALTRI giorni con merce in arrivo in questa data
+app.get('/api/orders/arrivals/:date', authenticate, (req, res) => {
+  try {
+    const orders = db.getOrdersByArrivalDate(req.params.date);
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero degli arrivi' });
+  }
+});
+
 app.get('/api/orders/date-range', authenticate, (req, res) => {
   try {
     const { from, to } = req.query;

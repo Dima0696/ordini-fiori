@@ -1826,3 +1826,59 @@ body { min-height: 100vh; min-height: 100dvh; }
   color: rgba(255,255,255,.85);
   font-weight: 600;
 }
+
+/* ============================================================
+   MERCE IN ARRIVO — sezione in fondo alla vista giorno
+   ============================================================ */
+.arrivals-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--lf-line-strong);
+}
+.arrivals-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--lf-ink);
+  margin: 0 0 .15rem;
+  letter-spacing: -0.01em;
+}
+.arrivals-hint {
+  font-size: .82rem;
+  color: var(--lf-muted);
+  margin: 0 0 .75rem;
+}
+.arrivals-list {
+  display: grid;
+  gap: .5rem;
+}
+@media (min-width: 768px) {
+  .arrivals-list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+}
+.arrival-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  width: 100%;
+  text-align: left;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-line);
+  border-radius: var(--lf-r-md);
+  padding: .7rem .9rem;
+  cursor: pointer;
+  box-shadow: var(--lf-sh-1);
+  transition: box-shadow .18s var(--lf-ease), transform .12s var(--lf-ease);
+  font-family: inherit;
+}
+.arrival-card:active { transform: scale(0.99); }
+@media (hover: hover) and (pointer: fine) {
+  .arrival-card:hover { box-shadow: var(--lf-sh-2); }
+}
+.arrival-card-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.arrival-card-customer {
+  font-weight: 700;
+  color: var(--lf-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.arrival-card-meta { font-size: .82rem; color: var(--lf-muted); }
+.arrival-card-go { color: var(--lf-faint); flex-shrink: 0; }

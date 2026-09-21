@@ -2027,6 +2027,10 @@ async function loadOrders(date) {
     
     renderDaysSelector();
     renderOrdersView();
+
+    // Merce in arrivo questo giorno per ordini di altri giorni
+    // (non bloccante: se fallisce, la sezione resta semplicemente nascosta)
+    loadArrivalsForDay(date);
     
     // Aggiorna anche i giorni extra selezionati (in background)
     if (selectedExtraDays.size > 0) {
@@ -2040,6 +2044,49 @@ async function loadOrders(date) {
   } catch (error) {
     console.error('❌ Errore caricamento ordini:', error);
     alert('Errore nel caricamento degli ordini: ' + error.message);
+  }
+}
+
+// ===========================================
+// MERCE IN ARRIVO — ordini di altri giorni con arrivo in questa data
+// ===========================================
+
+async function loadArrivalsForDay(date) {
+  const section = document.getElementById('arrivals-section');
+  const list = document.getElementById('arrivals-list');
+  if (!section || !list) return;
+  section.hidden = true;
+  list.innerHTML = '';
+  try {
+    const res = await fetchNoCache(`${API_URL}/orders/arrivals/${date}`);
+    const orders = await res.json();
+    // Il giorno potrebbe essere cambiato mentre la fetch era in volo
+    if (date !== currentDate || !Array.isArray(orders) || orders.length === 0) return;
+
+    const giorniBrevi = ['dom','lun','mar','mer','gio','ven','sab'];
+    const mesiBrevi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    orders.forEach(order => {
+      const d = new Date(order.date + 'T00:00:00');
+      const consegnaShort = giorniBrevi[d.getDay()] + ' ' + d.getDate() + ' ' + mesiBrevi[d.getMonth()];
+      const nLines = String(order.description || '').split('\n').filter(l => l.trim() !== '').length;
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'arrival-card';
+      card.innerHTML = `
+        <div class="arrival-card-main">
+          <span class="arrival-card-customer">${escapeHtml(order.customer)}</span>
+          <span class="arrival-card-meta">${nLines} ${nLines === 1 ? 'articolo' : 'articoli'} · consegna ${consegnaShort}</span>
+        </div>
+        <span class="arrival-card-go" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>`;
+      card.addEventListener('click', () => openDayOrders(order.date));
+      list.appendChild(card);
+    });
+    section.hidden = false;
+  } catch (e) {
+    // Sezione facoltativa: in caso di errore resta nascosta
+    console.log('Arrivi non caricati:', e);
   }
 }
 

@@ -445,6 +445,18 @@ const getOrdersByDate = (date) => {
   });
 };
 
+// Ordini la cui MERCE arriva in una certa data ma che si consegnano in
+// un altro giorno: servono alla vista "in arrivo oggi" della vista giorno.
+const getOrdersByArrivalDate = (date) => {
+  const stmt = db.prepare('SELECT * FROM orders WHERE arrival_date = ? AND date != ? ORDER BY date ASC, customer ASC');
+  return stmt.all(date, date).map(order => {
+    if (order.photos) {
+      try { order.photos = JSON.parse(order.photos); } catch (e) { order.photos = []; }
+    }
+    return order;
+  });
+};
+
 // Ottieni ordini per range di date
 const getOrdersByDateRange = (dateFrom, dateTo) => {
   const stmt = db.prepare('SELECT * FROM orders WHERE date >= ? AND date <= ? ORDER BY date ASC, created_at DESC');
@@ -2164,6 +2176,7 @@ module.exports = {
   initDb,
   getAllOrders,
   getOrdersByDate,
+  getOrdersByArrivalDate,
   getOrdersByDateRange,
   getOrderById,
   createOrder,

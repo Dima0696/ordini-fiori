@@ -61,7 +61,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-mobile-optimized.css">
   <link rel="stylesheet" href="pull-to-refresh-styles.css">
-  <link rel="stylesheet" href="styles-redesign.css?v=26">
+  <link rel="stylesheet" href="styles-redesign.css?v=27">
   <link rel="stylesheet" href="styles-apple.css?v=4">
   <link rel="manifest" href="manifest.json">
 </head>
@@ -433,6 +433,13 @@
       <div id="empty-message" class="empty-message" style="display: none;">
         <p>Nessun ordine per questo giorno</p>
         <p class="empty-subtitle">Tocca "Nuovo ordine" per iniziare</p>
+      </div>
+
+      <!-- Merce in arrivo questo giorno per ordini di ALTRI giorni -->
+      <div id="arrivals-section" class="arrivals-section" hidden>
+        <h3 class="arrivals-title">📦 Merce in arrivo questo giorno</h3>
+        <p class="arrivals-hint">Ordini di altri giorni con merce che arriva qui — tocca per aprire il loro giorno</p>
+        <div id="arrivals-list" class="arrivals-list"></div>
       </div>
     </div>
   </div>
@@ -1545,7 +1552,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <!-- Versionato come i CSS: la vista calendario desktop richiede JS e CSS
        aggiornati insieme (il CSS si aspetta il mese intero e le celle vuote). -->
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
 
