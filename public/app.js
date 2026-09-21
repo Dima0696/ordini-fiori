@@ -1955,6 +1955,10 @@ async function openDayOrders(date) {
   
   // Mostra pagina ordini
   showPage('orders');
+
+  // Misura il pannello fornitore ORA che la pagina è visibile (prima è
+  // display:none e l'altezza risulterebbe 0): serve allo sticky degli arrivi.
+  requestAnimationFrame(updateFornitoreHeightVar);
 }
 
 // Apre il giorno e (se possibile) evidenzia un ordine specifico.
@@ -2054,15 +2058,32 @@ async function loadOrders(date) {
 
 // Altezza del pannello "Ordine fornitore": serve allo sticky della sezione
 // arrivi per fermarsi esattamente sotto di lui (l'altezza varia coi giorni).
+// NB: mai salvare 0 (pannello non ancora visibile: loadOrders gira prima di
+// showPage) — con 0 la sezione arrivi si incollerebbe SOPRA il pannello.
 function updateFornitoreHeightVar() {
   const panel = document.querySelector('.orders-toolbar-fornitore');
   if (!panel) return;
-  document.documentElement.style.setProperty('--fornitore-h', panel.offsetHeight + 'px');
+  const h = panel.offsetHeight;
+  if (h > 0) document.documentElement.style.setProperty('--fornitore-h', h + 'px');
 }
-window.addEventListener('resize', () => {
-  clearTimeout(window.__fornH);
-  window.__fornH = setTimeout(updateFornitoreHeightVar, 150);
-});
+// Il ResizeObserver copre tutto: prima apertura della pagina (0 → altezza
+// reale), cambio giorno (chip diversi), rotazione/resize della finestra.
+(function watchFornitorePanel() {
+  const bind = () => {
+    const panel = document.querySelector('.orders-toolbar-fornitore');
+    if (!panel) return;
+    if (window.ResizeObserver) {
+      new ResizeObserver(updateFornitoreHeightVar).observe(panel);
+    } else {
+      window.addEventListener('resize', () => {
+        clearTimeout(window.__fornH);
+        window.__fornH = setTimeout(updateFornitoreHeightVar, 150);
+      });
+    }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
 
 // ===========================================
 // MERCE IN ARRIVO — ordini di altri giorni con arrivo in questa data
@@ -2213,6 +2234,8 @@ async function loadArrivalsForDay(date) {
     }
 
     section.hidden = false;
+    // La sezione è appena comparsa: rimisura il pannello per lo sticky
+    setTimeout(updateFornitoreHeightVar, 50);
   } catch (e) {
     // Sezione facoltativa: in caso di errore resta nascosta
     console.log('Arrivi non caricati:', e);
