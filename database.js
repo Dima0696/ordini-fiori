@@ -292,6 +292,17 @@ const initDb = () => {
     }
   }
 
+  // Migrazione: data di arrivo PER RIGA (solo eccezioni ITA/IMPORT; le righe
+  // NL ereditano l'arrivo Olanda dell'ordine). Additiva, non tocca dati.
+  if (!columnExists('fabbisogno_checks', 'arrival_date')) {
+    try {
+      db.exec("ALTER TABLE fabbisogno_checks ADD COLUMN arrival_date TEXT DEFAULT NULL");
+      console.log('✅ Aggiunta colonna: arrival_date (fabbisogno_checks)');
+    } catch (error) {
+      console.error('⚠️ Errore aggiungendo arrival_date (fabbisogno_checks):', error.message);
+    }
+  }
+
   // Migrazione: aggiunge colonna 'supplier' a fabbisogno_checks (NL, ITA, IMPORT)
   if (!columnExists('fabbisogno_checks', 'supplier')) {
     try {
@@ -443,6 +454,46 @@ const getOrdersByDate = (date) => {
     }
     return order;
   });
+};
+
+// Righe ITA/IMPORT con arrivo proprio in una certa data (per la vista
+// "merce in arrivo": lista per il magazzino, raggruppata per fornitore).
+const getLinesByArrivalDate = (date) => {
+  const rows = db.prepare(`
+    SELECT fc.order_id, fc.line_number, fc.supplier, fc.arrival_date,
+           o.customer, o.date AS order_date, o.description
+    FROM fabbisogno_checks fc
+    JOIN orders o ON o.id = fc.order_id
+    WHERE fc.arrival_date = ?
+    ORDER BY fc.supplier ASC, o.customer ASC, fc.line_number ASC
+  `).all(date);
+  return rows.map(r => {
+    const lines = significantLines(r.description);
+    return {
+      order_id: r.order_id,
+      line_number: r.line_number,
+      supplier: r.supplier,
+      customer: r.customer,
+      order_date: r.order_date,
+      line_text: lines[r.line_number] || ''
+    };
+  }).filter(r => r.line_text !== '');
+};
+
+// Composizione fornitori delle righe di un gruppo di ordini:
+// { orderId: { NL: n, ITA: n, IMPORT: n, senza: n } }
+const getSupplierBreakdown = (orderIds) => {
+  if (!orderIds || orderIds.length === 0) return {};
+  const placeholders = orderIds.map(() => '?').join(',');
+  const rows = db.prepare(
+    `SELECT order_id, supplier, COUNT(*) AS n FROM fabbisogno_checks WHERE order_id IN (${placeholders}) GROUP BY order_id, supplier`
+  ).all(...orderIds);
+  const out = {};
+  rows.forEach(r => {
+    if (!out[r.order_id]) out[r.order_id] = {};
+    out[r.order_id][r.supplier || 'senza'] = r.n;
+  });
+  return out;
 };
 
 // Ordini la cui MERCE arriva in una certa data ma che si consegnano in
@@ -632,7 +683,7 @@ const remapFabbisognoChecks = (orderId, oldDescription, newDescription) => {
   }
 
   const rows = db.prepare(
-    'SELECT line_number, checked, prepared, supplier, match_key FROM fabbisogno_checks WHERE order_id = ?'
+    'SELECT line_number, checked, prepared, supplier, match_key, arrival_date FROM fabbisogno_checks WHERE order_id = ?'
   ).all(orderId);
   if (rows.length === 0) return; // nessuna spunta da preservare
 
@@ -661,10 +712,10 @@ const remapFabbisognoChecks = (orderId, oldDescription, newDescription) => {
   const rewrite = db.transaction(() => {
     db.prepare('DELETE FROM fabbisogno_checks WHERE order_id = ?').run(orderId);
     const ins = db.prepare(
-      'INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, match_key) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, match_key, arrival_date) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
     for (const { newIndex, row } of remapped) {
-      ins.run(orderId, newIndex, row.checked || 0, row.prepared || 0, row.supplier || null, row.match_key || null);
+      ins.run(orderId, newIndex, row.checked || 0, row.prepared || 0, row.supplier || null, row.match_key || null, row.arrival_date || null);
     }
   });
   rewrite();
@@ -1013,7 +1064,7 @@ const deleteSubscription = (endpoint) => {
 
 // Funzioni per gestire i checkbox del fabbisogno
 const getFabbisognoChecks = (orderId) => {
-  const stmt = db.prepare('SELECT line_number, checked, prepared, supplier, match_key FROM fabbisogno_checks WHERE order_id = ?');
+  const stmt = db.prepare('SELECT line_number, checked, prepared, supplier, match_key, arrival_date FROM fabbisogno_checks WHERE order_id = ?');
   const checks = stmt.all(orderId);
   const result = {};
   checks.forEach(c => {
@@ -1021,7 +1072,8 @@ const getFabbisognoChecks = (orderId) => {
       checked: c.checked === 1,
       prepared: (c.prepared || 0) === 1,
       supplier: c.supplier || '',
-      matchKey: c.match_key || ''
+      matchKey: c.match_key || '',
+      arrivalDate: c.arrival_date || ''
     };
   });
   return result;
@@ -1144,19 +1196,38 @@ const setFabbisognoPrepared = (orderId, lineNumber, prepared) => {
 };
 
 // Set fornitore (NL, ITA, IMPORT, '')
-const setFabbisognoSupplier = (orderId, lineNumber, supplier) => {
+// arrivalDate: data di arrivo della riga (solo per ITA/IMPORT).
+// - supplier NL o vuoto → arrival_date azzerata (la riga eredita l'ordine)
+// - supplier ITA/IMPORT + arrivalDate stringa → impostata
+// - supplier ITA/IMPORT + arrivalDate undefined → mantiene quella esistente
+const setFabbisognoSupplier = (orderId, lineNumber, supplier, arrivalDate) => {
   const validSupplier = ['NL', 'ITA', 'IMPORT', ''].includes(supplier) ? supplier : '';
-  
+  const isException = validSupplier === 'ITA' || validSupplier === 'IMPORT';
+  const validArrival = (typeof arrivalDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(arrivalDate)) ? arrivalDate : null;
+
   try {
     const upsert = db.transaction(() => {
       const existing = db.prepare('SELECT id FROM fabbisogno_checks WHERE order_id = ? AND line_number = ?').get(orderId, lineNumber);
 
-      if (existing) {
-        db.prepare('UPDATE fabbisogno_checks SET supplier = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?')
-          .run(validSupplier, orderId, lineNumber);
+      let arrivalSql;
+      let arrivalParams;
+      if (!isException) {
+        arrivalSql = ', arrival_date = NULL';
+        arrivalParams = [];
+      } else if (arrivalDate === undefined) {
+        arrivalSql = '';
+        arrivalParams = [];
       } else {
-        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier) VALUES (?, ?, 0, 0, ?)')
-          .run(orderId, lineNumber, validSupplier);
+        arrivalSql = ', arrival_date = ?';
+        arrivalParams = [validArrival];
+      }
+
+      if (existing) {
+        db.prepare(`UPDATE fabbisogno_checks SET supplier = ?${arrivalSql}, updated_at = CURRENT_TIMESTAMP WHERE order_id = ? AND line_number = ?`)
+          .run(validSupplier, ...arrivalParams, orderId, lineNumber);
+      } else {
+        db.prepare('INSERT INTO fabbisogno_checks (order_id, line_number, checked, prepared, supplier, arrival_date) VALUES (?, ?, 0, 0, ?, ?)')
+          .run(orderId, lineNumber, validSupplier, isException ? validArrival : null);
       }
     });
 
@@ -2177,6 +2248,8 @@ module.exports = {
   getAllOrders,
   getOrdersByDate,
   getOrdersByArrivalDate,
+  getLinesByArrivalDate,
+  getSupplierBreakdown,
   getOrdersByDateRange,
   getOrderById,
   createOrder,

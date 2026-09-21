@@ -174,3 +174,32 @@ button, a, .filter-tab, .day-chip, .order-state-badge, .check-line {
     line-height: 1.2 !important;
   }
 }
+
+/* Stampa "lista magazzino": solo la sezione arrivi, per carta intestata */
+@media print {
+  body.printing-arrivals .app-header,
+  body.printing-arrivals .order-actions-top,
+  body.printing-arrivals .orders-toolbar-fornitore,
+  body.printing-arrivals .orders-filter-tabs,
+  body.printing-arrivals #orders-list,
+  body.printing-arrivals .empty-message,
+  body.printing-arrivals #filter-empty-message,
+  body.printing-arrivals #sync-banner,
+  body.printing-arrivals .pull-refresh-indicator,
+  body.printing-arrivals .arrival-card,
+  body.printing-arrivals .btn-print-arrivals,
+  body.printing-arrivals .arrivals-hint {
+    display: none !important;
+  }
+  body.printing-arrivals #page-orders { display: block !important; }
+  body.printing-arrivals #arrivals-section {
+    display: block !important;
+    border: none !important;
+    padding-top: 35mm !important; /* carta intestata */
+  }
+  body.printing-arrivals .arrivals-title { font-size: 16pt !important; color: #000 !important; }
+  body.printing-arrivals .arrival-line { border: 1px solid #999 !important; break-inside: avoid; }
+  body.printing-arrivals .arrival-line-text, 
+  body.printing-arrivals .arrival-line-meta { color: #000 !important; }
+  body.printing-arrivals .arrivals-supplier-title { border: 1.5pt solid #000 !important; color: #000 !important; background: none !important; }
+}

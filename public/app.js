@@ -46,6 +46,9 @@ let uploadedPhotos = []; // Array di URL foto caricate
 // Nuovo/Modifica ordine: { [rowIndex]: { matchKey, supplier } }.
 // Viene applicato al server SOLO al submit, dopo che l'ordine è stato creato/aggiornato.
 let pendingOrderLineState = {};
+// Ultima data di arrivo usata per fornitore (ITA/IMPORT): precompila i campi
+// successivi cosi' taggare 15 righe costa una sola data scritta.
+let lastArrivalUsed = {};
 // Snapshot (righe normalizzate) allineato agli indici di pendingOrderLineState.
 // Serve a ri-agganciare provenienza/match alla riga giusta PER CONTENUTO quando
 // l'utente aggiunge/toglie/riordina righe nella textarea durante la modifica.
@@ -2027,6 +2030,7 @@ async function loadOrders(date) {
     
     renderDaysSelector();
     renderOrdersView();
+    setupLineArrivalListener();
 
     // Merce in arrivo questo giorno per ordini di altri giorni
     // (non bloccante: se fallisce, la sezione resta semplicemente nascosta)
@@ -2083,18 +2087,36 @@ async function loadArrivalsForDay(date) {
   if (!section || !list) return;
   section.hidden = true;
   list.innerHTML = '';
+  const oldLines = document.getElementById('arrivals-lines');
+  if (oldLines) oldLines.remove();
+  const oldPrint = document.getElementById('btn-print-arrivals');
+  if (oldPrint) oldPrint.remove();
   try {
     const res = await fetchNoCache(`${API_URL}/orders/arrivals/${date}`);
-    const orders = await res.json();
+    const data = await res.json();
     // Il giorno potrebbe essere cambiato mentre la fetch era in volo
-    if (date !== currentDate || !Array.isArray(orders) || orders.length === 0) return;
+    if (date !== currentDate) return;
+    const orders = Array.isArray(data) ? data : (data.orders || []);
+    const lines = Array.isArray(data) ? [] : (data.lines || []);
+    const breakdown = (data && data.breakdown) || {};
+    if (orders.length === 0 && lines.length === 0) return;
 
     const giorniBrevi = ['dom','lun','mar','mer','gio','ven','sab'];
     const mesiBrevi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const shortDate = (iso) => {
+      const d = new Date(iso + 'T00:00:00');
+      return giorniBrevi[d.getDay()] + ' ' + d.getDate() + ' ' + mesiBrevi[d.getMonth()];
+    };
+
+    // --- Ordini interi in arrivo (arrivo Olanda) con composizione fornitori ---
     orders.forEach(order => {
-      const d = new Date(order.date + 'T00:00:00');
-      const consegnaShort = giorniBrevi[d.getDay()] + ' ' + d.getDate() + ' ' + mesiBrevi[d.getMonth()];
+      const consegnaShort = shortDate(order.date);
       const nLines = String(order.description || '').split('\n').filter(l => l.trim() !== '').length;
+      const bd = breakdown[order.id] || {};
+      const bdParts = [];
+      if (bd.ITA) bdParts.push(bd.ITA + ' ITA');
+      if (bd.IMPORT) bdParts.push(bd.IMPORT + ' IMP');
+      const bdTxt = bdParts.length > 0 ? ` · <span class="arrival-bd">${bdParts.join(' · ')} a parte</span>` : '';
       const card = document.createElement('div');
       card.className = 'arrival-card';
       card.setAttribute('role', 'button');
@@ -2103,7 +2125,7 @@ async function loadArrivalsForDay(date) {
       card.innerHTML = `
         <div class="arrival-card-main">
           <span class="arrival-card-customer">${escapeHtml(order.customer)}</span>
-          <span class="arrival-card-meta">${nLines} ${nLines === 1 ? 'articolo' : 'articoli'} · consegna ${consegnaShort}</span>
+          <span class="arrival-card-meta">${nLines} ${nLines === 1 ? 'articolo' : 'articoli'} · consegna ${consegnaShort}${bdTxt}</span>
         </div>
         <button type="button" class="order-icon-btn arrival-card-print${printedCls}" title="${isOrderPrinted(order.id) ? 'Già stampato — ristampa' : 'Stampa ordine'}" aria-label="Stampa ordine">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
@@ -2124,6 +2146,59 @@ async function loadArrivalsForDay(date) {
       });
       list.appendChild(card);
     });
+
+    // --- Righe ITA/IMPORT con arrivo proprio in questo giorno ---
+    if (lines.length > 0) {
+      const wrap = document.createElement('div');
+      wrap.id = 'arrivals-lines';
+      wrap.className = 'arrivals-lines';
+      const bySupplier = {};
+      lines.forEach(l => {
+        const key = l.supplier || 'ALTRO';
+        if (!bySupplier[key]) bySupplier[key] = [];
+        bySupplier[key].push(l);
+      });
+      const labels = { ITA: 'ITALIA', IMPORT: 'IMPORT' };
+      Object.keys(bySupplier).sort().forEach(sup => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'arrivals-supplier-group';
+        groupEl.innerHTML = `<div class="arrivals-supplier-title supplier-tag-${sup.toLowerCase()}">${labels[sup] || escapeHtml(sup)}</div>`;
+        bySupplier[sup].forEach(l => {
+          const row = document.createElement('div');
+          row.className = 'arrival-line';
+          row.setAttribute('role', 'button');
+          row.setAttribute('tabindex', '0');
+          row.innerHTML = `
+            <span class="arrival-line-text">${escapeHtml(l.line_text)}</span>
+            <span class="arrival-line-meta">${escapeHtml(l.customer)} · consegna ${shortDate(l.order_date)}</span>`;
+          row.addEventListener('click', () => openDayOrders(l.order_date));
+          groupEl.appendChild(row);
+        });
+        wrap.appendChild(groupEl);
+      });
+      section.appendChild(wrap);
+
+      // Stampa lista per il magazzino
+      const printList = document.createElement('button');
+      printList.type = 'button';
+      printList.id = 'btn-print-arrivals';
+      printList.className = 'btn-secondary btn-print-arrivals no-print';
+      printList.innerHTML = '🖨 Stampa lista magazzino';
+      printList.addEventListener('click', () => {
+        document.body.classList.add('printing-arrivals');
+        const cleanup = () => {
+          window.removeEventListener('afterprint', cleanup);
+          document.body.classList.remove('printing-arrivals');
+        };
+        window.addEventListener('afterprint', cleanup);
+        setTimeout(() => window.print(), 100);
+        setTimeout(() => {
+          if (document.body.classList.contains('printing-arrivals')) cleanup();
+        }, 90000);
+      });
+      section.appendChild(printList);
+    }
+
     section.hidden = false;
   } catch (e) {
     // Sezione facoltativa: in caso di errore resta nascosta
@@ -2860,6 +2935,9 @@ function renderDescriptionWithChecks(orderId, description) {
         <button type="button" class="supplier-btn supplier-ita ${supplier === 'ITA' ? 'active' : ''}" data-supplier="ITA" title="Italia">ITA</button>
         <button type="button" class="supplier-btn supplier-nl ${supplier === 'NL' ? 'active' : ''}" data-supplier="NL" title="Olanda">NL</button>
       </span>
+      ${(supplier === 'ITA' || supplier === 'IMPORT')
+        ? `<input type="date" class="line-arrival-input ${lineData.arrivalDate ? '' : 'missing'}" data-order-id="${orderId}" data-line="${index}" value="${lineData.arrivalDate || ''}" title="Arrivo ${supplier}">`
+        : ''}
     </div>`;
   }).join('');
   
@@ -3155,9 +3233,11 @@ function loadPendingOrderLineStateFromOrder(orderId) {
     const c = checks[idx];
     const supplier = (c && c.supplier) || '';
     const matchKey = (c && c.matchKey) || '';
+    const arrivalDate = (c && c.arrivalDate) || '';
     const entry = {};
     if (supplier) entry.supplier = supplier;
     if (matchKey) entry.matchKey = matchKey;
+    if (arrivalDate) entry.arrivalDate = arrivalDate;
     if (Object.keys(entry).length > 0) {
       pendingOrderLineState[idx] = entry;
     }
@@ -3215,12 +3295,18 @@ function renderOrderRowsPreview() {
       const supplier = state.supplier || '';
       const supplierBtns = ORDER_ROW_SUPPLIERS.map(code => renderRowSupplierBtn(r.idx, code, supplier === code)).join('');
       const chip = renderOrderRowMatchChip(r.idx, matchKey);
+      const isException = supplier === 'ITA' || supplier === 'IMPORT';
+      const arrivalVal = state.arrivalDate || '';
+      const arrivalInput = isException
+        ? `<input type="date" class="row-arrival-input ${arrivalVal ? '' : 'missing'}" data-row="${r.idx}" value="${arrivalVal}" title="Arrivo ${supplier}">`
+        : '';
       return `
         <div class="order-row" data-row="${r.idx}">
           <div class="order-row-text">${escapeHtml(r.text)}</div>
           <div class="order-row-controls">
             ${chip}
             <div class="order-row-suppliers">${supplierBtns}</div>
+            ${arrivalInput}
           </div>
         </div>
       `;
@@ -3265,7 +3351,18 @@ async function openOrderRowMatchPicker(rowIdx) {
 function toggleOrderRowSupplier(rowIdx, code) {
   if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = {};
   const cur = pendingOrderLineState[rowIdx].supplier || '';
-  pendingOrderLineState[rowIdx].supplier = (cur === code) ? '' : code;
+  const next = (cur === code) ? '' : code;
+  pendingOrderLineState[rowIdx].supplier = next;
+  if (next === 'ITA' || next === 'IMPORT') {
+    // Obbligo a costo zero: precompila con l'ultima data usata per questo
+    // fornitore, altrimenti con l'arrivo Olanda dell'ordine.
+    if (!pendingOrderLineState[rowIdx].arrivalDate) {
+      pendingOrderLineState[rowIdx].arrivalDate =
+        lastArrivalUsed[next] || document.getElementById('order-arrival-date').value || '';
+    }
+  } else {
+    delete pendingOrderLineState[rowIdx].arrivalDate;
+  }
   renderOrderRowsPreview();
 }
 
@@ -3274,6 +3371,18 @@ function setupOrderRowsPreviewEvents() {
   const preview = document.getElementById('order-rows-preview');
   if (!preview || preview._eventsBound) return;
   preview._eventsBound = true;
+
+  preview.addEventListener('change', (e) => {
+    const inp = e.target.closest('.row-arrival-input');
+    if (!inp) return;
+    const rowIdx = parseInt(inp.dataset.row);
+    if (Number.isNaN(rowIdx)) return;
+    if (!pendingOrderLineState[rowIdx]) pendingOrderLineState[rowIdx] = {};
+    pendingOrderLineState[rowIdx].arrivalDate = inp.value || '';
+    const sup = pendingOrderLineState[rowIdx].supplier;
+    if (inp.value && (sup === 'ITA' || sup === 'IMPORT')) lastArrivalUsed[sup] = inp.value;
+    inp.classList.toggle('missing', !inp.value);
+  });
   
   preview.addEventListener('click', (e) => {
     const matchChip = e.target.closest('.order-row-match-chip');
@@ -3323,7 +3432,11 @@ function buildLineStatesPayload() {
     const s = pendingOrderLineState[idx] || {};
     const entry = {};
     if (typeof s.matchKey === 'string') entry.matchKey = s.matchKey;
-    if (typeof s.supplier === 'string') entry.supplier = s.supplier;
+    if (typeof s.supplier === 'string') {
+      entry.supplier = s.supplier;
+      // La data viaggia insieme al fornitore: per NL/vuoto il server la azzera
+      entry.arrivalDate = (s.supplier === 'ITA' || s.supplier === 'IMPORT') ? (s.arrivalDate || '') : '';
+    }
     if (Object.keys(entry).length > 0) {
       lineStates[idx] = entry;
       count++;
@@ -3632,10 +3745,21 @@ async function toggleOrderLineCheck(orderId, lineNumber, clickedElement) {
 async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
   const group = btnEl.closest('.supplier-group');
   if (!group) return;
-  
+
   const wasActive = btnEl.classList.contains('active');
   const newSupplier = wasActive ? '' : supplier;
-  
+  const isException = newSupplier === 'ITA' || newSupplier === 'IMPORT';
+
+  // Prefill data per ITA/IMPORT: data gia' presente sulla riga → ultima usata
+  // per quel fornitore → arrivo Olanda dell'ordine → vuota (evidenziata).
+  let arrivalDate = '';
+  if (isException) {
+    const cached = (allOrderChecks[orderId] && allOrderChecks[orderId][lineNumber]) || {};
+    const ord = (currentDayOrders || []).find(o => o.id === orderId)
+      || Object.values(extraDayOrders || {}).flat().find(o => o.id === orderId);
+    arrivalDate = cached.arrivalDate || lastArrivalUsed[newSupplier] || (ord && ord.arrival_date) || '';
+  }
+
   // Optimistic UI: deseleziona tutti, poi seleziona (se non era già attivo)
   const prevState = {};
   group.querySelectorAll('.supplier-btn').forEach(b => {
@@ -3643,29 +3767,88 @@ async function toggleOrderLineSupplier(orderId, lineNumber, supplier, btnEl) {
     b.classList.remove('active');
   });
   if (!wasActive) btnEl.classList.add('active');
-  
+  updateLineArrivalInput(group, orderId, lineNumber, newSupplier, arrivalDate);
+
   try {
     await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/supplier`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ supplier: newSupplier })
+      body: JSON.stringify({ supplier: newSupplier, arrival_date: isException ? arrivalDate : '' })
     });
-    
+
     // Aggiorna cache locale
     if (!allOrderChecks[orderId]) allOrderChecks[orderId] = {};
     if (!allOrderChecks[orderId][lineNumber]) {
-      allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '', matchKey: '' };
+      allOrderChecks[orderId][lineNumber] = { checked: false, prepared: false, supplier: '', matchKey: '', arrivalDate: '' };
     }
     allOrderChecks[orderId][lineNumber].supplier = newSupplier;
+    allOrderChecks[orderId][lineNumber].arrivalDate = isException ? arrivalDate : '';
+    if (isException && arrivalDate) lastArrivalUsed[newSupplier] = arrivalDate;
   } catch (error) {
     console.error('Errore salvataggio provenienza:', error);
     // Rollback
     group.querySelectorAll('.supplier-btn').forEach(b => {
       b.classList.toggle('active', !!prevState[b.dataset.supplier]);
     });
+    const prevSup = Object.keys(prevState).find(k => prevState[k]) || '';
+    const prevArr = (allOrderChecks[orderId] && allOrderChecks[orderId][lineNumber] && allOrderChecks[orderId][lineNumber].arrivalDate) || '';
+    updateLineArrivalInput(group, orderId, lineNumber, prevSup, prevArr);
   }
 }
 
+// Inserisce/aggiorna/rimuove l'input data accanto ai chip fornitore della riga.
+function updateLineArrivalInput(group, orderId, lineNumber, supplier, arrivalDate) {
+  const line = group.closest('.check-line');
+  if (!line) return;
+  let inp = line.querySelector('.line-arrival-input');
+  const isException = supplier === 'ITA' || supplier === 'IMPORT';
+  if (!isException) {
+    if (inp) inp.remove();
+    return;
+  }
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'date';
+    inp.className = 'line-arrival-input';
+    inp.dataset.orderId = orderId;
+    inp.dataset.line = lineNumber;
+    group.after(inp);
+  }
+  inp.value = arrivalDate || '';
+  inp.title = 'Arrivo ' + supplier;
+  inp.classList.toggle('missing', !arrivalDate);
+}
+
+// Cambio data su una riga (delegato, sopravvive ai re-render delle card)
+function setupLineArrivalListener() {
+  const list = document.getElementById('orders-list');
+  if (!list || list._arrivalBound) return;
+  list._arrivalBound = true;
+  list.addEventListener('change', async (e) => {
+    const inp = e.target.closest('.line-arrival-input');
+    if (!inp) return;
+    const orderId = parseInt(inp.dataset.orderId);
+    const lineNumber = parseInt(inp.dataset.line);
+    if (Number.isNaN(orderId) || Number.isNaN(lineNumber)) return;
+    const cached = (allOrderChecks[orderId] && allOrderChecks[orderId][lineNumber]) || {};
+    const supplier = cached.supplier || '';
+    if (supplier !== 'ITA' && supplier !== 'IMPORT') return;
+    const value = inp.value || '';
+    try {
+      await authenticatedFetch(`${API_URL}/fabbisogno-checks/${orderId}/${lineNumber}/supplier`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplier, arrival_date: value })
+      });
+      allOrderChecks[orderId][lineNumber].arrivalDate = value;
+      if (value) lastArrivalUsed[supplier] = value;
+      inp.classList.toggle('missing', !value);
+    } catch (err) {
+      console.error('Errore salvataggio data arrivo riga:', err);
+      inp.value = cached.arrivalDate || '';
+    }
+  });
+}
 // Renderizza le pillole dei prossimi 7 giorni (escluso il corrente: è sempre attivo)
 function renderDaysSelector() {
   const container = document.getElementById('days-selector-chips');
@@ -4369,6 +4552,16 @@ async function handleOrderSubmit(e) {
   // Solo cliente, merce e giorno sono obbligatori
   if (!customer || !description) {
     alert('Compila i campi obbligatori: Cliente e Merce');
+    return;
+  }
+
+  // Le righe ITA/IMPORT devono avere la loro data di arrivo (evidenziata nel form)
+  const righeSenzaData = Object.keys(pendingOrderLineState).filter(idx => {
+    const s = pendingOrderLineState[idx] || {};
+    return (s.supplier === 'ITA' || s.supplier === 'IMPORT') && !s.arrivalDate;
+  });
+  if (righeSenzaData.length > 0) {
+    alert('Metti la data di arrivo sulle righe ITA/IMPORT (campo evidenziato accanto al fornitore)');
     return;
   }
   

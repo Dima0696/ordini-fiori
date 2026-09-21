@@ -1918,3 +1918,54 @@ body { min-height: 100vh; min-height: 100dvh; }
   /* Nella colonna le card stanno una sotto l'altra */
   #arrivals-section .arrivals-list { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   ARRIVO PER RIGA (ITA/IMPORT) — input data accanto ai chip
+   ============================================================ */
+.row-arrival-input, .line-arrival-input {
+  border: 1.5px solid var(--lf-line-strong);
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: .8rem;
+  font-family: inherit;
+  color: var(--lf-green-800);
+  background: var(--lf-sage-50);
+  font-weight: 600;
+  max-width: 130px;
+}
+/* Evidenziata finché manca la data: l'obbligo si vede */
+.row-arrival-input.missing, .line-arrival-input.missing {
+  border-color: var(--lf-coral);
+  background: var(--lf-coral-bg);
+  color: #A33;
+  animation: none;
+}
+
+/* ---- Righe in arrivo per fornitore nella sezione arrivi ---- */
+.arrivals-lines { margin-top: 1rem; display: grid; gap: .9rem; }
+.arrivals-supplier-title {
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  margin-bottom: .4rem;
+  padding: .15rem .6rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+.supplier-tag-ita { background: #DDF2E7; color: #17663F; }
+.supplier-tag-import { background: #EFE3FA; color: #6B3FA0; }
+.arrival-line {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-line);
+  border-radius: 10px;
+  padding: .5rem .75rem;
+  margin-bottom: .4rem;
+  cursor: pointer;
+}
+.arrival-line-text { font-weight: 600; color: var(--lf-ink); }
+.arrival-line-meta { font-size: .78rem; color: var(--lf-muted); }
+.arrival-bd { color: #9A5B08; font-weight: 700; }
+.btn-print-arrivals { margin-top: .75rem; width: 100%; }

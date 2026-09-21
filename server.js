@@ -322,7 +322,9 @@ app.get('/api/orders/date/:date', authenticate, (req, res) => {
 app.get('/api/orders/arrivals/:date', authenticate, (req, res) => {
   try {
     const orders = db.getOrdersByArrivalDate(req.params.date);
-    res.json(orders);
+    const lines = db.getLinesByArrivalDate(req.params.date);
+    const breakdown = db.getSupplierBreakdown(orders.map(o => o.id));
+    res.json({ orders, lines, breakdown });
   } catch (error) {
     res.status(500).json({ error: 'Errore nel recupero degli arrivi' });
   }
@@ -933,8 +935,13 @@ app.post('/api/fabbisogno-checks/:orderId/:lineNumber/supplier', authenticate, (
     const orderId = parseInt(req.params.orderId);
     const lineNumber = parseInt(req.params.lineNumber);
     const supplier = (req.body && typeof req.body.supplier === 'string') ? req.body.supplier : '';
+    // arrival_date: assente = mantieni; stringa YYYY-MM-DD = imposta; '' = azzera
+    let arrivalDate;
+    if (req.body && 'arrival_date' in req.body) {
+      arrivalDate = normalizeArrivalDate(req.body.arrival_date); // null se vuota/invalida
+    }
     
-    const result = db.setFabbisognoSupplier(orderId, lineNumber, supplier);
+    const result = db.setFabbisognoSupplier(orderId, lineNumber, supplier, arrivalDate);
     res.json({ supplier: result });
   } catch (error) {
     console.error('❌ Errore salvataggio supplier:', error);
@@ -961,7 +968,8 @@ function applyLineStatesToFabbisogno(orderId, lineStates) {
     
     if (typeof s.supplier === 'string') {
       try {
-        db.setFabbisognoSupplier(orderId, idx, s.supplier);
+        const arr = ('arrivalDate' in s) ? normalizeArrivalDate(s.arrivalDate) : undefined;
+        db.setFabbisognoSupplier(orderId, idx, s.supplier, arr);
         supplierUpdates++;
       } catch (e) {
         errors.push({ index: idx, field: 'supplier', error: e.message });
